@@ -19,7 +19,7 @@ class PipelineStepTruncate(PipelineStep):
 
             # Count reads and truncate
             file_format = unzipped_input.split(".")[-1]
-            assert file_format in ["fq", "fastq"]
+            assert file_format in ["fq", "fastq"], "Currently only support fq/fastq"
             max_lines = idseq_dag.util.counting.reads2lines(self.additional_attributes["truncate_reads_to"],
                                                             file_format)
             input_lines = subprocess.check_output("wc -l {}".format(unzipped_input), shell=True)
