@@ -30,7 +30,7 @@ class PipelineStepTruncate(PipelineStep):
             input_lines = int(subprocess.check_output("wc -l < {}".format(unzipped_input), shell=True))
             if input_lines > max_lines:
                 subprocess.check_call("head -{} {} > {}".format(max_lines, unzipped_input, output), shell=True)
-                read_count = idseq_dag.util.counting.lines2reads(max_lines)
+                read_count = idseq_dag.util.counting.lines2reads(max_lines, file_format)
                 truncated_bool = True
             else:
                 subprocess.check_call("mv {} {}".format(unzipped_input, output), shell=True)
