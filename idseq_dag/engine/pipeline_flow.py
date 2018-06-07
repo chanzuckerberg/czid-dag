@@ -4,10 +4,10 @@ import sys
 import os
 import threading
 import traceback
-import subprocess
 
 import idseq_dag
 import idseq_dag.util.s3
+import idseq_dag.util.command as command
 from idseq_dag.engine.pipeline_step import PipelineStep
 
 DEFAULT_OUTPUT_DIR_LOCAL = '/mnt/idseq/results/%d' % os.getpid()
@@ -28,7 +28,7 @@ class PipelineFlow(object):
                                           self.parse_output_version(idseq_dag.__version__))
         self.output_dir_local = dag.get("output_dir_local", DEFAULT_OUTPUT_DIR_LOCAL).rstrip('/')
         self.ref_dir_local = dag.get("ref_dir_local", DEFAULT_REF_DIR_LOCAL)
-        subprocess.check_call("mkdir -p %s %s" % (self.output_dir_local, self.ref_dir_local), shell=True)
+        command.execute("mkdir -p %s %s" % (self.output_dir_local, self.ref_dir_local))
 
     @staticmethod
     def parse_output_version(version):
@@ -131,11 +131,11 @@ class PipelineFlow(object):
             s3_file = os.path.join(input_dir_s3, f)
             local_file = os.path.join(result_dir_local, f)
             # copy the file over
-            subprocess.check_call("aws s3 cp %s %s/" % (s3_file, result_dir_local), shell=True)
+            command.execute("aws s3 cp %s %s/" % (s3_file, result_dir_local))
 
             # write the done_file
             done_file = PipelineStep.done_file(local_file)
-            subprocess.check_call("date > %s" % done_file, shell=True)
+            command.execute("date > %s" % done_file)
 
     def fetch_node_from_s3(self, node):
         ''' .done file should be written to the result dir when the download is complete '''

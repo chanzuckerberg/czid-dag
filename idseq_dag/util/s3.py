@@ -1,7 +1,9 @@
 import os
 import threading
-import subprocess
 import time
+import idseq_dag.util.command as command
+
+
 def check_s3_presence(s3_path):
     ''' True if s3_path exists. False otherwise. '''
     try:
@@ -20,7 +22,7 @@ def check_s3_presence_for_file_list(s3_dir, file_list):
 
 def touch_s3_file(s3_file_path):
     try:
-        subprocess.check_call("aws s3 cp --metadata '{\"touched\":\"now\"}' %s %s" % (s3_file_path, s3_file_path), shell=True)
+        command.execute("aws s3 cp --metadata '{\"touched\":\"now\"}' %s %s" % (s3_file_path, s3_file_path))
         return True
     except:
         return False
