@@ -28,11 +28,17 @@ class PipelineFlow(object):
                                           self.parse_output_version(idseq_dag.__version__))
         self.output_dir_local = dag.get("output_dir_local", DEFAULT_OUTPUT_DIR_LOCAL).rstrip('/')
         self.ref_dir_local = dag.get("ref_dir_local", DEFAULT_REF_DIR_LOCAL)
+        self.large_file_list = []
+
+
         subprocess.check_call("mkdir -p %s %s" % (self.output_dir_local, self.ref_dir_local), shell=True)
 
     @staticmethod
     def parse_output_version(version):
         return ".".join(version.split(".")[0:2])
+
+    def prefetch_large_files():
+        pass
 
 
     @staticmethod
@@ -131,7 +137,7 @@ class PipelineFlow(object):
             s3_file = os.path.join(input_dir_s3, f)
             local_file = os.path.join(result_dir_local, f)
             # copy the file over
-            subprocess.check_call("aws s3 cp %s %s/" % (s3_file, result_dir_local), shell=True)
+            idseq_dag.util.s3.fetch_from_s3(s3_file, result_dir_local, allow_s3mi=False)
             # write the done_file
             done_file = PipelineStep.done_file(local_file)
             subprocess.check_call("date > %s" % done_file, shell=True)
@@ -151,7 +157,7 @@ class PipelineFlow(object):
 
     def start(self):
         # Come up with the plan
-        (step_list, large_file_download_list, covered_nodes) = self.plan()
+        (step_list, self.large_file_list, covered_nodes) = self.plan()
 
         for step in step_list: # download the files from s3 when necessary
             for node in step["in"]:
@@ -177,3 +183,4 @@ class PipelineFlow(object):
             step_instance.start()
             step_instances.append(step_instance)
         # Collecting stats files
+
