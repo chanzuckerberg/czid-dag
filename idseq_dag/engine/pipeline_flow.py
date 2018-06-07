@@ -132,7 +132,6 @@ class PipelineFlow(object):
             local_file = os.path.join(result_dir_local, f)
             # copy the file over
             subprocess.check_call("aws s3 cp %s %s/" % (s3_file, result_dir_local), shell=True)
-
             # write the done_file
             done_file = PipelineStep.done_file(local_file)
             subprocess.check_call("date > %s" % done_file, shell=True)
