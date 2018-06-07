@@ -88,7 +88,7 @@ class PipelineFlow(object):
         large_file_download_list = []
         step_list = []
         for node_name in self.head_nodes.keys():
-            covered_nodes[node_name] = { 'depth': 0, 'lazy_run': self.lazy_run, 's3_downlodable': True }
+            covered_nodes[node_name] = { 'depth': 0, 'lazy_run': self.lazy_run, 's3_downloadable': True }
         steps_complete = set()
         while len(steps_complete) < len(self.steps):
             # run until all the steps can be run
@@ -109,19 +109,19 @@ class PipelineFlow(object):
                     if step_can_be_run: # All the input is satisfied
                         steps_complete.add(step["out"])
                         file_list= self.nodes[step["out"]]
-                        if lazy_run and idseq_dag.util.s3.check_s3_presnce_for_file_list(self.output_dir_s3, file_list):
+                        if lazy_run and idseq_dag.util.s3.check_s3_presence_for_file_list(self.output_dir_s3, file_list):
                             # output can be lazily generated. touch the output
                             #idseq_dag.util.s3.touch_s3_file_list(self.output_dir_s3, file_list)
-                            s3_downlodable = True
+                            s3_downloadable = True
                         else:
                             # steps need to be run
                             lazy_run = False
-                            s3_downlodable = False
+                            s3_downloadable = False
                             step_list.append(step)
                             # The following can be changed to append if we want to get the round information
                             large_file_download_list += step["additional_files"].values()
                         # update nodes available for the next round
-                        current_nodes[step["out"]] = { 'depth': (depth_max + 1), 'lazy_run': lazy_run, 's3_downlodable': s3_downlodable}
+                        current_nodes[step["out"]] = { 'depth': (depth_max + 1), 'lazy_run': lazy_run, 's3_downloadable': s3_downloadable}
             covered_nodes.update(current_nodes)
         return (step_list, large_file_download_list, covered_nodes)
 
@@ -157,7 +157,7 @@ class PipelineFlow(object):
         for step in step_list: # download the files from s3 when necessary
             for node in step["in"]:
                 node_info = covered_nodes[node]
-                if node_info['s3_downlodable']:
+                if node_info['s3_downloadable']:
                     threading.Thread(target=self.fetch_node_from_s3, args=(node,)).start()
 
         # use fetch_from_s3 plus threading for the large_file_donwload for necessary steps

@@ -12,7 +12,7 @@ def check_s3_presence(s3_path):
         pass
     return False
 
-def check_s3_presnce_for_file_list(s3_dir, file_list):
+def check_s3_presence_for_file_list(s3_dir, file_list):
     for f in file_list:
         if not check_s3_presence(os.path.join(s3_dir, f)):
             return False
@@ -28,4 +28,3 @@ def touch_s3_file(s3_file_path):
 def touch_s3_file_list(s3_dir, file_list):
     for f in file_list:
         touch_s3_file(os.path.join(s3_dir, f))
-
