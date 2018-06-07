@@ -13,6 +13,8 @@ import multiprocessing
 from functools import wraps
 import random
 
+import idseq_dag.util.command as command
+
 # Peak network and storage perf for a typical small instance is saturated by
 # just a few concurrent streams.
 MAX_CONCURRENT_COPY_OPERATIONS = 8
@@ -24,14 +26,14 @@ IOSTREAM_UPLOADS = multiprocessing.Semaphore(MAX_CONCURRENT_UPLOAD_OPERATIONS)
 def check_s3_presence(s3_path):
     ''' True if s3_path exists. False otherwise. '''
     try:
-        o = subprocess.check_output("aws s3 ls %s" % s3_path, shell=True)
+        o = command.execute_with_output("aws s3 ls %s" % s3_path, shell=True)
         if o:
             return True
     except:
         pass
     return False
 
-def check_s3_presnce_for_file_list(s3_dir, file_list):
+def check_s3_presence_for_file_list(s3_dir, file_list):
     for f in file_list:
         if not check_s3_presence(os.path.join(s3_dir, f)):
             return False
@@ -39,7 +41,7 @@ def check_s3_presnce_for_file_list(s3_dir, file_list):
 
 def touch_s3_file(s3_file_path):
     try:
-        subprocess.check_call("aws s3 cp --metadata '{\"touched\":\"now\"}' %s %s" % (s3_file_path, s3_file_path), shell=True)
+        command.execute("aws s3 cp --metadata '{\"touched\":\"now\"}' %s %s" % (s3_file_path, s3_file_path))
         return True
     except:
         return False
@@ -48,21 +50,16 @@ def touch_s3_file_list(s3_dir, file_list):
     for f in file_list:
         touch_s3_file(os.path.join(s3_dir, f))
 
-def execute_command(command):
-    # TODO(jsheu): remove this once it's moved over from pipelin
-    print(command)
-    subprocess.check_call(command, shell=True)
-
 def install_s3mi(installed={}, mutex=threading.RLock()):  #pylint: disable=dangerous-default-value
     with mutex:
         if installed:  # Mutable default value persists
             return
         try:
             # This is typically a no-op.
-            execute_command(
+            command.execute(
                 "which s3mi || pip install git+git://github.com/chanzuckerberg/s3mi.git"
             )
-            execute_command(
+            command.execute(
                 "s3mi tweak-vm || echo s3mi tweak-vm is impossible under docker. Continuing..."
             )
         finally:
@@ -131,14 +128,14 @@ def fetch_from_s3(src,
                     assert allow_s3mi
                     cmd = "s3mi cat {source} {command_params}".format(
                         source=src, command_params=command_params)
-                    execute_command(cmd)
+                    command.execute(cmd)
                 except:
                     print(
                         "Failed to download with s3mi. Trying with aws s3 cp..."
                     )
                     cmd = "aws s3 cp --quiet {source} - {command_params}".format(
                         source=src, command_params=command_params)
-                    execute_command(cmd)
+                    command.execute(cmd)
                 return dst
             except subprocess.CalledProcessError:
                 # Most likely the file doesn't exist in S3.
@@ -147,30 +144,9 @@ def fetch_from_s3(src,
                 )
                 return None
 
-def retry(operation, randgen=random.Random().random):
-    """Retry decorator for external commands."""
-    # Note the use of a separate random generator for retries so transient
-    # errors won't perturb other random streams used in the application.
-    @wraps(operation)
-    def wrapped_operation(*args, **kwargs):
-        remaining_attempts = 3
-        delay = 1.0
-        while remaining_attempts > 1:
-            try:
-                return operation(*args, **kwargs)
-            except:
-                # Random jitter and exponential delay
-                time.sleep(delay * (1.0 + randgen()))
-                delay *= 3.0
-                remaining_attempts -= 1
-        # The last attempt is outside try/catch so caller can handle exception
-        return operation(*args, **kwargs)
-
-    return wrapped_operation
-
-@retry
+@command.retry
 def upload_with_retries(from_f, to_f):
-    execute_command("aws s3 cp --quiet {from_f} {to_f}".format(
+    command.execute("aws s3 cp --quiet {from_f} {to_f}".format(
         from_f=from_f, to_f=to_f))
 
 
@@ -185,4 +161,3 @@ def upload(from_f, to_f, status, status_lock=threading.RLock()):
         with status_lock:
             status[from_f] = "error"
         raise
-

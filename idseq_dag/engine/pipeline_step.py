@@ -2,8 +2,8 @@ import json
 import sys
 import os
 import threading
-import subprocess
 import time
+import idseq_dag.util.command as command
 from abc import abstractmethod
 from enum import Enum
 
@@ -47,7 +47,6 @@ class PipelineStep(object):
         ''' Upload output files to s3 '''
         for f in self.output_files_local():
             # upload to S3 - TODO(Boris): parallelize the following with better calls
-            # TODO: (Jonathan)  Replace all long-running subprocess.check_call's with execute_command.
             idseq_dag.util.s3.upload(f, self.output_dir_s3 + '/')
         self.status = StepStatus.UPLOADED
 
@@ -92,7 +91,7 @@ class PipelineStep(object):
                 raise RuntimeError("output file %s should be generated after run" % f)
             # Tag the done files
             done_file = self.done_file(f)
-            subprocess.check_call("date > %s" % done_file, shell=True)
+            command.execute("date > %s" % done_file)
 
     def wait_until_finished(self):
         self.exec_thread.join()
