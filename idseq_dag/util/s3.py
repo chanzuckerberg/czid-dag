@@ -126,7 +126,6 @@ def fetch_from_s3(src,
                     command_params = "{pipe_filter} > {destination}".format(
                         pipe_filter=pipe_filter, destination=dst)
                 log.write("command_params: %s" % command_params)
-
                 try:
                     assert allow_s3mi
                     cmd = "s3mi cat {source} {command_params}".format(
@@ -159,7 +158,7 @@ def fetch_genome_work(s3genome, REF_DIR, strict):
     genome_name = os.path.basename(s3genome).rstrip(".gz").rstrip(".tar")
     if genome_name not in ("STAR_genome", "bowtie2_genome",
                            "hg38_pantro5_k16"):
-        write_to_log("Oh hello interesting new genome {}".format(genome_name))
+        log.write("Oh hello interesting new genome {}".format(genome_name))
     genome_dir = os.path.join(REF_DIR, genome_name)
 
     if not os.path.exists(genome_dir):
@@ -168,7 +167,7 @@ def fetch_genome_work(s3genome, REF_DIR, strict):
             install_s3mi()
             tarfile = uncompressed(s3genome)
             try:
-                write_to_log("Trying to download compressed genome...")
+                log.write("Trying to download compressed genome...")
                 cmd = "s3mi cat {tarfile} | tar xvf - -C {refdir}".format(
                     tarfile=tarfile, refdir=REF_DIR)
                 command.execute(cmd)
@@ -186,7 +185,7 @@ def fetch_genome_work(s3genome, REF_DIR, strict):
                     assert os.path.isdir(genome_dir)
                 else:
                     # Okay, may be s3mi is broken.  We'll try aws cp next.
-                    write_to_log("Error in downloading with s3mi. Trying aws cp...")
+                    log.write("Error in downloading with s3mi. Trying aws cp...")
                     raise
         except:
             try:
@@ -198,14 +197,14 @@ def fetch_genome_work(s3genome, REF_DIR, strict):
             except:
                 msg = "Failed to download index {}, it might not exist.".format(
                     s3genome)
-                write_to_log(msg)
+                log.write(msg)
                 if strict:
                     raise
                 genome_dir = None
                 # Note we do not reraise the exception here, just print it.
                 traceback.print_exc()
         if genome_dir:
-            write_to_log("successfully downloaded index {}".format(s3genome))
+            log.write("successfully downloaded index {}".format(s3genome))
     return genome_dir
 
 
