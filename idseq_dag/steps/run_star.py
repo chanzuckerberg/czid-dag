@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import threading
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
@@ -15,6 +16,13 @@ class PipelineStepRunStar(PipelineStep):
         input_file_1 = self.input_files_local[0][1]
         output_file_0 = self.output_files_local()[0]
         output_file_1 = self.output_files_local()[1]
+
+        STAR_COUNTS_OUT = ""
+        STAR_GENOME = ""
+        REF_DIR = ""
+        SCRATCH_DIR = ""
+        total_counts_from_star = {}
+        SAMPLE_S3_OUTPUT_PATH = ""
 
         def result_path(basename):
             return os.path.join(self.output_dir_local, basename)
@@ -35,13 +43,6 @@ class PipelineStepRunStar(PipelineStep):
         # what to do about STAR_GENOME?
         genome_dir = s3.fetch_genome(STAR_GENOME, REF_DIR)
         assert genome_dir is not None
-        # If we are here, we are also going to need a bowtie genome later; start
-        # fetching it now. This is the absolute PERFECT PLACE for this fetch. If
-        # we are computing from scratch, the download has plenty of time to
-        # complete before bowtie needs it. If we are doing a lazy rerun,
-        # this function gets skipped, and we avoid a huge unnecessary download.
-        # TODO: (Boris) Parallelizing / fixing the fetching
-        threading.Thread(target=files.fetch_genome, args=[BOWTIE2_GENOME]).start()
 
         # Check if parts.txt file exists. If so, use the new version of partitioned
         # indices. Otherwise, stay put.
@@ -78,7 +79,8 @@ class PipelineStepRunStar(PipelineStep):
             if f is not None:
                 output_i = result_path(star_outputs[i])
                 command.execute("mv %s %s;" % (f, output_i))
-                s3.uploader_start(output_i, SAMPLE_S3_OUTPUT_PATH + "/")
+                # question: which one should be called for this
+                s3.upload_with_retries(output_i, SAMPLE_S3_OUTPUT_PATH + "/")
 
         # Cleanup
         command.execute("cd %s; rm -rf *" % SCRATCH_DIR)
@@ -87,7 +89,7 @@ class PipelineStepRunStar(PipelineStep):
     def run_star_part(self, output_dir, genome_dir, fastq_files, count_genes=False):
         command.execute("mkdir -p %s" % output_dir)
         star_command_params = [
-            'cd', output_dir, ';', STAR, '--outFilterMultimapNmax', '99999',
+            'cd', output_dir, ';', 'STAR', '--outFilterMultimapNmax', '99999',
             '--outFilterScoreMinOverLread', '0.5', '--outFilterMatchNminOverLread',
             '0.5', '--outReadsUnmapped', 'Fastx', '--outFilterMismatchNmax', '999',
             '--outSAMmode', 'None', '--clip3pNbases', '0', '--runThreadN',
