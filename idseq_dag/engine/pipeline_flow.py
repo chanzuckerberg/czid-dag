@@ -36,9 +36,9 @@ class PipelineFlow(object):
     def parse_output_version(version):
         return ".".join(version.split(".")[0:2])
 
-    def prefetch_large_files():
-        pass
-
+    def prefetch_large_files(self):
+        for f in self.large_file_list:
+            idseq_dag.util.s3.fetch_from_s3(f, self.ref_dir_local, allow_s3mi=True)
 
     @staticmethod
     def parse_and_validate_conf(dag_json):
@@ -164,10 +164,10 @@ class PipelineFlow(object):
                 if node_info['s3_downloadable']:
                     threading.Thread(target=self.fetch_node_from_s3, args=(node,)).start()
 
-        # use fetch_from_s3 plus threading for the large_file_donwload for necessary steps
-        # TO BE IMPLEMENTED
-        #for f in large_file_download_list:
-        #    threading.Thread(target=fetch_from_s3, args=(f, self.output_dir_local,)).start()
+
+        # TODO(boris): check the following implementation
+        threading.Thread(target=self.prefetch_large_files)
+
 
         # Start initializing all the steps and start running them and wait until all of them are done
         step_instances = []
