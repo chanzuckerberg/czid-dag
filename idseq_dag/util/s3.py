@@ -12,6 +12,7 @@ import re
 import multiprocessing
 from functools import wraps
 import random
+import logging
 
 import idseq_dag.util.command as command
 
@@ -26,7 +27,7 @@ IOSTREAM_UPLOADS = multiprocessing.Semaphore(MAX_CONCURRENT_UPLOAD_OPERATIONS)
 def check_s3_presence(s3_path):
     ''' True if s3_path exists. False otherwise. '''
     try:
-        o = command.execute_with_output("aws s3 ls %s" % s3_path, shell=True)
+        o = command.execute_with_output("aws s3 ls %s" % s3_path)
         if o:
             return True
     except:
@@ -161,3 +162,10 @@ def upload(from_f, to_f, status, status_lock=threading.RLock()):
         with status_lock:
             status[from_f] = "error"
         raise
+
+def upload_log_file(sample_s3_output_path, lock=threading.RLock()):
+    with lock:
+        logh = logging.getLogger().handlers[0]
+        logh.flush()
+        command.execute("aws s3 cp --quiet %s %s/;" % (logh.baseFilename,
+                                                       sample_s3_output_path))
