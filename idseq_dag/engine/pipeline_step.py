@@ -5,11 +5,11 @@ import threading
 import time
 import idseq_dag.util.command as command
 from abc import abstractmethod
-from enum import Enum
+from enum import IntEnum
 
 import idseq_dag.util.s3
 
-class StepStatus(Enum):
+class StepStatus(IntEnum):
     INITIALIZED = 0
     STARTED = 1 # step.start() called
     FINISHED = 2 # step.run() finished
@@ -47,7 +47,7 @@ class PipelineStep(object):
         ''' Upload output files to s3 '''
         for f in self.output_files_local():
             # upload to S3 - TODO(Boris): parallelize the following with better calls
-            idseq_dag.util.s3.upload(f, self.output_dir_s3 + '/')
+            idseq_dag.util.s3.upload(f, self.output_dir_s3 + '/', {})
         self.status = StepStatus.UPLOADED
 
     @staticmethod

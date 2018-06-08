@@ -15,6 +15,7 @@ import random
 import logging
 
 import idseq_dag.util.command as command
+from idseq_dag.util.log import write_to_log
 
 # Peak network and storage perf for a typical small instance is saturated by
 # just a few concurrent streams.
@@ -124,6 +125,7 @@ def fetch_from_s3(src,
                         pipe_filter = "| gzip -dc "
                     command_params = "{pipe_filter} > {destination}".format(
                         pipe_filter=pipe_filter, destination=dst)
+                write_to_log("command_params: %s" % dst)
 
                 try:
                     assert allow_s3mi
