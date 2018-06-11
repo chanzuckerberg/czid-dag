@@ -12,6 +12,7 @@ class PipelineStepRunPriceSeq(PipelineStep):
 
         See: http://derisilab.ucsf.edu/software/price/
         """
+        print("here")
         for f in self.output_files_local():
             command.execute("date > %s" % f)
 
