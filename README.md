@@ -19,8 +19,3 @@ idseq_dag examples/host_filter_dag.json
 cd idseq-dag; python3 -m unittest
 
 ```
-
-
-
-
-

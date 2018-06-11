@@ -186,4 +186,3 @@ class PipelineFlow(object):
         for step in step_instances:
             step.wait_until_all_done()
         log.write("all steps are done")
-

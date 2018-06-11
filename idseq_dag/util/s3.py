@@ -25,6 +25,7 @@ IOSTREAM = multiprocessing.Semaphore(MAX_CONCURRENT_COPY_OPERATIONS)
 MAX_CONCURRENT_UPLOAD_OPERATIONS = 4
 IOSTREAM_UPLOADS = multiprocessing.Semaphore(MAX_CONCURRENT_UPLOAD_OPERATIONS)
 
+
 def check_s3_presence(s3_path):
     ''' True if s3_path exists. False otherwise. '''
     try:
@@ -35,11 +36,13 @@ def check_s3_presence(s3_path):
         pass
     return False
 
+
 def check_s3_presence_for_file_list(s3_dir, file_list):
     for f in file_list:
         if not check_s3_presence(os.path.join(s3_dir, f)):
             return False
     return True
+
 
 def touch_s3_file(s3_file_path):
     try:
@@ -48,9 +51,11 @@ def touch_s3_file(s3_file_path):
     except:
         return False
 
+
 def touch_s3_file_list(s3_dir, file_list):
     for f in file_list:
         touch_s3_file(os.path.join(s3_dir, f))
+
 
 def install_s3mi(installed={}, mutex=threading.RLock()):  #pylint: disable=dangerous-default-value
     with mutex:
@@ -126,7 +131,6 @@ def fetch_from_s3(src,
                     command_params = "{pipe_filter} > {destination}".format(
                         pipe_filter=pipe_filter, destination=dst)
                 log.write("command_params: %s" % command_params)
-
                 try:
                     assert allow_s3mi
                     cmd = "s3mi cat {source} {command_params}".format(
