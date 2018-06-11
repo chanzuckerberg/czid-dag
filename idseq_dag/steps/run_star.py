@@ -40,7 +40,7 @@ class PipelineStepRunStar(PipelineStep):
                 for i in range(num_fastqs)
             ]
 
-        # what to do about STAR_GENOME?
+        # TODO: what to do about STAR_GENOME?
         genome_dir = s3.fetch_genome(STAR_GENOME, REF_DIR)
         assert genome_dir is not None
 
@@ -79,7 +79,7 @@ class PipelineStepRunStar(PipelineStep):
             if f is not None:
                 output_i = result_path(star_outputs[i])
                 command.execute("mv %s %s;" % (f, output_i))
-                # question: which one should be called for this
+                # TODO: question: which one should be called for this
                 s3.upload_with_retries(output_i, SAMPLE_S3_OUTPUT_PATH + "/")
 
         # Cleanup
