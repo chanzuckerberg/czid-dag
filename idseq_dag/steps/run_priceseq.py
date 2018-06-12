@@ -16,8 +16,7 @@ class PipelineStepRunPriceSeq(PipelineStep):
 
         # PriceSeqFilter determines input type based on extension. It will
         # throw an exception if output extension doesn't match input
-        # extension. Set the extensions to the same thing and use ln instead
-        # of renaming files.
+        # extension.
         file_type = self.additional_attributes.get("file_type", "fastq")
         price_out = [
             f"{f}_priceseqfilter_output.{file_type}" for f in input_files
