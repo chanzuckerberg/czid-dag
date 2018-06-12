@@ -22,25 +22,25 @@ class PipelineStepRunStar(PipelineStep):
         print("Output files local: " + str(self.output_files_local()))
         print("Input files local: " + str(self.input_files_local))
 
-
+        # Setup
         input_file_0 = self.input_files_local[0][0]
         input_file_1 = self.input_files_local[0][1]
         output_file_0 = self.output_files_local()[0]
         output_file_1 = self.output_files_local()[1]
 
-        STAR_COUNTS_OUT = ""
-        STAR_GENOME = ""
-        REF_DIR = ""
-        SCRATCH_DIR = ""
+        star_counts_out = os.path.join(self.output_dir_local, "star_counts_out")
+        star_genome = ""
+        ref_dir = self.ref_dir_local
+        scratch_dir = os.path.join(self.output_dir_local, "scratch")
         total_counts_from_star = {}
-        SAMPLE_S3_OUTPUT_PATH = ""
+        sample_s3_output_path = self.output_dir_s3
 
         def result_path(basename):
             return os.path.join(self.output_dir_local, basename)
 
         """Run STAR to filter out host reads."""
-        # what to do about STAR_COUNTS_OUT?
-        star_outputs = [STAR_COUNTS_OUT, output_file_0, output_file_1]
+        # what to do about star_counts_out?
+        star_outputs = [star_counts_out, output_file_0, output_file_1]
         fastq_files = [input_file_0, input_file_1]
         num_fastqs = len(fastq_files)
         gene_count_output = None
@@ -51,8 +51,8 @@ class PipelineStepRunStar(PipelineStep):
                 for i in range(num_fastqs)
             ]
 
-        # TODO: what to do about STAR_GENOME?
-        genome_dir = s3.fetch_genome(STAR_GENOME, REF_DIR)
+        # TODO: what to do about star_genome?
+        genome_dir = s3.fetch_from_s3(star_genome, ref_dir)
         assert genome_dir is not None
 
         # Check if parts.txt file exists. If so, use the new version of partitioned
@@ -64,7 +64,7 @@ class PipelineStepRunStar(PipelineStep):
 
         unmapped = fastq_files
         for part_idx in range(num_parts):
-            tmp_result_dir = "%s/star-part-%d" % (SCRATCH_DIR, part_idx)
+            tmp_result_dir = "%s/star-part-%d" % (scratch_dir, part_idx)
             genome_part = "%s/part-%d" % (genome_dir, part_idx)
             self.run_star_part(tmp_result_dir, genome_part, unmapped, part_idx == 0)
 
@@ -91,10 +91,10 @@ class PipelineStepRunStar(PipelineStep):
                 output_i = result_path(star_outputs[i])
                 command.execute("mv %s %s;" % (f, output_i))
                 # TODO: question: which one should be called for this
-                s3.upload_with_retries(output_i, SAMPLE_S3_OUTPUT_PATH + "/")
+                s3.upload_with_retries(output_i, sample_s3_output_path + "/")
 
         # Cleanup
-        command.execute("cd %s; rm -rf *" % SCRATCH_DIR)
+        command.execute("cd %s; rm -rf *" % scratch_dir)
         log.write("Finished running STAR.")
 
     def run_star_part(self, output_dir, genome_dir, fastq_files, count_genes=False):

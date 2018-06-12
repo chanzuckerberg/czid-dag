@@ -31,7 +31,8 @@ class IdseqStepSetup(object):
         input_files = []
         for node in step_info["in"]:
             if node in dag["head_nodes"]:
-                input_dir_s3 = dag["head_nodes"]["s3_dir"]
+                print("NODE: " + str(node))
+                input_dir_s3 = dag["head_nodes"][node]["s3_dir"]
             else:
                 input_dir_s3 = dag["output_dir_s3"]
             input_files.append(dag["nodes"][node])
@@ -59,7 +60,7 @@ class IdseqStepSetup(object):
   "nodes": {
     "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"],
     "star_out": ["unmapped.star.1.fq", "unmapped.star.2.fq"],
-    "priceseq_out": ["priceseqfilter.unmapped.star.1.fastq", "priceseqfilter.unmapped.star.2.fastq"],
+    "priceseq_out": ["priceseqfilter.unmapped.star.1.fasta", "priceseqfilter.unmapped.star.2.fasta"],
     "cdhitdup_out": ["cdhitdup.priceseqfilter.unmapped.star.1.fasta", "cdhitdup.priceseqfilter.unmapped.star.2.fasta"],
     "lzw_out": ["lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta", "lzw.cdhitdup.priceseqfilter.unmapped.star.2.fasta"],
     "bowtie_out": ["unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta",
@@ -79,7 +80,7 @@ class IdseqStepSetup(object):
     {
       "in" : ["star_out"], "out": "priceseq_out", "class": "PipelineStepRunPriceSeq", "module": "idseq_dag.steps.run_priceseq",
       "additional_files": {},
-      "additional_attributes": {"file_type": "fastq.gz"}
+      "additional_attributes": {"file_type": "fastq"}
     },
     {
       "in" : ["priceseq_out"], "out": "cdhitdup_out", "class": "PipelineStepRunCDHitDup", "module": "idseq_dag.steps.run_cdhitdup",
@@ -115,7 +116,7 @@ class IdseqStepSetup(object):
   "nodes": {
     "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz"],
     "star_out": ["unmapped.star.1.fq"],
-    "priceseq_out": ["priceseqfilter.unmapped.star.1.fastq"],
+    "priceseq_out": ["priceseqfilter.unmapped.star.1.fasta"],
     "cdhitdup_out": ["cdhitdup.priceseqfilter.unmapped.star.1.fasta"],
     "lzw_out": ["lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta"],
     "bowtie_out": ["unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta",
