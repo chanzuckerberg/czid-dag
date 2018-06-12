@@ -4,6 +4,7 @@ import os
 import threading
 import time
 import idseq_dag.util.command as command
+import idseq_dag.util.log as log
 from abc import abstractmethod
 from enum import IntEnum
 
@@ -107,14 +108,13 @@ class PipelineStep(object):
 
     def thread_run(self):
         ''' Actually running the step '''
-        #Timer.start()
         self.status = StepStatus.STARTED
         self.wait_for_input_files()
+        log.write("STAR STEP %s" % self.name)
         self.run()
         self.validate()
         self.save_progress()
-        #Timer.finalize()
-        # TODO(yf): move the uploading to a diffdrent thread
+        log.write("FINISH STEP %s" % self.name)
         self.upload_thread = threading.Thread(target=self.uploading_results)
         self.upload_thread.start()
         self.status = StepStatus.FINISHED
