@@ -115,8 +115,11 @@ class PipelineStepRunLZW(PipelineStep):
                 for j in range(len(outfiles)):
                     command.execute("mv %s %s" % (outfiles[j], output_files[j]))
                 break
-        kept_ratio = float(kept_count)/float(total_reads)
 
+        if kept_count == 0:
+            raise RuntimeError("All the reads are filtered by LZW with lowest cutoff: %f" % cutoff_frac)
+
+        kept_ratio = float(kept_count)/float(total_reads)
         msg = "LZW filter: cutoff_frac: %f, total reads: %d, filtered reads: %d, " \
               "kept ratio: %f" % (cutoff_frac, total_reads, filtered, kept_ratio)
         log.write(msg)
