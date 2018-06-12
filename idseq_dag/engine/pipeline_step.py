@@ -112,7 +112,7 @@ class PipelineStep(object):
         ''' Actually running the step '''
         self.status = StepStatus.STARTED
         self.wait_for_input_files()
-        log.write("STAR STEP %s" % self.name)
+        log.write("START STEP %s" % self.name)
         self.run()
         self.validate()
         self.save_progress()
