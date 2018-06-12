@@ -28,12 +28,12 @@ class IdseqStepSetup(object):
         command.execute("mkdir -p %s" % result_dir_local)
 
         input_files = []
-        for node in step_info["in"]:
-            if node in dag["head_nodes"]:
-                input_dir_s3 = dag["head_nodes"]["s3_dir"]
+        for target in step_info["in"]:
+            if target in dag["head_targets"]:
+                input_dir_s3 = dag["head_targets"]["s3_dir"]
             else:
                 input_dir_s3 = dag["output_dir_s3"]
-            input_files.append(dag["nodes"][node])
+            input_files.append(dag["targets"][target])
             PipelineFlow.fetch_input_files_from_s3(input_files[-1],
                                                    input_dir_s3,
                                                    result_dir_local)
@@ -41,7 +41,7 @@ class IdseqStepSetup(object):
         return step_class(
             name=step_name,
             input_files=input_files,
-            output_files=dag["nodes"][step_info["out"]],
+            output_files=dag["targets"][step_info["out"]],
             output_dir_local=result_dir_local,
             output_dir_s3=output_dir_s3,
             ref_dir_local='/mnt/idseq/ref',
@@ -55,7 +55,7 @@ class IdseqStepSetup(object):
         return json.loads('''
  {
   "output_dir_s3": "s3://idseq-samples-prod/test_samples/1/results",
-  "nodes": {
+  "targets": {
     "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"],
     "star_out": ["unmapped.star.1.fq", "unmapped.star.2.fq"],
     "priceseq_out": ["priceseqfilter.unmapped.star.1.fasta", "priceseqfilter.unmapped.star.2.fasta"],
@@ -101,7 +101,7 @@ class IdseqStepSetup(object):
       "additional_attributes": {"truncate_reads_to": 10000000}
     }
   ],
-  "head_nodes": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_reads":75000000 } }
+  "head_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_reads":75000000 } }
 }
         ''')
 
@@ -111,7 +111,7 @@ class IdseqStepSetup(object):
         return json.loads('''
  {
   "output_dir_s3": "s3://idseq-samples-prod/test_samples/1/results",
-  "nodes": {
+  "targets": {
     "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz"],
     "star_out": ["unmapped.star.1.fq"],
     "priceseq_out": ["priceseqfilter.unmapped.star.1.fasta"],
@@ -155,7 +155,7 @@ class IdseqStepSetup(object):
       "additional_attributes": {"truncate_reads_to": 10000000}
     }
   ],
-  "head_nodes": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_reads":75000000 } }
+  "head_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_reads":75000000 } }
 
   }
         ''')
