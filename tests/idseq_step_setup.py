@@ -23,8 +23,8 @@ class IdseqStepSetup(object):
             raise ValueError("no steps correspond to %s" % step_name)
 
         # Download input data to local
-        output_dir_s3 = os.path.join(dag["output_dir_s3"], "testrun_bowtie2_%d_%d" % (int(paired),int(time.time())))
-        result_dir_local = "/mnt/idseq/results/bowtie2_%d/%d" % (int(paired), os.getpid())
+        output_dir_s3 = os.path.join(dag["output_dir_s3"], "testrun_%s_%d_%d" % (step_name, int(paired),int(time.time())))
+        result_dir_local = "/mnt/idseq/results/%s_%d/%d" % (step_name, int(paired), os.getpid())
         ref_dir_local = '/mnt/idseq/ref'
         command.execute("mkdir -p %s %s" % (result_dir_local, ref_dir_local))
 

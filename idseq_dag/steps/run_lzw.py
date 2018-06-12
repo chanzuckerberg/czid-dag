@@ -12,6 +12,7 @@ class PipelineStepRunLZW(PipelineStep):
 
     @staticmethod
     def lzw_fraction(sequence):
+        sequence = str(sequence)
         if sequence == "":
             return 0.0
         sequence = sequence.upper()
@@ -25,7 +26,7 @@ class PipelineStepRunLZW(PipelineStep):
         word = ""
         results = []
         for c in sequence:
-            wc = word + str(c)
+            wc = word + c
             if dictionary.get(wc):
                 word = wc
             else:
