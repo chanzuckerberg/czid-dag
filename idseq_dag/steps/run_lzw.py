@@ -1,5 +1,6 @@
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
+import idseq_dag.util.log as log
 
 class PipelineStepRunLZW(PipelineStep):
 
@@ -38,11 +39,11 @@ class PipelineStepRunLZW(PipelineStep):
 
     @staticmethod
     def generate_lzw_filtered(fasta_files, output_files, cutoff_fractions):
-        assert(len(fasta_files) == len(out_files))
+        assert(len(fasta_files) == len(output_files))
         cutoff_fractions.sort(reverse=True) # Make sure cutoff is from high to low
 
         read_streams = []
-        readcount_list= [] # one item per cutoff
+        readcount_list = [] # one item per cutoff
         outstream_list = [] # one item per cutoff
         outfiles_list = [] # one item per cutoff
 
