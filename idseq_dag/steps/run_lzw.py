@@ -25,7 +25,7 @@ class PipelineStepRunLZW(PipelineStep):
         word = ""
         results = []
         for c in sequence:
-            wc = word + c
+            wc = word + str(c)
             if dictionary.get(wc):
                 word = wc
             else:
