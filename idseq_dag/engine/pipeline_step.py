@@ -23,7 +23,7 @@ class PipelineStep(object):
         ''' Set up all the input_files and output_files here '''
         self.name = name
         self.input_files = input_files # list of list files
-        self.output_files = output_files # s3 location
+        self.output_files = output_files # just their basenames
         self.output_dir_local = output_dir_local
         self.output_dir_s3 = output_dir_s3.rstrip('/')
         self.ref_dir_local = ref_dir_local
@@ -33,7 +33,7 @@ class PipelineStep(object):
         self.status = StepStatus.INITIALIZED
         self.exec_thread = None
         self.upload_thread = None
-        self.input_files_local = []
+        self.input_files_local = []  # Full path input files
 
     @abstractmethod
     def run(self):

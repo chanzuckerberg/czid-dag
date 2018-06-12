@@ -12,6 +12,17 @@ class PipelineStepRunStar(PipelineStep):
     MAX_INPUT_READS = 75 * 1000 * 1000
 
     def run(self):
+        print("Input files: " + str(self.input_files))
+        print("Output files: " + str(self.output_files))
+        print("Output dir local: " + self.output_dir_local)
+        print("Output dir s3: " + self.output_dir_s3)
+        print("Ref dir local: " + self.ref_dir_local)
+        print("Additional files: " + str(self.additional_files))
+        print("Additional attributes: " + str(self.additional_attributes))
+        print("Output files local: " + str(self.output_files_local()))
+        print("Input files local: " + str(self.input_files_local))
+
+
         input_file_0 = self.input_files_local[0][0]
         input_file_1 = self.input_files_local[0][1]
         output_file_0 = self.output_files_local()[0]

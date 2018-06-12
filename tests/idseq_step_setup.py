@@ -59,7 +59,7 @@ class IdseqStepSetup(object):
   "nodes": {
     "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"],
     "star_out": ["unmapped.star.1.fq", "unmapped.star.2.fq"],
-    "priceseq_out": ["priceseqfilter.unmapped.star.1.fasta", "priceseqfilter.unmapped.star.2.fasta"],
+    "priceseq_out": ["priceseqfilter.unmapped.star.1.fastq", "priceseqfilter.unmapped.star.2.fastq"],
     "cdhitdup_out": ["cdhitdup.priceseqfilter.unmapped.star.1.fasta", "cdhitdup.priceseqfilter.unmapped.star.2.fasta"],
     "lzw_out": ["lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta", "lzw.cdhitdup.priceseqfilter.unmapped.star.2.fasta"],
     "bowtie_out": ["unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta",
@@ -79,7 +79,7 @@ class IdseqStepSetup(object):
     {
       "in" : ["star_out"], "out": "priceseq_out", "class": "PipelineStepRunPriceSeq", "module": "idseq_dag.steps.run_priceseq",
       "additional_files": {},
-      "additional_attributes": {}
+      "additional_attributes": {"file_type": "fastq.gz"}
     },
     {
       "in" : ["priceseq_out"], "out": "cdhitdup_out", "class": "PipelineStepRunCDHitDup", "module": "idseq_dag.steps.run_cdhitdup",
@@ -115,7 +115,7 @@ class IdseqStepSetup(object):
   "nodes": {
     "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz"],
     "star_out": ["unmapped.star.1.fq"],
-    "priceseq_out": ["priceseqfilter.unmapped.star.1.fasta"],
+    "priceseq_out": ["priceseqfilter.unmapped.star.1.fastq"],
     "cdhitdup_out": ["cdhitdup.priceseqfilter.unmapped.star.1.fasta"],
     "lzw_out": ["lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta"],
     "bowtie_out": ["unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta",
@@ -133,7 +133,7 @@ class IdseqStepSetup(object):
     {
       "in" : ["star_out"], "out": "priceseq_out", "class": "PipelineStepRunPriceSeq", "module": "idseq_dag.steps.run_priceseq",
       "additional_files": {},
-      "additional_attributes": {}
+      "additional_attributes": {"file_type": "fastq"}
     },
     {
       "in" : ["priceseq_out"], "out": "cdhitdup_out", "class": "PipelineStepRunCDHitDup", "module": "idseq_dag.steps.run_cdhitdup",
