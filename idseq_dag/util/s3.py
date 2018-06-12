@@ -77,6 +77,7 @@ def fetch_from_s3(src,
                   locks={}):  #pylint: disable=dangerous-default-value
     """Fetch a file from S3 if needed using either s3mi or aws cp."""
     with mutex:
+        print("IN THE MUTEX")
         if os.path.exists(dst) and os.path.isdir(dst):
             dst = os.path.join(dst, os.path.basename(src))
         # Right now untar and unzip are mutually exclusive
@@ -116,7 +117,6 @@ def fetch_from_s3(src,
                         log.write("s3mi failed to install.")
                         allow_s3mi = False
 
-                command_params = ""
                 if untar:
                     command_params = " | tar xvf - -C {output_dir}".format(output_dir=destdir)
                 else:
