@@ -24,7 +24,7 @@ class PipelineFlow(object):
         dag = PipelineFlow.parse_and_validate_conf(dag_json)
         self.targets = dag["targets"]
         self.steps = dag["steps"]
-        self.head_targets = dag["head_targets"]
+        self.given_targets = dag["given_targets"]
         self.output_dir_s3 = os.path.join(dag["output_dir_s3"],
                                           self.parse_output_version(idseq_dag.__version__))
         self.output_dir_local = dag.get("output_dir_local", DEFAULT_OUTPUT_DIR_LOCAL).rstrip('/')
@@ -51,14 +51,14 @@ class PipelineFlow(object):
           "output_dir_s3": base results folder. a pipeline version number will be appended for real output folder.
           "targets": lists of files that are given or would be generated
           "steps": steps that species actions to generate input and output
-          "head_targets": input files that are given
+          "given_targets": input files that are given
 
         '''
         dag = json.loads(open(dag_json).read())
         output_dir = dag["output_dir_s3"]
         targets = dag["targets"]
         steps = dag["steps"]
-        head_targets = dag["head_targets"]
+        given_targets = dag["given_targets"]
         covered_targets = set()
         for s in steps:
             # validate each step in/out are valid targets
@@ -70,8 +70,8 @@ class PipelineFlow(object):
             if s["out"] in covered_targets:
                 raise ValueError("%s hasn't been generated in other steps" % s["out"])
             covered_targets.add(s["out"])
-        for target_name, target_data in head_targets.items():
-            # validate the head targets exist in s3
+        for target_name, target_data in given_targets.items():
+            # validate the given targets exist in s3
             s3_path = target_data["s3_dir"]
             covered_targets.add(target_name)
             for file_name in targets[target_name]:
@@ -95,7 +95,7 @@ class PipelineFlow(object):
         covered_targets = {}
         large_file_download_list = []
         step_list = []
-        for target_name in self.head_targets.keys():
+        for target_name in self.given_targets.keys():
             covered_targets[target_name] = { 'depth': 0, 'lazy_run': self.lazy_run, 's3_downloadable': True }
         steps_complete = set()
         while len(steps_complete) < len(self.steps):
@@ -147,8 +147,8 @@ class PipelineFlow(object):
     def fetch_target_from_s3(self, target):
         ''' .done file should be written to the result dir when the download is complete '''
         log.write("Downloading target %s" % target)
-        if target in self.head_targets:
-            input_path_s3 = self.head_targets[target]["s3_dir"]
+        if target in self.given_targets:
+            input_path_s3 = self.given_targets[target]["s3_dir"]
         else:
             input_path_s3 = self.output_dir_s3
 

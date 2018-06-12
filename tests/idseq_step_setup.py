@@ -30,8 +30,8 @@ class IdseqStepSetup(object):
 
         input_files = []
         for target in step_info["in"]:
-            if target in dag["head_targets"]:
-                input_dir_s3 = dag["head_targets"]["s3_dir"]
+            if target in dag["given_targets"]:
+                input_dir_s3 = dag["given_targets"]["s3_dir"]
             else:
                 input_dir_s3 = dag["output_dir_s3"]
             input_files.append(dag["targets"][target])
@@ -102,7 +102,7 @@ class IdseqStepSetup(object):
       "additional_attributes": {"truncate_reads_to": 10000000}
     }
   ],
-  "head_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_reads":75000000 } }
+  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_reads":75000000 } }
 }
         ''')
 
@@ -156,7 +156,7 @@ class IdseqStepSetup(object):
       "additional_attributes": {"truncate_reads_to": 10000000}
     }
   ],
-  "head_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_reads":75000000 } }
+  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_reads":75000000 } }
 
   }
         ''')
