@@ -23,41 +23,45 @@ class PipelineStepRunPriceSeq(PipelineStep):
         print("Output files local: " + str(self.output_files_local()))
         print("Input files local: " + str(self.input_files_local))
 
-        input_fqs = self.input_files_local[0][0:2]
+        original_inputs = self.input_files_local[0][0:2]
+        output_files = self.output_files_local()
+        is_paired = (len(original_inputs) == 2)
 
-        # PriceSeqFilter determines input type based on extension.
-        # It will throw an exception if output extension doesn't match input extension.
-        file_type = self.additional_attributes["file_type"]
-        correct_file_extension = os.path.splitext(file_type)[0]
-        input_files = ["%s.%s" % (fq, correct_file_extension) for fq in input_fqs]
-        priceseq_out = [
-            "%s_priceseqfilter_output.%s" % (f, correct_file_extension)
+        # PriceSeqFilter determines input type based on extension. It will
+        # throw an exception if output extension doesn't match input
+        # extension. Set the extensions to the same thing and use ln instead
+        # of renaming files.
+        file_type = self.additional_attributes.get("file_type", "fastq")
+        input_files = ["%s.%s" % (orig, file_type) for orig in original_inputs]
+        price_out = [
+            "%s_priceseqfilter_output.%s" % (f, file_type)
             for f in input_files
         ]
+        for orig, f in zip(original_inputs, input_files):
+            command.execute("ln %s %s" % (orig, f))
 
-        for fq, f in zip(input_fqs, input_files):
-            command.execute("ln %s %s" % (fq, f))
-        priceseq_params = ["PriceSeqFilter", '-a', '12', '-rnf', '90', '-log', 'c']
-        if len(input_files) == 2:
-            priceseq_params.extend([
-                '-fp', input_files[0], input_files[1], '-op', priceseq_out[0],
-                priceseq_out[1]
+        params = ["PriceSeqFilter", '-a', '12', '-rnf', '90', '-log', 'c']
+        if is_paired:
+            params.extend([
+                '-fp', input_files[0], input_files[1], '-op', price_out[0],
+                price_out[1]
             ])
         else:
-            priceseq_params.extend(['-f', input_files[0], '-o', priceseq_out[0]])
-        if "fastq" in file_type:
-            priceseq_params.extend(['-rqf', '85', '0.98'])
-        command.execute(" ".join(priceseq_params))
+            params.extend(['-f', input_files[0], '-o', price_out[0]])
+        if "fasta" not in file_type:  # Default fastq. Explicitly specify fasta.
+            params.extend(['-rqf', '85', '0.98'])
+        cmd = " ".join(params)
+        command.execute(cmd)
 
         # Run FASTQ to FASTA if needed
-        if "fastq" in file_type:
-            self.fq2fa(priceseq_out[0], self.output_files_local()[0])
-            if len(input_fqs) == 2:
-                self.fq2fa(priceseq_out[1], self.output_files_local()[1])
+        if "fasta" not in file_type:
+            self.fq2fa(price_out[0], output_files[0])
+            if is_paired:
+                self.fq2fa(price_out[1], output_files[1])
             log.write("Finished FASTQ to FASTA conversion.")
-
         log.write("Finished running PriceSeqFilter.")
 
     def fq2fa(self, input_fastq, output_fasta):
+        # FASTQ to FASTA conversion
         cmd = "sed -n '1~4s/^@/>/p;2~4p' <%s >%s" % (input_fastq, output_fasta)
         command.execute(cmd)
