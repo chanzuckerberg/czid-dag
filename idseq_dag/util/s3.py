@@ -92,6 +92,7 @@ def fetch_from_s3(src,
         destination_lock = locks[abspath]
 
     with destination_lock:
+        print("DST to check: " + dst)
         if os.path.exists(dst):
             # No need to fetch this file from s3, it has been just produced
             # on this instance.
