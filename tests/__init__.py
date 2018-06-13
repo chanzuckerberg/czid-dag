@@ -14,6 +14,6 @@ if __name__ == '__main__':
     log.configure_logger()
     unittest.main(verbosity=2)
 
-print("Configuring the log")
+# print("Configuring the log")
 # log.set_up_stdout()
-log.configure_logger()
+# log.configure_logger()

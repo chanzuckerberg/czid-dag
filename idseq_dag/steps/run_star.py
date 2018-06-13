@@ -28,13 +28,9 @@ class PipelineStepRunStar(PipelineStep):
         ref_dir = self.ref_dir_local
         scratch_dir = os.path.join(self.output_dir_local, "scratch")
         total_counts_from_star = {}
+        output_files_local = self.output_files_local()
 
         num_fastqs = len(self.input_files[0])
-
-        def unmapped_files_in(some_dir):
-            return [
-                f"{some_dir}/Unmapped.out.mate{i+1}" for i in range(num_fastqs)
-            ]
 
         stripped = star_genome.rstrip(".gz").rstrip(".tar")
         dst = os.path.join(ref_dir, os.path.basename(stripped))
@@ -66,7 +62,9 @@ class PipelineStepRunStar(PipelineStep):
             self.run_star_part(tmp_result_dir, genome_part, unmapped,
                                count_genes)
 
-            unmapped = self.sync_pairs(unmapped_files_in(tmp_result_dir))
+            unmapped = self.sync_pairs(self.unmapped_files_in(tmp_result_dir, num_fastqs))
+            print("Unmapped files in: " + str(self.unmapped_files_in(tmp_result_dir, num_fastqs)))
+            print("Unmapped results: " + str(unmapped))
 
             # Run part 0 in gene-counting mode:
             # (a) ERCCs are doped into part 0 and we want their counts.
@@ -76,17 +74,21 @@ class PipelineStepRunStar(PipelineStep):
             # total_counts is exactly the same as MAX_INPUT_READS then we know the
             # input file is truncated.
             if part_idx == 0:
+                print("tmp result dir: " + tmp_result_dir)
                 gene_count_file = os.path.join(tmp_result_dir,
                                                "ReadsPerGene.out.tab")
                 self.extract_total_counts_from_star_output(
                     tmp_result_dir, num_fastqs, total_counts_from_star)
                 if os.path.isfile(gene_count_file):
                     gene_count_output = gene_count_file
-                    self.additional_files_to_upload.append(gene_count_output)
+                    command.execute(f"mv {gene_count_file} {self.output_dir_local}/")
+                    self.additional_files_to_upload.append(os.path.join(self.output_dir_local, os.path.basename(gene_count_file)))
+                    print("additional: " + str(self.additional_files_to_upload))
 
         # Cleanup
+        for i, src in enumerate(unmapped):
+            command.execute(f"mv {src} {output_files_local[i]}")
         command.execute("cd %s; rm -rf *" % scratch_dir)
-        log.write("Finished running STAR.")
 
     def run_star_part(self,
                       output_dir,
@@ -145,6 +147,7 @@ class PipelineStepRunStar(PipelineStep):
         outstanding_r1 = {}
         mem = 0
         max_mem = 0
+        print("in the sync pairs work block")
         while True:
             r0, r0id = self.get_read(if0)
             r1, r1id = self.get_read(if1)
@@ -173,6 +176,7 @@ class PipelineStepRunStar(PipelineStep):
             return fastq_files
 
         output_fnames = [ifn + ".synchronized_pairs.fq" for ifn in fastq_files]
+        print("output fnames: " + str(output_fnames))
         with open(fastq_files[0], "rb") as if_0:
             with open(fastq_files[1], "rb") as if_1:
                 with open(output_fnames[0], "wb") as of_0:
@@ -203,6 +207,7 @@ class PipelineStepRunStar(PipelineStep):
         log_file = os.path.join(result_dir, "Log.final.out")
         cmd = "grep 'Number of input reads' %s" % log_file
         total_reads = command.execute_with_output(cmd).split(b"\t")[1]
+        print("total reads: " + str(total_reads))
         total_reads = int(total_reads)
         # If it's exactly the same, it must have been truncated.
         if total_reads == self.MAX_INPUT_READS:
@@ -226,18 +231,15 @@ class PipelineStepRunStar(PipelineStep):
         line = f.readline()
         if line:
             # line = str(line, 'utf-8')
-            print(f"line: {line}")
+            # print(f"line: {line}")
             assert line[0] == 64  # '@'
             rid = line.decode('utf8').split('\t', 1)[0].strip()
             read.append(line)
             lin = f.readline()
-            print(lin)
             read.append(lin)
             lin = f.readline()
-            print(lin)
             read.append(lin)
             lin = f.readline()
-            print(lin)
             read.append(lin)
         return read, rid
 
@@ -245,3 +247,9 @@ class PipelineStepRunStar(PipelineStep):
     def write_lines(of, lines):
         for l in lines:
             of.write(l)
+
+    @staticmethod
+    def unmapped_files_in(some_dir, num_inputs):
+        return [
+            f"{some_dir}/Unmapped.out.mate{i+1}" for i in range(num_inputs)
+        ]
