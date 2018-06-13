@@ -16,9 +16,13 @@ class PipelineStepRunLZW(PipelineStep):
         if sequence == "":
             return 0.0
         sequence = sequence.upper()
+
+        dictionary = {}
         dict_size = 0
-        dictionary = {c: i for i, c in enumerate(sequence)}
-        dict_size = len(dictionary)
+        for c in sequence:
+            if c not in dictionary:
+                dict_size += 1
+                dictionary[c] = dict_size
 
         word = ""
         results = []
