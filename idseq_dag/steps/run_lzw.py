@@ -17,11 +17,8 @@ class PipelineStepRunLZW(PipelineStep):
             return 0.0
         sequence = sequence.upper()
         dict_size = 0
-        dictionary = {}
-        # Initialize dictionary with single char
-        for c in sequence:
-            dict_size += 1
-            dictionary[c] = dict_size
+        dictionary = {c: i for i, c in enumerate(sequence)}
+        dict_size = len(dictionary)
 
         word = ""
         results = []
@@ -103,8 +100,7 @@ class PipelineStepRunLZW(PipelineStep):
         cutoff_frac = cutoff_fractions[-1]
         kept_count = 0
         filtered = total_reads
-        for i in range(len(readcount_list)):
-            readcount = readcount_list[i]
+        for i, readcount in enumerate(readcount_list):
             if readcount > 0:
                 # found the right bin
                 cutoff_frac = cutoff_fractions[i]
@@ -112,8 +108,8 @@ class PipelineStepRunLZW(PipelineStep):
                 filtered = total_reads - kept_count
                 outfiles = outfiles_list[i]
                 # move the output files over
-                for j in range(len(outfiles)):
-                    command.execute("mv %s %s" % (outfiles[j], output_files[j]))
+                for outfile, output_file in zip(outfiles, output_files):
+                    command.execute("mv %s %s" % (outfile, output_file))
                 break
 
         if kept_count == 0:
