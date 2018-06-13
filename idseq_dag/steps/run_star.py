@@ -4,6 +4,7 @@ import os
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
+import idseq_dag.util.s3 as s3
 
 
 class PipelineStepRunStar(PipelineStep):
@@ -14,19 +15,16 @@ class PipelineStepRunStar(PipelineStep):
         # Setup
         input_files = self.input_files_local[0][0:2]
         num_inputs = len(self.input_files[0])
-        ref_dir = self.ref_dir_local
         scratch_dir = os.path.join(self.output_dir_local, "scratch")
-        star_genome = self.additional_files["star_genome"]
 
         total_counts_from_star = {}
         output_files_local = self.output_files_local()
         output_gene_file = self.additional_attributes.get("output_gene_file")
 
-        # Check genome file. Ex: s3://...STAR_genome.tar -> /ref/STAR_genome
-        basename = os.path.basename(star_genome).rstrip(".tar")
-        genome_dir = os.path.join(ref_dir, basename)
-        assert os.path.exists(genome_dir)
-        assert genome_dir is not None
+        genome_dir = s3.fetch_from_s3(self.additional_files["star_genome"],
+                                   self.ref_dir_local,
+                                   allow_s3mi=True,
+                                   auto_untar=True)
 
         # Check parts file for the number of partitioned indexes
         parts_file = os.path.join(genome_dir, "parts.txt")
