@@ -17,8 +17,8 @@ def generate_unmapped_singles_from_sam(sam_file, output_fa):
     - part[1] = bitwise flag
     - part[9] = segment sequence
     """
-    with open(output_fa) as output_read:
-        with open(sam_file, 'rb') as sam_f:
+    with open(output_fa, 'w') as output_read:
+        with open(sam_file, 'r', encoding='utf-8') as sam_f:
             # Skip headers
             read = sam_f.readline()
             while read and read[0] == '@':
@@ -44,10 +44,10 @@ def generate_unmapped_pairs_from_sam(sam_file, out_fas):
     """
 
     assert(len(out_fas) == 2 or len(out_fas) == 3)
-    out_fa_1 = open(out_fas[0], 'wb')
-    out_fa_2 = open(out_fas[1], 'wb')
-    out_fa_merged = open(out_fas[2], 'wb') if out_fas[2] else None
-    sam_f = open(sam_file, 'rb')
+    out_fa_1 = open(out_fas[0], 'w')
+    out_fa_2 = open(out_fas[1], 'w')
+    out_fa_merged = open(out_fas[2], 'w') if out_fas[2] else None
+    sam_f = open(sam_file, 'r', encoding='utf-8')
     # Skip headers
     read1 = sam_f.readline()
     while read1 and read1[0] == '@':
