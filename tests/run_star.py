@@ -9,12 +9,12 @@ class RunStarTest(unittest.TestCase):
         runstep = IdseqStepSetup.get_step_object(PipelineStepRunStar, "star_out", paired=True)
         runstep.start()
         runstep.wait_until_finished()
-        # Check results
-        # Clean up the folder
+        # TODO: Check results
+        # TODO: Clean up the folder
 
     def test_step_single(self):
         runstep = IdseqStepSetup.get_step_object(PipelineStepRunStar, "star_out", paired=False)
         runstep.start()
         runstep.wait_until_finished()
-        # Check results
-        # Clean up the folder
+        # TODO: Check results
+        # TODO: Clean up the folder

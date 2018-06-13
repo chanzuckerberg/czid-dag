@@ -180,8 +180,8 @@ class PipelineStepRunStar(PipelineStep):
         total_counts_from_star['total_reads'] = total_reads * num_fastqs
 
     def max_input_lines(self, input_file):
-        """Return number of lines corresponding to MAX_INPUT_READS based on file
-        type.
+        """Truncate to maximum lines. Fasta has 2 lines per read. Fastq has 4
+        lines per read.
         """
         res = self.additional_attributes["truncate_reads_to"] * 2
         if "fasta" not in input_file:  # Assume it's FASTQ
