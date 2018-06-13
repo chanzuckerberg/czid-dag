@@ -37,15 +37,15 @@ class PipelineStepRunPriceSeq(PipelineStep):
 
         # Run FASTQ to FASTA if needed
         if "fasta" not in file_type:
-            fq2fa(price_out[0], output_files[0])
+            self.fq2fa(price_out[0], output_files[0])
             if is_paired:
-                fq2fa(price_out[1], output_files[1])
+                self.fq2fa(price_out[1], output_files[1])
 
-
-def fq2fa(input_fastq, output_fasta):
-    # FASTQ to FASTA conversion
-    step = "FASTQ to FASTA conversion"
-    log.write(f"Starting {step}...")
-    cmd = f"sed -n '1~4s/^@/>/p;2~4p' <{input_fastq} >{output_fasta}"
-    command.execute(cmd)
-    log.write(f"Finished {step}.")
+    @staticmethod
+    def fq2fa(input_fastq, output_fasta):
+        # FASTQ to FASTA conversion
+        step = "FASTQ to FASTA conversion"
+        log.write(f"Starting {step}...")
+        cmd = f"sed -n '1~4s/^@/>/p;2~4p' <{input_fastq} >{output_fasta}"
+        command.execute(cmd)
+        log.write(f"Finished {step}.")
