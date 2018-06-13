@@ -9,7 +9,7 @@ from idseq_dag.util.s3 import fetch_from_s3
 class PipelineStepRunBowtie2(PipelineStep):
     def run(self):
 
-        input_fas = self.input_files_local[0]
+        input_fas = self.input_files_local[0][0:2]
         output_fas = self.output_files_local()
         genome_dir = fetch_from_s3(self.additional_files["bowtie2_genome"],
                                    self.ref_dir_local,
