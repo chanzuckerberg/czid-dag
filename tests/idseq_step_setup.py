@@ -24,8 +24,8 @@ class IdseqStepSetup(object):
 
         # Download input data to local
         output_dir_s3 = os.path.join(dag["output_dir_s3"], "testrun_%s_%d_%d" % (step_name, int(paired),int(time.time())))
-        result_dir_local = "/mnt/idseq/results/%s_%d/%d" % (step_name, int(paired), os.getpid())
-        ref_dir_local = '/mnt/idseq/ref'
+        result_dir_local = "/mnt/nvme8/idseq/results/%s_%d/%d" % (step_name, int(paired), os.getpid())
+        ref_dir_local = '/mnt/nvme8/idseq/ref'
         command.execute("mkdir -p %s %s" % (result_dir_local, ref_dir_local))
 
         input_files = []

@@ -36,12 +36,24 @@ class PipelineStepRunStar(PipelineStep):
                 f"{some_dir}/Unmapped.out.mate{i+1}" for i in range(num_fastqs)
             ]
 
-        genome_dir = s3.fetch_from_s3(star_genome, ref_dir, True, True, True)
+        stripped = star_genome.rstrip(".gz").rstrip(".tar")
+        dst = os.path.join(ref_dir, os.path.basename(stripped))
+        print(f"stripped: {stripped}")
+        print(f"dst: {dst}")
+        if not os.path.exists(dst):
+            # No need to fetch this file from s3, it has been just produced
+            # on this instance.
+            genome_dir = s3.fetch_from_s3(star_genome, ref_dir, True, True, True)
+            print("genome dir from s3: " + genome_dir)
+
+        genome_dir = dst
+        print("genome dir to use: " + genome_dir)
         assert genome_dir is not None
 
         # Check if parts.txt file exists. If so, use the new version of
         # partitioned indices. Otherwise, stay put.
         parts_file = os.path.join(genome_dir, "parts.txt")
+        log.write("PARTS FILE: " + parts_file)
         assert os.path.isfile(parts_file)
         with open(parts_file, 'rb') as parts_f:
             num_parts = int(parts_f.read())
@@ -83,6 +95,7 @@ class PipelineStepRunStar(PipelineStep):
                       count_genes=False):
         command.execute("mkdir -p %s" % output_dir)
         cpus = str(multiprocessing.cpu_count())
+        print("Number of CPUs: " + cpus)
         star_command_params = [
             'cd', output_dir, ';', 'STAR', '--outFilterMultimapNmax', '99999',
             '--outFilterScoreMinOverLread', '0.5',
@@ -116,8 +129,8 @@ class PipelineStepRunStar(PipelineStep):
         # Else r0 becomes outstanding, so in future some r1 may complete it.
         if r0id:
             if r0id in outstanding_r1:
-                write_lines(of0, r0)
-                write_lines(of1, outstanding_r1.pop(r0id))
+                self.write_lines(of0, r0)
+                self.write_lines(of1, outstanding_r1.pop(r0id))
                 mem -= 1
             else:
                 outstanding_r0[r0id] = r0
@@ -140,8 +153,8 @@ class PipelineStepRunStar(PipelineStep):
             if r0id == r1id:
                 # If the input pairs are already synchronized, we take this
                 # branch on every iteration.
-                write_lines(of0, r0)
-                write_lines(of1, r1)
+                self.write_lines(of0, r0)
+                self.write_lines(of1, r1)
             else:
                 mem, max_mem = self.handle_outstanding_read(
                     r0, r0id, outstanding_r0, outstanding_r1, of0, of1, mem,
@@ -219,7 +232,7 @@ class PipelineStepRunStar(PipelineStep):
             read.append(f.readline())
         return read, rid
 
-
-def write_lines(of, lines):
-    for l in lines:
-        of.write(l)
+    @staticmethod
+    def write_lines(of, lines):
+        for l in lines:
+            of.write(l)

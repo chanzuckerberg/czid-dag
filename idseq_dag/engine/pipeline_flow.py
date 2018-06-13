@@ -11,8 +11,8 @@ import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 from idseq_dag.engine.pipeline_step import PipelineStep
 
-DEFAULT_OUTPUT_DIR_LOCAL = '/mnt/idseq/results/%d' % os.getpid()
-DEFAULT_REF_DIR_LOCAL = '/mnt/idseq/ref'
+DEFAULT_OUTPUT_DIR_LOCAL = '/mnt/nvme8/idseq/results/%d' % os.getpid()
+DEFAULT_REF_DIR_LOCAL = '/mnt/nvme8/idseq/ref'
 
 class PipelineFlow(object):
     def __init__(self, lazy_run, dag_json):
