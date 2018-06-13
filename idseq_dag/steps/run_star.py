@@ -40,9 +40,9 @@ class PipelineStepRunStar(PipelineStep):
             tmp = f"{scratch_dir}/star-part-{part_idx}"
             genome_part = f"{genome_dir}/part-{part_idx}"
             count_genes = part_idx == 0
-            self.run_star_part(tmp, genome_part, unmapped, count_genes)
+            PipelineStepRunStar.run_star_part(tmp, genome_part, unmapped, count_genes)
 
-            unmapped = self.sync_pairs(self.unmapped_files_in(tmp, num_inputs))
+            unmapped = PipelineStepRunStar.sync_pairs(PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
 
             # Run part 0 in gene-counting mode:
             # (a) ERCCs are doped into part 0 and we want their counts.
@@ -53,7 +53,7 @@ class PipelineStepRunStar(PipelineStep):
             # input file is truncated.
             if part_idx == 0:
                 gene_count_file = os.path.join(tmp, "ReadsPerGene.out.tab")
-                self.extract_total_counts(tmp, num_inputs,
+                PipelineStepRunStar.extract_total_counts(tmp, num_inputs,
                                           total_counts_from_star)
                 if os.path.isfile(gene_count_file) and output_gene_file:
                     moved = os.path.join(self.output_dir_local, output_gene_file)
