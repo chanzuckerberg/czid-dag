@@ -139,7 +139,7 @@ class PipelineFlow(object):
             s3_file = os.path.join(input_dir_s3, f)
             local_file = os.path.join(result_dir_local, f)
             # copy the file over
-            idseq_dag.util.s3.fetch_from_s3(s3_file, result_dir_local, auto_untar=True, allow_s3mi=True)
+            idseq_dag.util.s3.fetch_from_s3(s3_file, result_dir_local, allow_s3mi=True)
             # write the done_file
             done_file = PipelineStep.done_file(local_file)
             command.execute("date > %s" % done_file)

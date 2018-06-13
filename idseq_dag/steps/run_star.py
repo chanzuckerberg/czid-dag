@@ -7,18 +7,20 @@ import idseq_dag.util.log as log
 
 
 class PipelineStepRunStar(PipelineStep):
-    max_input_reads = 75 * 1000 * 1000
+    MAX_INPUT_READS = 75 * 1000 * 1000
 
     def run(self):
         """Run STAR to filter out host reads."""
         # Setup
         input_files = self.input_files_local[0][0:2]
-        star_genome = self.additional_files["star_genome"]
+        num_inputs = len(self.input_files[0])
         ref_dir = self.ref_dir_local
         scratch_dir = os.path.join(self.output_dir_local, "scratch")
+        star_genome = self.additional_files["star_genome"]
+
         total_counts_from_star = {}
         output_files_local = self.output_files_local()
-        num_inputs = len(self.input_files[0])
+        output_gene_file = self.additional_attributes.get("output_gene_file")
 
         # Check genome file. Ex: s3://...STAR_genome.tar -> /ref/STAR_genome
         basename = os.path.basename(star_genome).rstrip(".tar")
@@ -53,9 +55,8 @@ class PipelineStepRunStar(PipelineStep):
                 gene_count_file = os.path.join(tmp, "ReadsPerGene.out.tab")
                 self.extract_total_counts(tmp, num_inputs,
                                           total_counts_from_star)
-                if os.path.isfile(gene_count_file):
-                    basename = os.path.basename(gene_count_file)
-                    moved = os.path.join(self.output_dir_local, basename)
+                if os.path.isfile(gene_count_file) and output_gene_file:
+                    moved = os.path.join(self.output_dir_local, output_gene_file)
                     command.execute(f"mv {gene_count_file} {moved}")
                     self.additional_files_to_upload.append(moved)
 
@@ -64,8 +65,8 @@ class PipelineStepRunStar(PipelineStep):
             command.execute(f"mv {src} {dst}")  # Move out of scratch dir
         command.execute("cd %s; rm -rf *" % scratch_dir)
 
-    def run_star_part(self,
-                      output_dir,
+    @staticmethod
+    def run_star_part(output_dir,
                       genome_dir,
                       input_files,
                       count_genes=False):
@@ -84,7 +85,7 @@ class PipelineStepRunStar(PipelineStep):
             # ${max_lines}"
             cmd = "echo 'zcat ${2} | head -${1}' > %s/gzhead; " % genome_dir
             command.execute(cmd)
-            max_lines = self.max_input_lines(input_files[0])
+            max_lines = PipelineStepRunStar.max_input_lines(input_files[0])
             params += [
                 '--readFilesCommand',
                 '"sh %s/gzhead %d"' % (genome_dir, max_lines)
@@ -96,14 +97,15 @@ class PipelineStepRunStar(PipelineStep):
         cmd = " ".join(params)
         command.execute(cmd)
 
-    def handle_outstanding_read(self, r0, r0id, outstanding_r0, outstanding_r1,
+    @staticmethod
+    def handle_outstanding_read(r0, r0id, outstanding_r0, outstanding_r1,
                                 of0, of1, mem, max_mem):
         # If read r0 completes an outstanding r1, output the pair (r0, r1).
         # Else r0 becomes outstanding, so in future some r1 may complete it.
         if r0id:
             if r0id in outstanding_r1:
-                self.write_lines(of0, r0)
-                self.write_lines(of1, outstanding_r1.pop(r0id))
+                PipelineStepRunStar.write_lines(of0, r0)
+                PipelineStepRunStar.write_lines(of1, outstanding_r1.pop(r0id))
                 mem -= 1
             else:
                 outstanding_r0[r0id] = r0
@@ -112,32 +114,34 @@ class PipelineStepRunStar(PipelineStep):
                     max_mem = mem
         return mem, max_mem
 
-    def sync_pairs_work(self, of0, of1, if0, if1):
+    @staticmethod
+    def sync_pairs_work(of0, of1, if0, if1):
         # TODO: Use this as a template for merging fasta?
         outstanding_r0 = {}
         outstanding_r1 = {}
         mem = 0
         max_mem = 0
         while True:
-            r0, r0id = self.get_read(if0)
-            r1, r1id = self.get_read(if1)
+            r0, r0id = PipelineStepRunStar.get_read(if0)
+            r1, r1id = PipelineStepRunStar.get_read(if1)
             if not r0 and not r1:
                 break
             if r0id == r1id:
                 # If the input pairs are already synchronized, we take this
                 # branch on every iteration.
-                self.write_lines(of0, r0)
-                self.write_lines(of1, r1)
+                PipelineStepRunStar.write_lines(of0, r0)
+                PipelineStepRunStar.write_lines(of1, r1)
             else:
-                mem, max_mem = self.handle_outstanding_read(
+                mem, max_mem = PipelineStepRunStar.handle_outstanding_read(
                     r0, r0id, outstanding_r0, outstanding_r1, of0, of1, mem,
                     max_mem)
-                mem, max_mem = self.handle_outstanding_read(
+                mem, max_mem = PipelineStepRunStar.handle_outstanding_read(
                     r1, r1id, outstanding_r1, outstanding_r0, of1, of0, mem,
                     max_mem)
         return outstanding_r0, outstanding_r1, max_mem
 
-    def sync_pairs(self, fastq_files, max_discrepancies=0):
+    @staticmethod
+    def sync_pairs(fastq_files, max_discrepancies=0):
         """The given fastq_files contain the same read IDs but in different order.
         Output the same data in synchronized order. Omit up to max_discrepancies
         if necessary. If more must be suppressed, raise assertion.
@@ -146,11 +150,9 @@ class PipelineStepRunStar(PipelineStep):
             return fastq_files
 
         output_fnames = [ifn + ".synchronized_pairs.fq" for ifn in fastq_files]
-        with open(fastq_files[0], "rb") as if_0:
-            with open(fastq_files[1], "rb") as if_1:
-                with open(output_fnames[0], "wb") as of_0:
-                    with open(output_fnames[1], "wb") as of_1:
-                        outstanding_r0, outstanding_r1, max_mem = self.sync_pairs_work(
+        with open(fastq_files[0], "rb") as if_0, open(fastq_files[1], "rb") as if_1:
+                with open(output_fnames[0], "wb") as of_0, open(output_fnames[1], "wb") as of_1:
+                        outstanding_r0, outstanding_r1, max_mem = PipelineStepRunStar.sync_pairs_work(
                             of_0, of_1, if_0, if_1)
         if max_mem:
             # This will be printed if some pairs were out of order.
@@ -170,7 +172,8 @@ class PipelineStepRunStar(PipelineStep):
             assert discrepancies_count <= max_discrepancies, msg
         return output_fnames
 
-    def extract_total_counts(self, result_dir, num_fastqs,
+    @staticmethod
+    def extract_total_counts(result_dir, num_fastqs,
                              total_counts_from_star):
         """Grab the total reads from the Log.final.out file."""
         log_file = os.path.join(result_dir, "Log.final.out")
@@ -178,15 +181,16 @@ class PipelineStepRunStar(PipelineStep):
         total_reads = command.execute_with_output(cmd).split(b"\t")[1]
         total_reads = int(total_reads)
         # If it's exactly the same, it must have been truncated.
-        if total_reads == self.max_input_reads:
+        if total_reads == PipelineStepRunStar.MAX_INPUT_READS:
             total_counts_from_star['truncated'] = 1
         total_counts_from_star['total_reads'] = total_reads * num_fastqs
 
-    def max_input_lines(self, input_file):
+    @staticmethod
+    def max_input_lines(input_file):
         """Return number of lines corresponding to MAX_INPUT_READS based on file
         type.
         """
-        res = self.max_input_reads * 2
+        res = PipelineStepRunStar.MAX_INPUT_READS * 2
         if "fasta" not in input_file:  # Assume it's FASTQ
             res *= 2
         return res
