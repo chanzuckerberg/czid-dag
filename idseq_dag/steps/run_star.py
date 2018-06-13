@@ -8,8 +8,6 @@ import idseq_dag.util.s3 as s3
 
 
 class PipelineStepRunStar(PipelineStep):
-    MAX_INPUT_READS = 75 * 1000 * 1000
-
     def run(self):
         """Run STAR to filter out host reads."""
         # Setup
@@ -38,7 +36,7 @@ class PipelineStepRunStar(PipelineStep):
             tmp = f"{scratch_dir}/star-part-{part_idx}"
             genome_part = f"{genome_dir}/part-{part_idx}"
             count_genes = part_idx == 0
-            PipelineStepRunStar.run_star_part(tmp, genome_part, unmapped, count_genes)
+            self.run_star_part(tmp, genome_part, unmapped, count_genes)
 
             unmapped = PipelineStepRunStar.sync_pairs(PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
 
@@ -51,7 +49,7 @@ class PipelineStepRunStar(PipelineStep):
             # input file is truncated.
             if part_idx == 0:
                 gene_count_file = os.path.join(tmp, "ReadsPerGene.out.tab")
-                PipelineStepRunStar.extract_total_counts(tmp, num_inputs,
+                self.extract_total_counts(tmp, num_inputs,
                                           total_counts_from_star)
                 if os.path.isfile(gene_count_file) and output_gene_file:
                     moved = os.path.join(self.output_dir_local, output_gene_file)
@@ -63,8 +61,7 @@ class PipelineStepRunStar(PipelineStep):
             command.execute(f"mv {src} {dst}")  # Move out of scratch dir
         command.execute("cd %s; rm -rf *" % scratch_dir)
 
-    @staticmethod
-    def run_star_part(output_dir,
+    def run_star_part(self, output_dir,
                       genome_dir,
                       input_files,
                       count_genes=False):
@@ -83,7 +80,7 @@ class PipelineStepRunStar(PipelineStep):
             # ${max_lines}"
             cmd = "echo 'zcat ${2} | head -${1}' > %s/gzhead; " % genome_dir
             command.execute(cmd)
-            max_lines = PipelineStepRunStar.max_input_lines(input_files[0])
+            max_lines = self.max_input_lines(input_files[0])
             params += [
                 '--readFilesCommand',
                 '"sh %s/gzhead %d"' % (genome_dir, max_lines)
@@ -170,8 +167,7 @@ class PipelineStepRunStar(PipelineStep):
             assert discrepancies_count <= max_discrepancies, msg
         return output_fnames
 
-    @staticmethod
-    def extract_total_counts(result_dir, num_fastqs,
+    def extract_total_counts(self, result_dir, num_fastqs,
                              total_counts_from_star):
         """Grab the total reads from the Log.final.out file."""
         log_file = os.path.join(result_dir, "Log.final.out")
@@ -179,16 +175,15 @@ class PipelineStepRunStar(PipelineStep):
         total_reads = command.execute_with_output(cmd).split(b"\t")[1]
         total_reads = int(total_reads)
         # If it's exactly the same, it must have been truncated.
-        if total_reads == PipelineStepRunStar.MAX_INPUT_READS:
+        if total_reads == self.additional_attributes["truncate_reads_to"]:
             total_counts_from_star['truncated'] = 1
         total_counts_from_star['total_reads'] = total_reads * num_fastqs
 
-    @staticmethod
-    def max_input_lines(input_file):
+    def max_input_lines(self, input_file):
         """Return number of lines corresponding to MAX_INPUT_READS based on file
         type.
         """
-        res = PipelineStepRunStar.MAX_INPUT_READS * 2
+        res = self.additional_attributes["truncate_reads_to"] * 2
         if "fasta" not in input_file:  # Assume it's FASTQ
             res *= 2
         return res
