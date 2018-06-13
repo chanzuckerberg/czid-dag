@@ -47,7 +47,7 @@ def generate_unmapped_pairs_from_sam(sam_file, out_fas):
     out_fa_1 = open(out_fas[0], 'wb')
     out_fa_2 = open(out_fas[1], 'wb')
     out_fa_merged = open(out_fas[2], 'wb') if out_fas[2] else None
-    sam_f = open(sam_file, 'r')
+    sam_f = open(sam_file, 'rb')
     # Skip headers
     read1 = sam_f.readline()
     while read1 and read1[0] == '@':

@@ -23,7 +23,7 @@ class PipelineStepRunBowtie2(PipelineStep):
         # The code below will handle up to "bowtie2_genome/GRCh38.primary_assembly.
         # genome.99.bt2" but not 100.
         cmd = "ls {genome_dir}/*.bt2*".format(genome_dir=genome_dir)
-        local_genome_dir_ls = command.execute_with_output(cmd)
+        local_genome_dir_ls = command.execute_with_output(cmd).decode('utf-8')
         genome_basename = local_genome_dir_ls.split("\n")[0][:-6]
         if genome_basename[-1] == '.':
             genome_basename = genome_basename[:-1]
@@ -45,6 +45,6 @@ class PipelineStepRunBowtie2(PipelineStep):
                 output_sam_file, output_fas)
         else:
             convert.generate_unmapped_singles_from_sam(
-                output_sam_file, output_fas)
+                output_sam_file, output_fas[0])
 
 
