@@ -202,7 +202,7 @@ class PipelineStepRunStar(PipelineStep):
         """Grab the total reads from the Log.final.out file."""
         log_file = os.path.join(result_dir, "Log.final.out")
         cmd = "grep 'Number of input reads' %s" % log_file
-        total_reads = command.execute_with_output(cmd).split("\t")[1]
+        total_reads = command.execute_with_output(cmd).split(b"\t")[1]
         total_reads = int(total_reads)
         # If it's exactly the same, it must have been truncated.
         if total_reads == self.MAX_INPUT_READS:
@@ -218,18 +218,27 @@ class PipelineStepRunStar(PipelineStep):
             res *= 2
         return res
 
-    def get_read(self, f):
+    @staticmethod
+    def get_read(f):
         # The FASTQ format specifies that each read consists of 4 lines,
         # the first of which begins with @ followed by read ID.
         read, rid = [], None
         line = f.readline()
         if line:
-            assert line[0] == "@"
-            rid = line.split("\t", 1)[0].strip()
+            # line = str(line, 'utf-8')
+            print(f"line: {line}")
+            assert line[0] == 64  # '@'
+            rid = line.decode('utf8').split('\t', 1)[0].strip()
             read.append(line)
-            read.append(f.readline())
-            read.append(f.readline())
-            read.append(f.readline())
+            lin = f.readline()
+            print(lin)
+            read.append(lin)
+            lin = f.readline()
+            print(lin)
+            read.append(lin)
+            lin = f.readline()
+            print(lin)
+            read.append(lin)
         return read, rid
 
     @staticmethod
