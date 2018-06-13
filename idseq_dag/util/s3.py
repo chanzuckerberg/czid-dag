@@ -77,7 +77,6 @@ def fetch_from_s3(src,
                   locks={}):  #pylint: disable=dangerous-default-value
     """Fetch a file from S3 if needed using either s3mi or aws cp."""
     with mutex:
-        print("IN THE MUTEX")
         if os.path.exists(dst) and os.path.isdir(dst):
             dst = os.path.join(dst, os.path.basename(src))
         # Right now untar and unzip are mutually exclusive
@@ -92,7 +91,6 @@ def fetch_from_s3(src,
         destination_lock = locks[abspath]
 
     with destination_lock:
-        print("DST to check: " + dst)
         if os.path.exists(dst):
             # No need to fetch this file from s3, it has been just produced
             # on this instance.

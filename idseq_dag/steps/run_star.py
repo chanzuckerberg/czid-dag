@@ -8,20 +8,10 @@ import idseq_dag.util.log as log
 
 
 class PipelineStepRunStar(PipelineStep):
-    MAX_INPUT_READS = 75 * 1000 * 1000
+    max_input_reads = 75 * 1000 * 1000
 
     def run(self):
         """Run STAR to filter out host reads."""
-        print("Input files: " + str(self.input_files))
-        print("Output files: " + str(self.output_files))
-        print("Output dir local: " + self.output_dir_local)
-        print("Output dir s3: " + self.output_dir_s3)
-        print("Ref dir local: " + self.ref_dir_local)
-        print("Additional files: " + str(self.additional_files))
-        print("Additional attributes: " + str(self.additional_attributes))
-        print("Output files local: " + str(self.output_files_local()))
-        print("Input files local: " + str(self.input_files_local))
-
         # Setup
         input_files = self.input_files_local[0][0:2]
         star_genome = self.additional_files["star_genome"]
@@ -29,100 +19,82 @@ class PipelineStepRunStar(PipelineStep):
         scratch_dir = os.path.join(self.output_dir_local, "scratch")
         total_counts_from_star = {}
         output_files_local = self.output_files_local()
+        num_inputs = len(self.input_files[0])
 
-        num_fastqs = len(self.input_files[0])
-
-        stripped = star_genome.rstrip(".gz").rstrip(".tar")
-        dst = os.path.join(ref_dir, os.path.basename(stripped))
-        print(f"stripped: {stripped}")
-        print(f"dst: {dst}")
-        if not os.path.exists(dst):
-            # No need to fetch this file from s3, it has been just produced
-            # on this instance.
-            genome_dir = s3.fetch_from_s3(star_genome, ref_dir, True, True, True)
-            print("genome dir from s3: " + genome_dir)
-
-        genome_dir = dst
-        print("genome dir to use: " + genome_dir)
+        # Check genome file. Ex: s3://...STAR_genome.tar -> /ref/STAR_genome
+        basename = os.path.basename(star_genome).rstrip(".tar")
+        genome_dir = os.path.join(ref_dir, basename)
+        assert os.path.exists(genome_dir)
         assert genome_dir is not None
 
-        # Check if parts.txt file exists. If so, use the new version of
-        # partitioned indices. Otherwise, stay put.
+        # Check parts file for the number of partitioned indexes
         parts_file = os.path.join(genome_dir, "parts.txt")
-        log.write("PARTS FILE: " + parts_file)
         assert os.path.isfile(parts_file)
         with open(parts_file, 'rb') as parts_f:
             num_parts = int(parts_f.read())
 
+        # Run STAR on each partition and save the unmapped read info
         unmapped = input_files
         for part_idx in range(num_parts):
-            tmp_result_dir = f"{scratch_dir}/star-part-{part_idx}"
+            tmp = f"{scratch_dir}/star-part-{part_idx}"
             genome_part = f"{genome_dir}/part-{part_idx}"
             count_genes = part_idx == 0
-            self.run_star_part(tmp_result_dir, genome_part, unmapped,
-                               count_genes)
+            self.run_star_part(tmp, genome_part, unmapped, count_genes)
 
-            unmapped = self.sync_pairs(self.unmapped_files_in(tmp_result_dir, num_fastqs))
-            print("Unmapped files in: " + str(self.unmapped_files_in(tmp_result_dir, num_fastqs)))
-            print("Unmapped results: " + str(unmapped))
+            unmapped = self.sync_pairs(self.unmapped_files_in(tmp, num_inputs))
 
             # Run part 0 in gene-counting mode:
             # (a) ERCCs are doped into part 0 and we want their counts.
             # (b) If there is only 1 part (e.g. human), the host gene counts also
             # make sense.
             # (c) At part 0, we can also extract out total input reads and if the
-            # total_counts is exactly the same as MAX_INPUT_READS then we know the
+            # total_counts is exactly the same as max_input_reads then we know the
             # input file is truncated.
             if part_idx == 0:
-                print("tmp result dir: " + tmp_result_dir)
-                gene_count_file = os.path.join(tmp_result_dir,
-                                               "ReadsPerGene.out.tab")
-                self.extract_total_counts_from_star_output(
-                    tmp_result_dir, num_fastqs, total_counts_from_star)
+                gene_count_file = os.path.join(tmp, "ReadsPerGene.out.tab")
+                self.extract_total_counts(tmp, num_inputs,
+                                          total_counts_from_star)
                 if os.path.isfile(gene_count_file):
-                    gene_count_output = gene_count_file
-                    command.execute(f"mv {gene_count_file} {self.output_dir_local}/")
-                    self.additional_files_to_upload.append(os.path.join(self.output_dir_local, os.path.basename(gene_count_file)))
-                    print("additional: " + str(self.additional_files_to_upload))
+                    basename = os.path.basename(gene_count_file)
+                    moved = os.path.join(self.output_dir_local, basename)
+                    command.execute(f"mv {gene_count_file} {moved}")
+                    self.additional_files_to_upload.append(moved)
 
         # Cleanup
-        for i, src in enumerate(unmapped):
-            command.execute(f"mv {src} {output_files_local[i]}")
+        for src, dst in zip(unmapped, output_files_local):
+            command.execute(f"mv {src} {dst}")  # Move out of scratch dir
         command.execute("cd %s; rm -rf *" % scratch_dir)
 
     def run_star_part(self,
                       output_dir,
                       genome_dir,
-                      fastq_files,
+                      input_files,
                       count_genes=False):
         command.execute("mkdir -p %s" % output_dir)
         cpus = str(multiprocessing.cpu_count())
-        print("Number of CPUs: " + cpus)
-        star_command_params = [
+        params = [
             'cd', output_dir, ';', 'STAR', '--outFilterMultimapNmax', '99999',
             '--outFilterScoreMinOverLread', '0.5',
             '--outFilterMatchNminOverLread', '0.5', '--outReadsUnmapped',
             'Fastx', '--outFilterMismatchNmax', '999', '--outSAMmode', 'None',
-            '--clip3pNbases', '0', '--runThreadN',
-            cpus, '--genomeDir', genome_dir,
-            '--readFilesIn', " ".join(fastq_files)
+            '--clip3pNbases', '0', '--runThreadN', cpus, '--genomeDir',
+            genome_dir, '--readFilesIn', " ".join(input_files)
         ]
-        if fastq_files[0][-3:] == '.gz':
+        if input_files[0][-3:] == '.gz':
             # Create a custom decompressor which does "zcat $input_file | head -
             # ${max_lines}"
             cmd = "echo 'zcat ${2} | head -${1}' > %s/gzhead; " % genome_dir
             command.execute(cmd)
-            max_lines = self.max_input_lines(fastq_files[0])
-            star_command_params += [
+            max_lines = self.max_input_lines(input_files[0])
+            params += [
                 '--readFilesCommand',
                 '"sh %s/gzhead %d"' % (genome_dir, max_lines)
             ]
-        path = "%s/sjdbList.fromGTF.out.tab" % genome_dir
+        count_file = f"{genome_dir}/sjdbList.fromGTF.out.tab"
 
-        if count_genes and os.path.isfile(path):
-            star_command_params += ['--quantMode', 'GeneCounts']
-        cmd = " ".join(star_command_params), os.path.join(
-            output_dir, "Log.progress.out")
+        if count_genes and os.path.isfile(count_file):
+            params += ['--quantMode', 'GeneCounts']
+        cmd = " ".join(params)
         command.execute(cmd)
 
     def handle_outstanding_read(self, r0, r0id, outstanding_r0, outstanding_r1,
@@ -147,7 +119,6 @@ class PipelineStepRunStar(PipelineStep):
         outstanding_r1 = {}
         mem = 0
         max_mem = 0
-        print("in the sync pairs work block")
         while True:
             r0, r0id = self.get_read(if0)
             r1, r1id = self.get_read(if1)
@@ -176,7 +147,6 @@ class PipelineStepRunStar(PipelineStep):
             return fastq_files
 
         output_fnames = [ifn + ".synchronized_pairs.fq" for ifn in fastq_files]
-        print("output fnames: " + str(output_fnames))
         with open(fastq_files[0], "rb") as if_0:
             with open(fastq_files[1], "rb") as if_1:
                 with open(output_fnames[0], "wb") as of_0:
@@ -201,16 +171,15 @@ class PipelineStepRunStar(PipelineStep):
             assert discrepancies_count <= max_discrepancies, msg
         return output_fnames
 
-    def extract_total_counts_from_star_output(self, result_dir, num_fastqs,
-                                              total_counts_from_star):
+    def extract_total_counts(self, result_dir, num_fastqs,
+                             total_counts_from_star):
         """Grab the total reads from the Log.final.out file."""
         log_file = os.path.join(result_dir, "Log.final.out")
         cmd = "grep 'Number of input reads' %s" % log_file
         total_reads = command.execute_with_output(cmd).split(b"\t")[1]
-        print("total reads: " + str(total_reads))
         total_reads = int(total_reads)
         # If it's exactly the same, it must have been truncated.
-        if total_reads == self.MAX_INPUT_READS:
+        if total_reads == self.max_input_reads:
             total_counts_from_star['truncated'] = 1
         total_counts_from_star['total_reads'] = total_reads * num_fastqs
 
@@ -218,7 +187,7 @@ class PipelineStepRunStar(PipelineStep):
         """Return number of lines corresponding to MAX_INPUT_READS based on file
         type.
         """
-        res = self.MAX_INPUT_READS * 2
+        res = self.max_input_reads * 2
         if "fasta" not in input_file:  # Assume it's FASTQ
             res *= 2
         return res
@@ -230,10 +199,8 @@ class PipelineStepRunStar(PipelineStep):
         read, rid = [], None
         line = f.readline()
         if line:
-            # line = str(line, 'utf-8')
-            # print(f"line: {line}")
-            assert line[0] == 64  # '@'
-            rid = line.decode('utf8').split('\t', 1)[0].strip()
+            assert line[0] == 64  # Equivalent to '@'
+            rid = line.decode('utf-8').split('\t', 1)[0].strip()
             read.append(line)
             lin = f.readline()
             read.append(lin)
@@ -249,7 +216,7 @@ class PipelineStepRunStar(PipelineStep):
             of.write(l)
 
     @staticmethod
-    def unmapped_files_in(some_dir, num_inputs):
+    def unmapped_files_in(folder, num_inputs):
         return [
-            f"{some_dir}/Unmapped.out.mate{i+1}" for i in range(num_inputs)
+            f"{folder}/Unmapped.out.mate{i+1}" for i in range(num_inputs)
         ]
