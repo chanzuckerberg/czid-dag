@@ -118,10 +118,8 @@ class IdseqStepSetup(object):
     "priceseq_out": ["priceseqfilter.unmapped.star.1.fasta"],
     "cdhitdup_out": ["cdhitdup.priceseqfilter.unmapped.star.1.fasta"],
     "lzw_out": ["lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta"],
-    "bowtie_out": ["unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta",
-                   "unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.merged.fasta"],
-    "gsnap_filter_out": ["unmapped.gsnap_filter.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta",
-                         "unmapped.gsnap_filter.bowtie2.lzw.cdhitdup.priceseqfilter.merged.star.1.fasta"]
+    "bowtie_out": ["unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta" ],
+    "gsnap_filter_out": ["unmapped.gsnap_filter.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta"]
   },
 
   "steps": [
@@ -148,7 +146,7 @@ class IdseqStepSetup(object):
     {
       "in" : ["lzw_out"], "out": "bowtie_out", "class": "PipelineStepRunBowtie2", "module": "idseq_dag.steps.run_bowtie2",
       "additional_files": {"bowtie2_genome": "s3://idseq-database/host_filter/human/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/bowtie2_genome.tar"},
-      "additional_attributes": {}
+      "additional_attributes": {"output_sam_file": "bowtie.sam"}
     },
     {
       "in" : ["bowtie_out"], "out": "gsnap_filter_out", "class": "PipelineStepRunGsnapFilter", "module": "idseq_dag.steps.run_gsnap_filter",
