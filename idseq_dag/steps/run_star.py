@@ -202,12 +202,8 @@ class PipelineStepRunStar(PipelineStep):
             assert line[0] == 64  # Equivalent to '@'
             rid = line.decode('utf-8').split('\t', 1)[0].strip()
             read.append(line)
-            lin = f.readline()
-            read.append(lin)
-            lin = f.readline()
-            read.append(lin)
-            lin = f.readline()
-            read.append(lin)
+            for i in range(3):
+                read.append(f.readline())
         return read, rid
 
     @staticmethod
