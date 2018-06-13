@@ -1,15 +1,10 @@
 import unittest
 
-import os
-import subprocess
-import time
-
 from .idseq_step_setup import IdseqStepSetup
-from idseq_dag.engine.pipeline_flow import PipelineFlow
 from idseq_dag.steps.run_star import PipelineStepRunStar
 
-class RunStarTest(unittest.TestCase):
 
+class RunStarTest(unittest.TestCase):
     def test_step_paired(self):
         runstep = IdseqStepSetup.get_step_object(PipelineStepRunStar, "star_out", paired=True)
         runstep.start()

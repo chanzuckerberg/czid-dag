@@ -3,7 +3,6 @@ import os
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
-import idseq_dag.util.s3 as s3
 import idseq_dag.util.log as log
 
 
@@ -213,6 +212,4 @@ class PipelineStepRunStar(PipelineStep):
 
     @staticmethod
     def unmapped_files_in(folder, num_inputs):
-        return [
-            f"{folder}/Unmapped.out.mate{i+1}" for i in range(num_inputs)
-        ]
+        return [f"{folder}/Unmapped.out.mate{i+1}" for i in range(num_inputs)]
