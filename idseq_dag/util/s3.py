@@ -118,7 +118,6 @@ def fetch_from_s3(src,
                         log.write("s3mi failed to install.")
                         allow_s3mi = False
 
-                command_params = ""
                 if untar:
                     command_params = " | tar xvf - -C {output_dir}".format(output_dir=destdir)
                 else:

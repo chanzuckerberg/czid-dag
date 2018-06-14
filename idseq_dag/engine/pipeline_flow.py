@@ -167,7 +167,6 @@ class PipelineFlow(object):
                 if target_info['s3_downloadable']:
                     threading.Thread(target=self.fetch_target_from_s3, args=(target,)).start()
 
-
         # TODO(boris): check the following implementation
         threading.Thread(target=self.prefetch_large_files).start()
 
