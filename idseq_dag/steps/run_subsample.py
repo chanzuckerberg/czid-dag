@@ -20,7 +20,7 @@ class PipelineStepRunSubsample(PipelineStep):
         ''' In memory subsampling '''
         paired = len(input_fas) >= 2
         # count lines
-        cmd = "wc -l %s" % input_fas[0]
+        cmd = "wc -l %s | cut -f1 -d ' '" % input_fas[0]
         total_records = int(command.execute_with_output(cmd).decode('utf-8')) // 2
         log.write("total reads: %d" % total_records)
         log.write("target reads: %d" % max_reads)
