@@ -3,7 +3,7 @@ import idseq_dag.util.taxid_lineage as taxid_lineage
 import shelve
 
 
-class PipelineStepRunGenerateTaxidFasta(PipelineStep):
+class PipelineStepGenerateTaxidFasta(PipelineStep):
     """Generate taxid FASTA from hit summaries. Intermediate conversion step
     that includes handling of non-specific hits with artificial tax_ids.
     """
@@ -15,7 +15,7 @@ class PipelineStepRunGenerateTaxidFasta(PipelineStep):
         output_fasta_file = ""
 
         lineage_map = shelve.open(lineage_path)
-        valid_hits = PipelineStepRunGenerateTaxidFasta.parse_hits(hit_summary_files)
+        valid_hits = PipelineStepGenerateTaxidFasta.parse_hits(hit_summary_files)
 
         input_fasta_f = open(input_fasta_file, 'rb')
         output_fasta_f = open(output_fasta_file, 'wb')
@@ -30,9 +30,9 @@ class PipelineStepRunGenerateTaxidFasta(PipelineStep):
                 "utf-8").rstrip().lstrip('>')
             read_id = accession_annotated_read_id.split(":", 4)[-1]
 
-            nr_taxid_species, nr_taxid_genus, nr_taxid_family = PipelineStepRunGenerateTaxidFasta.get_valid_lineage(
+            nr_taxid_species, nr_taxid_genus, nr_taxid_family = PipelineStepGenerateTaxidFasta.get_valid_lineage(
                 valid_hits, lineage_map, read_id, 'NR')
-            nt_taxid_species, nt_taxid_genus, nt_taxid_family = PipelineStepRunGenerateTaxidFasta.get_valid_lineage(
+            nt_taxid_species, nt_taxid_genus, nt_taxid_family = PipelineStepGenerateTaxidFasta.get_valid_lineage(
                 valid_hits, lineage_map, read_id, 'NT')
 
             family_str = 'family_nr:' + nr_taxid_family + ':family_nt:' + nt_taxid_family
