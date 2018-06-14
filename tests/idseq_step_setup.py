@@ -65,7 +65,7 @@ class IdseqStepSetup(object):
     "bowtie2_out": ["unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta",
                    "unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.2.fasta",
                    "unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.merged.fasta"],
-    "subsample_out": ["subsampled_1.fa", "subsampled_2.fa", "subsampled_merged.fa"],
+    "subsampled_out": ["subsampled_1.fa", "subsampled_2.fa", "subsampled_merged.fa"],
     "gsnap_filter_out": ["unmapped.gsnap_filter.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta",
                          "unmapped.gsnap_filter.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.2.fasta",
                          "unmapped.gsnap_filter.bowtie2.lzw.cdhitdup.priceseqfilter.merged.star.1.fasta"]
@@ -125,7 +125,7 @@ class IdseqStepSetup(object):
     "cdhitdup_out": ["cdhitdup.priceseqfilter.unmapped.star.1.fasta"],
     "lzw_out": ["lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta"],
     "bowtie2_out": ["unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta" ],
-    "subsample_out": ["subsampled_1.fa"],
+    "subsampled_out": ["subsampled_1.fa"],
     "gsnap_filter_out": ["unmapped.gsnap_filter.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta"]
   },
 
