@@ -6,7 +6,7 @@ from .idseq_step_setup import IdseqStepSetup
 class RunSubsampleTest(unittest.TestCase):
 
     def test_step_paired(self):
-        runstep = IdseqStepSetup.get_step_object(PipelineStepRunGsnapFilter,
+        runstep = IdseqStepSetup.get_step_object(PipelineStepRunSubsample,
                                                  "subsampled_out",
                                                  paired=True)
         runstep.start()
@@ -16,7 +16,7 @@ class RunSubsampleTest(unittest.TestCase):
         # Clean up the folder
 
     def test_step_single(self):
-        runstep = IdseqStepSetup.get_step_object(PipelineStepRunGsnapFilter,
+        runstep = IdseqStepSetup.get_step_object(PipelineStepRunSubsample,
                                                  "subsampled_out",
                                                  paired=False)
         runstep.start()
