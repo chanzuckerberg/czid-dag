@@ -9,8 +9,8 @@
     "bowtie2_out": ["bowtie2_1.fa", "bowtie2_2.fa"],
     "gsnap_filter_out": ["gsnap_filter_1.fa", "gsnap_filter_2.fa"],
     "gsnap_out":  ["gsnap.m8"],
-    "rapsearch_out":  ["rapsearch.m8"],
-    "taxon_count_out": ["web_sample.json", "gsnap.filtered.m8", "rapsearch.filtered.m8"]
+    "rapsearch2_out":  ["rapsearch2.m8"],
+    "taxon_count_out": ["web_sample.json", "gsnap.filtered.m8", "rapsearch2.filtered.m8"]
   },
 
   "steps": [
@@ -50,12 +50,12 @@
       "additional_attributes": {"chunk_size": 10000, "cluster": "prod"}
     },
     {
-      "in" : ["gsnap_filter_out"], "out": "rapsearch_out", "class": "PipelineStepRunRapsearch",
+      "in" : ["gsnap_filter_out"], "out": "rapsearch2_out", "class": "PipelineStepRunRapsearch2",
       "additional_files": {},
       "additional_attributes": {"chunk_size": 5000, "cluster": "prod"}
     },
     {
-      "in" : ["gsnap_out", "rapsearch_out"], "out": "taxon_count_out",
+      "in" : ["gsnap_out", "rapsearch2_out"], "out": "taxon_count_out",
       "class": "PipelineStepRunHitcalling",
       "additional_files": {},
       "additional_attributes": {}
