@@ -7,8 +7,8 @@
     "cdhitdup_out": ["dedup1.fa", "dedup2.fa"],
     "lzw_out": ["lzw1.fa", "lzw2.fa"],
     "bowtie2_out": ["bowtie2_1.fa", "bowtie2_2.fa", "bowtie2_merged.fa"],
-    "subsample_out": ["subsampled_1.fa", "subsampled_2.fa", "subsampled_merged.fa"],
-    "gsnap_filter_out": ["gsnap_filtere_1.fa", "gsnap_filtere_2.fa", "gsnap_filtere_merged.fa"]
+    "subsampled_out": ["subsampled_1.fa", "subsampled_2.fa", "subsampled_merged.fa"],
+    "gsnap_filter_out": ["gsnap_filter_1.fa", "gsnap_filter_2.fa", "gsnap_filter_merged.fa"]
   },
 
   "steps": [
@@ -38,7 +38,7 @@
       "additional_attributes": {"output_sam_file": "bowtie2.sam"}
     },
     {
-      "in" : ["bowtie2_out"], "out": "subsampled_out", "class": "PipelineStepRunSubSample", "module": "idseq_dag.steps.run_subsample",
+      "in" : ["bowtie2_out"], "out": "subsampled_out", "class": "PipelineStepRunSubsample", "module": "idseq_dag.steps.run_subsample",
       "additional_files": {},
       "additional_attributes": {"max_reads": 1000000}
     },
