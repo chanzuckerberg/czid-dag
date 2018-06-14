@@ -7,6 +7,8 @@ import time
 from functools import wraps
 import idseq_dag.util.log as log
 
+# TODO(cdebourcy): use samtools to convert the sam files to fasta instead
+
 def generate_unmapped_singles_from_sam(sam_file, output_fa):
     """Output a single file containing every unmapped read after bowtie2.
 
