@@ -1,6 +1,7 @@
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.taxid_lineage as taxid_lineage
-import shelve
+import idseq_dag.util.s3 as s3
+import dbm
 
 
 class PipelineStepGenerateTaxidFasta(PipelineStep):
@@ -9,12 +10,30 @@ class PipelineStepGenerateTaxidFasta(PipelineStep):
     """
 
     def run(self):
-        input_fasta_file = ""
-        hit_summary_files = {}
-        lineage_path = ""
-        output_fasta_file = ""
+        print("Input files: " + str(self.input_files))
+        print("Output files: " + str(self.output_files))
+        print("Output dir local: " + self.output_dir_local)
+        print("Output dir s3: " + self.output_dir_s3)
+        print("Ref dir local: " + self.ref_dir_local)
+        print("Additional files: " + str(self.additional_files))
+        print("Additional attributes: " + str(self.additional_attributes))
+        print("Output files local: " + str(self.output_files_local()))
+        print("Input files local: " + str(self.input_files_local))
 
-        lineage_map = shelve.open(lineage_path)
+        input_files = self.input_files_local[0]
+        input_fasta_file = input_files[0]
+        hit_summary_files = {
+            'NT': input_files[2],
+            'NR': input_files[3]
+        }
+        lineage_db = s3.fetch_from_s3(self.additional_files["lineage_db"],
+                                      self.ref_dir_local,
+                                      allow_s3mi=True)
+        print("lineage db: " + lineage_db)
+
+        output_fasta_file = self.output_files_local()[0]
+
+        lineage_map = dbm.open(lineage_db.rstrip(".db"))
         valid_hits = PipelineStepGenerateTaxidFasta.parse_hits(hit_summary_files)
 
         input_fasta_f = open(input_fasta_file, 'rb')
@@ -41,7 +60,7 @@ class PipelineStepGenerateTaxidFasta(PipelineStep):
             new_read_name = (family_str + genus_str + species_str + ':' +
                              accession_annotated_read_id)
 
-            output_fasta_f.write(">%s\n" % new_read_name)
+            output_fasta_f.write(('>%s\n' % new_read_name).encode())
             output_fasta_f.write(sequence_data)
             sequence_name = input_fasta_f.readline()
             sequence_data = input_fasta_f.readline()
