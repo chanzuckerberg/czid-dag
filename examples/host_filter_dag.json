@@ -7,10 +7,7 @@
     "cdhitdup_out": ["dedup1.fa", "dedup2.fa"],
     "lzw_out": ["lzw1.fa", "lzw2.fa"],
     "bowtie2_out": ["bowtie2_1.fa", "bowtie2_2.fa", "bowtie2_merged.fa"],
-<<<<<<< HEAD
     "subsample_out": ["subsampled_1.fa", "subsampled_2.fa", "subsampled_merged.fa"],
-=======
->>>>>>> master
     "gsnap_filter_out": ["gsnap_filtere_1.fa", "gsnap_filtere_2.fa", "gsnap_filtere_merged.fa"]
   },
 
