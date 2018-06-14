@@ -6,6 +6,7 @@ import time
 from idseq_dag.engine.pipeline_flow import PipelineFlow
 import idseq_dag.util.command as command
 
+
 class IdseqStepSetup(object):
     @staticmethod
     def get_step_object(step_class, step_name, paired=True):
