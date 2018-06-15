@@ -42,12 +42,13 @@ class PipelineStepGenerateTaxidFasta(PipelineStep):
             nt_taxid_species, nt_taxid_genus, nt_taxid_family = PipelineStepGenerateTaxidFasta.get_valid_lineage(
                 valid_hits, lineage_map, read_id, 'NT')
 
-            family_str = f'family_nr:{nr_taxid_family}:family_nt:{nt_taxid_family}'
-            genus_str = f':genus_nr:{nr_taxid_genus}:genus_nt:{nt_taxid_genus}'
-            species_str = f':species_nr:{nr_taxid_species}:species_nt:{nt_taxid_species}'
-            new_read_name = f'{family_str}{genus_str}{species_str}:{annotated_read_id}'
+            fields = ["family_nr", nr_taxid_family, "family_nt", nt_taxid_family]
+            fields += ["genus_nr", nr_taxid_genus, "genus_nt", nt_taxid_genus]
+            fields += ["species_nr", nr_taxid_species, "species_nt", nt_taxid_species]
+            fields += [annotated_read_id]
+            new_read_name = ('>' + ':'.join(fields) + '\n').encode()
 
-            output_fa.write(f'>{new_read_name}'.encode())
+            output_fa.write(new_read_name)
             output_fa.write(seq_data)
             seq_name = input_fa.readline()
             seq_data = input_fa.readline()
