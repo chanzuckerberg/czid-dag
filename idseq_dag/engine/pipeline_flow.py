@@ -138,7 +138,7 @@ class PipelineFlow(object):
         for f in input_files:
             s3_file = os.path.join(input_dir_s3, f)
             local_file = os.path.join(result_dir_local, f)
-            local_dir = os.pth.dirname(local_file)
+            local_dir = os.path.dirname(local_file)
             command.execute("mkdir -p %s" % local_dir)
             # copy the file over
             idseq_dag.util.s3.fetch_from_s3(s3_file, local_dir, allow_s3mi=True)
