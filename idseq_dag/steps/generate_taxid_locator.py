@@ -29,16 +29,7 @@ class PipelineStepGenerateTaxidLocator(PipelineStep):
                               output_json, tmp):
         taxid_field_num = PipelineStepGenerateTaxidLocator.get_taxid_field_num(
             taxid_field, input_fa)
-        # Put every 2-line fasta record on a single line with delimiter
-        # ":lineseparator:":
-        cmd = "awk 'NR % 2 == 1 { o=$0 ; next } "
-        cmd += "{ print o \":lineseparator:\" $0 }' " + input_fa
-        # Sort the records based on the field containing the taxids
-        cmd += f" | sort -T {tmp} --key {taxid_field_num} "
-        cmd += "--field-separator ':' --numeric-sort"
-        # Split every record back over 2 lines
-        cmd += f" | sed 's/:lineseparator:/\\n/g' > {output_fa}"
-        command.execute(cmd)
+        PipelineStepGenerateTaxidLocator.delimit_fasta(input_fa, tmp, taxid_field_num, output_fa)
 
         # Make JSON file giving the byte range of the file corresponding to each
         # taxid
@@ -76,6 +67,19 @@ class PipelineStepGenerateTaxidLocator(PipelineStep):
 
         with open(output_json, 'w') as out_f:
             json.dump(taxon_seq_locations, out_f)
+
+    @staticmethod
+    def delimit_fasta(input_fa, tmp, taxid_field_num, output_fa):
+        # Put every 2-line fasta record on a single line with delimiter
+        # ":lineseparator:":
+        cmd = "awk 'NR % 2 == 1 { o=$0 ; next } "
+        cmd += "{ print o \":lineseparator:\" $0 }' " + input_fa
+        # Sort the records based on the field containing the taxids
+        cmd += f" | sort -T {tmp} --key {taxid_field_num} "
+        cmd += "--field-separator ':' --numeric-sort"
+        # Split every record back over 2 lines
+        cmd += f" | sed 's/:lineseparator:/\\n/g' > {output_fa}"
+        command.execute(cmd)
 
     @staticmethod
     def get_taxid_field_num(taxid_field, input_fasta):
