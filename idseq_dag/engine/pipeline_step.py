@@ -48,8 +48,7 @@ class PipelineStep(object):
         ''' Get list of output files on local folder '''
         return [os.path.join(self.output_dir_local, f) for f in self.output_files]
 
-        return output_files
-    def create_local_dirs(self)
+    def create_local_dirs(self):
         ''' make sure proper local directories are created for files with subdirs '''
         for f in self.output_files_local():
             command.execute("mkdir -p %s" % os.path.dirname(f))
