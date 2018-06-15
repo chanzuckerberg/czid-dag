@@ -10,42 +10,31 @@ class PipelineStepGenerateTaxidFasta(PipelineStep):
     """
 
     def run(self):
-        print("Input files: " + str(self.input_files))
-        print("Output files: " + str(self.output_files))
-        print("Output dir local: " + self.output_dir_local)
-        print("Output dir s3: " + self.output_dir_s3)
-        print("Ref dir local: " + self.ref_dir_local)
-        print("Additional files: " + str(self.additional_files))
-        print("Additional attributes: " + str(self.additional_attributes))
-        print("Output files local: " + str(self.output_files_local()))
-        print("Input files local: " + str(self.input_files_local))
-
+        # Setup
         input_files = self.input_files_local[0]
-        input_fasta_file = input_files[0]
-        hit_summary_files = {
-            'NT': input_files[2],
-            'NR': input_files[3]
-        }
-        lineage_db = s3.fetch_from_s3(self.additional_files["lineage_db"],
-                                      self.ref_dir_local,
-                                      allow_s3mi=True)
-        print("lineage db: " + lineage_db)
-
+        hit_summary_files = {'NT': input_files[2], 'NR': input_files[3]}
         output_fasta_file = self.output_files_local()[0]
 
+        # Open lineage db
+        lineage_db = s3.fetch_from_s3(
+            self.additional_files["lineage_db"],
+            self.ref_dir_local,
+            allow_s3mi=True)
         lineage_map = dbm.open(lineage_db.rstrip(".db"))
-        valid_hits = PipelineStepGenerateTaxidFasta.parse_hits(hit_summary_files)
 
-        input_fasta_f = open(input_fasta_file, 'rb')
+        valid_hits = PipelineStepGenerateTaxidFasta.parse_hits(
+            hit_summary_files)
+
+        input_fasta_f = open(input_files[0], 'rb')
         output_fasta_f = open(output_fasta_file, 'wb')
-        sequence_name = input_fasta_f.readline()
-        sequence_data = input_fasta_f.readline()
-        while len(sequence_name) > 0 and len(sequence_data) > 0:
+        seq_name = input_fasta_f.readline()
+        seq_data = input_fasta_f.readline()
+        while len(seq_name) > 0 and len(seq_data) > 0:
             # Example read_id: "NR::NT:CP010376.2:NB501961:14:HM7TLBGX2:1:23109
             # :12720:8743/2"
             # Translate the read information into our custom format with fake
             # taxids.
-            accession_annotated_read_id = sequence_name.decode(
+            accession_annotated_read_id = seq_name.decode(
                 "utf-8").rstrip().lstrip('>')
             read_id = accession_annotated_read_id.split(":", 4)[-1]
 
@@ -61,9 +50,11 @@ class PipelineStepGenerateTaxidFasta(PipelineStep):
                              accession_annotated_read_id)
 
             output_fasta_f.write(('>%s\n' % new_read_name).encode())
-            output_fasta_f.write(sequence_data)
-            sequence_name = input_fasta_f.readline()
-            sequence_data = input_fasta_f.readline()
+            output_fasta_f.write(seq_data)
+            seq_name = input_fasta_f.readline()
+            print(seq_name)
+            seq_data = input_fasta_f.readline()
+            print(seq_data)
         input_fasta_f.close()
         output_fasta_f.close()
 

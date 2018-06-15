@@ -26,6 +26,9 @@ NULL_LINEAGE = (str(NULL_SPECIES_ID), str(NULL_GENUS_ID), str(NULL_FAMILY_ID))
 def cleaned_taxid_lineage(taxid_lineage, hit_taxid_str, hit_level_str):
     """Take the taxon lineage and mark meaningless calls with fake taxids."""
     # This assumption is being made in postprocessing
+    print("tax lin: " + str(taxid_lineage))
+    print("hit taxid str: " + hit_taxid_str)
+    print("hit_level_str: " + hit_level_str)
     assert len(taxid_lineage) == 3
     result = [None, None, None]
     hit_tax_level = int(hit_level_str)
@@ -36,6 +39,7 @@ def cleaned_taxid_lineage(taxid_lineage, hit_taxid_str, hit_level_str):
             taxid_str = str(
                 tax_level * INVALID_CALL_BASE_ID - int(hit_taxid_str))
         result[tax_level - 1] = taxid_str
+    print("result: " + str(result))
     return result
 
 
@@ -50,6 +54,7 @@ def fill_missing_calls(cleaned_lineage):
     (55, -200, 1534) => (55, -200001534, 1534)
     (-100, 5888, -300) => (-100005888, 5888, -300)
     """
+    print("cleaned lin: " + str(cleaned_lineage))
     result = list(cleaned_lineage)
     tax_level = len(cleaned_lineage)
     closest_real_hit_just_above_me = -1
@@ -61,6 +66,7 @@ def fill_missing_calls(cleaned_lineage):
         elif closest_real_hit_just_above_me >= 0 and blank(me):
             result[tax_level - 1] = str(tax_level * INVALID_CALL_BASE_ID -
                                         closest_real_hit_just_above_me)
+            print("check this: " + result[tax_level - 1])
         tax_level -= 1
     return result
 
