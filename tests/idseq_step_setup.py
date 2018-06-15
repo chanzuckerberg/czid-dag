@@ -15,7 +15,6 @@ class IdseqStepSetup(object):
             dag = IdseqStepSetup.paired_dag()
         else:
             dag = IdseqStepSetup.single_dag()
-        dag = IdseqStepSetup.postprocess_dag()
         step_info = {}
         for step in dag["steps"]:
             if step["out"] == step_name:
@@ -173,7 +172,7 @@ class IdseqStepSetup(object):
   }
         ''')
 
-    @staticmethod
-    def postprocess_dag():
-        with open("examples/postprocess_dag.json") as f:
-            return json.load(f)
+    # @staticmethod
+    # def postprocess_dag():
+    #     with open("examples/postprocess_dag.json") as f:
+    #         return json.load(f)
