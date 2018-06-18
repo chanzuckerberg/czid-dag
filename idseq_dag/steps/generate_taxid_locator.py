@@ -10,28 +10,28 @@ class PipelineStepGenerateTaxidLocator(PipelineStep):
         # Setup
         input_fa = self.input_files_local[0][0]
         out_files = self.output_files_local()
-        tmp = os.path.join(self.output_dir_local, "scratch")
+        tmp = os.path.join(self.output_dir_local, "scratch_taxid_locator")
+        command.execute(f"mkdir -p {tmp}")
 
+        # TODO: Design a way to map in/out files more robustly, e.g. by name/type
         # Generate locator files for species NT, species NR, genus NT...
         i = 0
         for level in ["species", "genus", "family"]:
             for name in ("NT", "NR"):
                 taxid_field = f"{level}_{name.lower()}"
-                output_fa = out_files.pop(i)  # Pop from front
-                output_json = out_files.pop(i+1)
+                output_fa = out_files[i]
+                output_json = out_files[i + 1]
                 PipelineStepGenerateTaxidLocator.generate_locator_work(
                     input_fa, taxid_field, name, output_fa, output_json, tmp)
                 i += 2
 
         # Generate combined JSON file (even-numbered in the output list)
-        input_jsons = [
-            f for i, f in enumerate(self.output_files_local()) if i % 2 == 1
-        ]
-        output_json = out_files.pop()
+        input_jsons = [f for i, f in enumerate(out_files) if i % 2 == 1]
+        output_json = out_files[-1]  # Last combined file
         PipelineStepGenerateTaxidLocator.combine_json(input_jsons, output_json)
 
         # Cleanup
-        command.execute("cd %s; rm -rf *" % tmp)
+        command.execute(f"rm -rf {tmp}")
 
     @staticmethod
     def generate_locator_work(input_fa, taxid_field, hit_type, output_fa,
@@ -99,8 +99,8 @@ class PipelineStepGenerateTaxidLocator(PipelineStep):
 
     @staticmethod
     def get_taxid(seq_name, taxid_field):
-        parts = seq_name.decode('utf-8').replace('>',
-                                                 ':').split(f":{taxid_field}:")
+        parts = seq_name.decode('utf-8')
+        parts = parts.replace('>', ':').split(f":{taxid_field}:")
         if len(parts) <= 1:
             # Sequence_name empty or taxid_field not found
             return 'none'
@@ -115,5 +115,5 @@ class PipelineStepGenerateTaxidLocator(PipelineStep):
         for ij in input_jsons:
             with open(ij) as f:
                 output.extend(json.load(f))
-        with open(output_json, 'wb') as ou_f:
-            json.dump(output, ou_f)
+        with open(output_json, 'w') as f:
+            json.dump(output, f)
