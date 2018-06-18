@@ -51,10 +51,10 @@ class PipelineStep(object):
 
     def save_counts(self):
         if self.counts_dict:
-            count_file = "%s/%s.count" % (self.output_dir_local, self.name)
-            with open(count_file, 'w') as countf:
-                json.dump(self.counts_dict, countf)
-            self.additional_files_to_upload.append(count_file)
+            count_file_name = "%s/%s.count" % (self.output_dir_local, self.name)
+            with open(count_file_name, 'w') as count_file:
+                json.dump(self.counts_dict, count_file)
+            self.additional_files_to_upload.append(count_file_name)
 
     def output_files_local(self):
         ''' Get list of output files on local folder '''
