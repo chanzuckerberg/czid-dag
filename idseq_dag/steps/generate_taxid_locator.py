@@ -13,13 +13,22 @@ class PipelineStepGenerateTaxidLocator(PipelineStep):
         tmp = os.path.join(self.output_dir_local, "scratch")
 
         # Generate locator files for species NT, species NR, genus NT...
+        i = 0
         for level in ["species", "genus", "family"]:
             for name in ("NT", "NR"):
                 taxid_field = f"{level}_{name.lower()}"
-                output_fa = out_files.pop(0)  # Pop from front
-                output_json = out_files.pop(0)
+                output_fa = out_files.pop(i)  # Pop from front
+                output_json = out_files.pop(i+1)
                 PipelineStepGenerateTaxidLocator.generate_locator_work(
                     input_fa, taxid_field, name, output_fa, output_json, tmp)
+                i += 2
+
+        # Generate combined JSON file (even-numbered in the output list)
+        input_jsons = [
+            f for i, f in enumerate(self.output_files_local()) if i % 2 == 1
+        ]
+        output_json = out_files.pop()
+        PipelineStepGenerateTaxidLocator.combine_json(input_jsons, output_json)
 
         # Cleanup
         command.execute("cd %s; rm -rf *" % tmp)
@@ -29,7 +38,8 @@ class PipelineStepGenerateTaxidLocator(PipelineStep):
                               output_json, tmp):
         taxid_field_num = PipelineStepGenerateTaxidLocator.get_taxid_field_num(
             taxid_field, input_fa)
-        PipelineStepGenerateTaxidLocator.delimit_fasta(input_fa, tmp, taxid_field_num, output_fa)
+        PipelineStepGenerateTaxidLocator.delimit_fasta(
+            input_fa, tmp, taxid_field_num, output_fa)
 
         # Make JSON file giving the byte range of the file corresponding to each
         # taxid
@@ -98,3 +108,12 @@ class PipelineStepGenerateTaxidLocator(PipelineStep):
         # Example sequence_name: ">nr:-100:nt:684552:NR::NT:LT629734.1:HWI-ST640
         # :828:H917FADXX:2:1101:1424:15119/1"
         return taxid
+
+    @staticmethod
+    def combine_json(input_jsons, output_json):
+        output = []
+        for ij in input_jsons:
+            with open(ij) as f:
+                output.extend(json.load(f))
+        with open(output_json, 'wb') as ou_f:
+            json.dump(output, ou_f)
