@@ -33,6 +33,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         print("Output files local: " + str(self.output_files_local()))
         print("Input files local: " + str(self.input_files_local))
 
+        # Setup
         nt_file = s3.fetch_from_s3(
             self.additional_files["nt_db"],
             self.ref_dir_local,
@@ -58,7 +59,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         # sequence, lineage info.
         groups = {}
         line_count = 0
-        nt_loc_dict = shelve.open(nt_loc_db)
+        nt_loc_dict = shelve.open(nt_loc_db.rstrip("db"))
         with open(annotated_m8, 'r') as m8f:
             for line in m8f:
                 line_count += 1
@@ -111,25 +112,34 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
         # "ad" is short for "accession_dict" aka "accession_info"
         for accession_id, ad in groups.items():
+            print("ad: " + str(ad))
             try:
                 tmp_file = 'accession-%s' % accession_id
+                print("tmp file should be: " + tmp_file)
                 if ad['ref_seq_len'] <= self.MAX_SEQ_DISPLAY_SIZE and 'ref_seq' not in ad:
                     if ad['ref_seq_len'] == 0:
                         ad['ref_seq'] = "REFERENCE SEQUENCE NOT FOUND"
                     else:
                         with open(tmp_file, "rb") as tf:
+                            print("should have content here")
                             ad['ref_seq'] = tf.read()
+                            print("content: " + str(ad['ref_seq']))
                         to_be_deleted.append(tmp_file)
 
                 if 'ref_seq' in ad:
                     ref_seq = ad['ref_seq']
                     for read in ad['reads']:
                         prev_start, ref_start, ref_end, post_end = read[3]
+                        print("prev: " + str(read[3]))
+                        print(len(ref_seq))
+                        print(ref_seq)
                         read[3] = [
                             ref_seq[prev_start:ref_start],
                             ref_seq[ref_start:ref_end],
                             ref_seq[ref_end:post_end]
                         ]
+                        print("IN THIS BLOCK")
+                        print(read[3])
                 else:
                     # The reference sequence is too long to read entirely in RAM,
                     # so we only read the mapped segments.
@@ -173,6 +183,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                   "{error_count} accession IDs.".format(error_count=error_count)
             raise RuntimeError(msg)
 
+        # Cleanup
         def safe_multi_delete(files):
             for f in files:
                 try:
@@ -180,9 +191,9 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                 except:
                     pass
 
-        deleter_thread = threading.Thread(
-            target=safe_multi_delete, args=[to_be_deleted])
-        deleter_thread.start()
+        # deleter_thread = threading.Thread(
+        #     target=safe_multi_delete, args=[to_be_deleted])
+        # deleter_thread.start()
 
         def align_viz_name(tag, lin_id):
             return "%s/%s.%s.%d.align_viz.json" % (output_json_dir,
@@ -192,19 +203,24 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         # Output JSON by species, genus, family
         command.execute("mkdir -p %s" % output_json_dir)
         for (family_id, family_dict) in result_dict.items():
-            with open(align_viz_name("family", family_id), 'wb') as outjf:
+            fn = align_viz_name("family", family_id)
+            with open(fn, 'w') as outjf:
                 json.dump(family_dict, outjf)
+            self.additional_files_to_upload.append(fn)
 
             for (genus_id, genus_dict) in family_dict.items():
-                with open(align_viz_name("genus", genus_id), 'wb') as outjf:
+                fn = align_viz_name("genus", genus_id)
+                with open(fn, 'w') as outjf:
                     json.dump(genus_dict, outjf)
+                self.additional_files_to_upload.append(fn)
 
                 for (species_id, species_dict) in genus_dict.items():
-                    with open(align_viz_name("species", species_id),
-                              'wb') as outjf:
+                    fn = align_viz_name("species", species_id)
+                    with open(fn, 'w') as outjf:
                         json.dump(species_dict, outjf)
+                    self.additional_files_to_upload.append(fn)
 
-        deleter_thread.join()
+        # deleter_thread.join()
 
         summary = "Read2Seq Size: %d, M8 lines %d, %d unique accession ids" % (
             len(read2seq), line_count, len(groups))
@@ -212,7 +228,6 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
         with open(summary_file_name, 'w') as summary_f:
             summary_f.write(summary)
-        return summary_file_name
 
     @staticmethod
     def parse_reads(annotated_fasta, db_type):
@@ -249,7 +264,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
     def get_sequences_by_accession_list_from_file(accession2seq, nt_loc_dict,
                                                   nt_file):
         with open(nt_file) as ntf:
-            for accession_id, accession_info in accession2seq.iteritems():
+            for accession_id, accession_info in accession2seq.items():
                 (
                     ref_seq, seq_name
                 ) = PipelineStepGenerateAlignmentViz.get_sequence_by_accession_id_ntf(
@@ -266,7 +281,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         semaphore = threading.Semaphore(64)
         mutex = threading.RLock()
         nt_bucket, nt_key = nt_s3_path[5:].split("/", 1)
-        for accession_id, accession_info in accession_id_groups.iteritems():
+        for accession_id, accession_info in accession_id_groups.items():
             semaphore.acquire()
             t = threading.Thread(
                 target=PipelineStepGenerateAlignmentViz.
@@ -292,6 +307,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                                 semaphore,
                                 mutex,
                                 seq_count=[0]):  #pylint: disable=dangerous-default-value
+        print("foobar get seq for thread")
         try:
             (
                 ref_seq_len, seq_name
@@ -317,6 +333,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
     def get_sequence_by_accession_id_ntf(accession_id, nt_loc_dict, ntf):
         ref_seq = ''
         seq_name = ''
+        print("in get seq by acc id ntf")
         entry = nt_loc_dict.get(accession_id)
         if entry:
             range_start = entry[0]
@@ -338,6 +355,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
         (range_start, name_length, seq_len) = entry
 
+        print("IN GET SEQ BY ACC ID S3")
         accession_file = 'accession-%s' % accession_id
         NUM_RETRIES = 3
         for attempt in range(NUM_RETRIES):
