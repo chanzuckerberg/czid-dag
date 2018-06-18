@@ -276,3 +276,10 @@ def scp(key_path, remote_username, instance_ip, remote_path, local_path):
         ip=instance_ip,
         remote_path=remote_path,
         local_path=local_path)
+
+def remote(commands, key_path, remote_username, instance_ip):
+    # ServerAliveInterval to fix issue with containers keeping open an SSH
+    # connection even after worker machines had finished running.
+    return 'ssh -o "StrictHostKeyChecking no" -o "ConnectTimeout 15" ' \
+           '-o "ServerAliveInterval 60" -i %s %s@%s "%s"' % (
+        key_path, remote_username, instance_ip, base_command)

@@ -18,7 +18,11 @@
           "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/taxid-lineages.db",
         "accession2taxid_db": "s3://idseq-database/alignment_data/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/accession2taxid.db"
       },
-      "additional_attributes": {"title": "gsnap"}
+      "additional_attributes": {
+        "service": "gsnap", "chunks_in_flight": 32,
+        "chunk_size": 15000, "max_concurrent": 3,
+        "environment": "prod"
+        }
     },
     {
       "in": ["host_filter_out"],
@@ -30,19 +34,11 @@
           "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/taxid-lineages.db",
         "accession2taxid_db": "s3://idseq-database/alignment_data/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/accession2taxid.db"
       },
-      additional_attributes": {"title": "rapsearch2"}
-    },
-    {
-      "in": ["host_filter_out"],
-      "out": "rapsearch2_out",
-      "class": "PipelineStepRunAlignmentRemotely",
-      "module": "idseq_dag.steps.run_alignment_remotely",
-      "additional_files": {
-        "lineage_db":
-          "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/taxid-lineages.db",
-        "accession2taxid_db": "s3://idseq-database/alignment_data/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/accession2taxid.db"
-      },
-      additional_attributes": {"title": "rapsearch2"}
+      "additional_attributes": {
+        "service": "rapsearch2", "chunks_in_flight": 32,
+        "chunk_size": 10000, "max_concurrent": 6,
+        "environment": "prod"
+        }
     },
     {
       "in": ["gsnap_out", "rapsearch_out"],
