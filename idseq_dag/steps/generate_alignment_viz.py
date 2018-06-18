@@ -6,15 +6,17 @@ import subprocess
 import threading
 import time
 import traceback
+from collections import defaultdict
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.taxid_lineage import INVALID_CALL_BASE_ID
 import idseq_dag.util.log as log
 import idseq_dag.util.command as command
+import idseq_dag.util.s3 as s3
 
 
 class PipelineStepGenerateAlignmentViz(PipelineStep):
-    """Pipeline step to generate JSON file for read alignment visualization to
+    """Pipeline step to generate JSON file for read alignment visualizations to
     be consumed by the web app.
     """
     REF_DISPLAY_RANGE = 100
@@ -31,19 +33,21 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         print("Output files local: " + str(self.output_files_local()))
         print("Input files local: " + str(self.input_files_local))
 
-        nt_file = ""
-        nt_loc_db = ""
-        db_type = ""
+        nt_file = s3.fetch_from_s3(
+            self.additional_files["nt_db"],
+            self.ref_dir_local,
+            allow_s3mi=True)
+        nt_loc_db = s3.fetch_from_s3(
+            self.additional_files["nt_loc_db"],
+            self.ref_dir_local,
+            allow_s3mi=True)
+        db_type = "NT"
         annotated_m8 = ""
         annotated_fasta = ""
         output_json_dir = ""
 
         # Go through annotated_fasta with a db_type (NT/NR match). Infer the
         # family/genus/species info
-
-        if db_type != 'NT' and db_type != 'NR':
-            raise ValueError("db_type is not NT/NR.")
-
         read2seq = PipelineStepGenerateAlignmentViz.parse_reads(
             annotated_fasta, db_type)
 
@@ -245,7 +249,9 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                                                   nt_file):
         with open(nt_file) as ntf:
             for accession_id, accession_info in accession2seq.iteritems():
-                (ref_seq, seq_name) = get_sequence_by_accession_id_ntf(
+                (
+                    ref_seq, seq_name
+                ) = PipelineStepGenerateAlignmentViz.get_sequence_by_accession_id_ntf(
                     accession_id, nt_loc_dict, ntf)
                 accession_info['ref_seq'] = ref_seq
                 accession_info['ref_seq_len'] = len(ref_seq)
@@ -423,5 +429,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             for bp in range(ref_start, ref_end):
                 coverage[bp] += 1
         output['distinct_covered_length'] = len(coverage)
-        output['coverage'] = compress_coverage(coverage)
+        output[
+            'coverage'] = PipelineStepGenerateAlignmentViz.compress_coverage(
+                coverage)
         return output
