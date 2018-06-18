@@ -42,9 +42,10 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             self.ref_dir_local,
             allow_s3mi=True)
         db_type = "NT"
-        annotated_m8 = ""
-        annotated_fasta = ""
-        output_json_dir = ""
+        # TODO: Design a way to map in/out files more robustly, e.g. by name/type
+        annotated_m8 = self.input_files_local[0][1]
+        annotated_fasta = self.input_files_local[1][0]
+        output_json_dir = os.path.join(self.output_dir_local, "align_viz")
 
         # Go through annotated_fasta with a db_type (NT/NR match). Infer the
         # family/genus/species info
