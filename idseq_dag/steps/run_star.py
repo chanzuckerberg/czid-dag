@@ -15,7 +15,7 @@ class PipelineStepRunStar(PipelineStep):
         num_inputs = len(self.input_files[0])
         scratch_dir = os.path.join(self.output_dir_local, "scratch_star")
 
-        total_counts_from_star = {}
+        self.total_counts_from_star = {}
         output_files_local = self.output_files_local()
         output_gene_file = self.additional_attributes.get("output_gene_file")
 
@@ -50,7 +50,7 @@ class PipelineStepRunStar(PipelineStep):
             if part_idx == 0:
                 gene_count_file = os.path.join(tmp, "ReadsPerGene.out.tab")
                 self.extract_total_counts(tmp, num_inputs,
-                                          total_counts_from_star)
+                                          self.total_counts_from_star)
                 if os.path.isfile(gene_count_file) and output_gene_file:
                     moved = os.path.join(self.output_dir_local, output_gene_file)
                     command.execute(f"mv {gene_count_file} {moved}")
@@ -60,6 +60,15 @@ class PipelineStepRunStar(PipelineStep):
         for src, dst in zip(unmapped, output_files_local):
             command.execute(f"mv {src} {dst}")  # Move out of scratch dir
         command.execute("cd %s; rm -rf *" % scratch_dir)
+
+    def count_reads(self):
+        """ Count input reads and reads after STAR filtering """
+        # count input (since run_star is the first step):
+        self.counts_dict = self.total_counts_from_star
+        # count output:
+        num_outputs = len(self.output_files)
+        reads_in_first_output = count.reads(self.output_files_local()[0])
+        self.counts_dict[self.name] = num_outputs * reads_in_first_output
 
     def run_star_part(self, output_dir,
                       genome_dir,
