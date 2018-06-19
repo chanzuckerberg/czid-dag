@@ -1,12 +1,24 @@
 import os
+import math
+import json
 import threading
 import shutil
 import random
 import traceback
+import multiprocessing
+import shelve
+from collections import defaultdict
 
 from idseq_dag.engine.pipeline_step import PipelineStep
+
 import idseq_dag.util.command as command
+import idseq_dag.util.server as server
+import idseq_dag.util.lineage as lineage
+import idseq_dag.util.log as log
+import idseq_dag.util.m8 as m8
 from idseq_dag.util.s3 import fetch_from_s3
+
+MAX_CONCURRENT_CHUNK_UPLOADS = 4
 
 class PipelineStepRunAlignmentRemotely(PipelineStep):
     '''
@@ -18,18 +30,40 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         self.chunks_in_flight = threading.Semaphore(self.additional_attributes['chunks_in_flight'])
         self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
         self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
+        self.iostream_upload = multiprocessing.Semaphore(MAX_CONCURRENT_CHUNK_UPLOADS)
+
         command.execute("mkdir -p %s" % self.chunks_result_dir_local)
 
     def run(self):
         ''' Run alignmment remotely '''
         input_fas = self.get_input_fas()
-        output_m8 = self.output_files_local()[0]
+        [output_m8, deduped_output_m8, output_hitsummary, output_counts_json] = self.output_files_local()
         service = self.additional_attributes["service"]
+        assert service in ("gsnap", "rapsearch2")
+
         # TODO: run the alignment remotely and make lazy_chunk=True, revisit this later
         self.run_remotely(input_fas, output_m8, service)
 
-    def run_remotely(input_fas, output_m8, service):
-        assert service in ("gsnap", "rapsearch2")
+        # get database
+        lineage_db = fetch_from_s3(self.additional_files["lineage_db"], self.ref_dir_local)
+        accession2taxid_db = fetch_from_s3(self.additional_files["accession2taxid"], self.ref_dir_local)
+
+        m8.call_hits_m8(output_m8, lineage_db, accession2taxid_db,
+                        deduped_output_m8, output_hitsummary)
+
+        # check deuterostome
+        deuterostome_db = None
+        db_type = 'NT' if service == 'gsnap' else 'NR'
+        evalue_type = 'log10' if service == 'rapsearch2' else 'raw'
+        if self.additional_files.get("deuterostome_db"):
+            deuterostome_db = fetch_from_s3(self.additional_files["deuterostome_db"],
+                                            self.ref_dir_local)
+        m8.generate_taxon_count_json_from_m8(
+            deduped_output_m8, output_hitsummary, evalue_type, db_type,
+            lineage_db, deuterostome_db, output_counts_json)
+
+
+    def run_remotely(self, input_fas, output_m8, service):
         key_path = self.fetch_key(os.environ['KEY_PATH_S3'])
         sample_name = self.output_dir_s3.rstrip('/').replace('s3://', '').replace('/', '-')
         chunk_size = self.additional_attributes["chunk_size"]
@@ -61,7 +95,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             t = threading.Thread(
                 target=self.run_chunk_wrapper,
                 args=[
-                      chunks_in_flight, chunk_output_files, n, mutex, self.run_chunk, [
+                      self.chunks_in_flight, chunk_output_files, n, mutex, self.run_chunk, [
                       part_suffix, remote_home_dir, remote_index_dir,
                       remote_work_dir, remote_username, chunk_input_files,
                       key_path, service, True
@@ -80,10 +114,13 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def get_input_fas(self):
         service = self.additional_attributes["service"]
-        if service == 'gsnap':
-            return self.input_files_local[0][0:2]
-        elif service = 'rapsearch2'
-            return [self.input_files_local[0][2]]
+        if len(self.input_files_local[0]) == 1:
+            return self.input_files_local[0]
+        elif len(self.input_files_local[0]) == 3:
+            if service == 'gsnap':
+                return self.input_files_local[0][0:2]
+            elif service == 'rapsearch2':
+                return [self.input_files_local[0][2]]
         return None
 
     def fetch_key(self, key_path_s3):
@@ -152,11 +189,11 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 # with the chunk data or command options, so we should not even attempt the other chunks.
                 err_i = chunk_output_files.index("error")
                 raise RuntimeError("All retries failed for {} chunk {}.".format(
-                    task, input_chunks[err_i]))
+                    service, input_chunks[err_i]))
     @staticmethod
     def concatenate_files(chunk_output_files, output_m8):
-        with open(output_file, 'wb') as outf:
-            for f in file_list:
+        with open(output_m8, 'wb') as outf:
+            for f in chunk_output_files:
                 with open(f, 'rb') as fd:
                     shutil.copyfileobj(fd, outf)
 
@@ -216,13 +253,27 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             # Strip the .m8 for RAPSearch as it adds that
         )
 
-        if not lazy_run or not s3.fetch_from_s3(multihit_s3_outfile,
-                                                multihit_local_outfile):
+        if not lazy_run or not fetch_from_s3(multihit_s3_outfile,
+                                             multihit_local_outfile):
             correct_number_of_output_columns = 12
             min_column_number = 0
             max_tries = 2
             try_number = 1
             instance_ip = ""
+
+
+            def interpret_min_column_number_string(min_column_number_string,
+                                                   correct_number_of_output_columns,
+                                                   try_number):
+                if min_column_number_string:
+                    min_column_number = float(min_column_number_string)
+                    log.write(
+                        "Try no. %d: Smallest number of columns observed in any line was %d"
+                        % (try_number, min_column_number))
+                else:
+                    log.write("Try no. %d: No hits" % try_number)
+                    min_column_number = correct_number_of_output_columns
+                return min_column_number
 
             # Check if every row has correct number of columns (12) in the output
             # file on the remote machine
@@ -233,9 +284,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 max_concurrent = self.additional_attributes["max_concurrent"]
                 environment = self.additional_attributes["environment"]
 
-                instance_ip = self.wait_for_server_ip(service, key_path,
-                                                 remote_username, environment,
-                                                 max_concurrent, chunk_id)
+                instance_ip = server.wait_for_server_ip(service, key_path,
+                                                        remote_username, environment,
+                                                        max_concurrent, chunk_id)
                 log.write("starting alignment for chunk %s on %s server %s" %
                              (chunk_id, service, instance_ip))
                 command.execute(command.remote(commands, key_path, remote_username, instance_ip))
@@ -258,19 +309,13 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                   "to try again." % chunk_id
             assert min_column_number == correct_number_of_output_columns, msg
 
-            with iostream_uploads:  # Limit concurrent uploads so as not to stall the pipeline.
-                with iostream:  # Still counts toward the general semaphore.
-                    execute_command(
-                        scp(key_path, remote_username, instance_ip,
-                            multihit_remote_outfile, multihit_local_outfile))
-                    execute_command("aws s3 cp --quiet %s %s/" %
-                                    (multihit_local_outfile,
-                                     SAMPLE_S3_OUTPUT_CHUNKS_PATH))
-            write_to_log("finished alignment for chunk %s on %s server %s" %
-                         (chunk_id, service, instance_ip))
+            with self.iostream_upload:  # Limit concurrent uploads so as not to stall the pipeline.
+                command.execute(
+                    command.scp(key_path, remote_username, instance_ip,
+                        multihit_remote_outfile, multihit_local_outfile))
+                command.execute("aws s3 cp --quiet %s %s/" %
+                                (multihit_local_outfile,
+                                 self.chunks_result_dir_s3))
+            log.write("finished alignment for chunk %s on %s server %s" % (chunk_id, service, instance_ip))
         return multihit_local_outfile
-
-
-
-
 

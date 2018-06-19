@@ -2,6 +2,9 @@ import os
 import json
 import time
 import random
+import threading
+import traceback
+import multiprocessing
 
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
@@ -10,6 +13,8 @@ import idseq_dag.util.log as log
 MIN_INTERVAL_BETWEEN_DESCRIBE_INSTANCES = 180
 MAX_INTERVAL_BETWEEN_DESCRIBE_INSTANCES = 900
 MAX_POLLING_LATENCY = 10  # seconds
+MAX_INSTANCES_TO_POLL = 8
+MAX_DISPATCHES_PER_MINUTE = 10
 
 @command.retry
 def get_server_ips_work(service_name, environment):
@@ -79,8 +84,8 @@ def wait_for_server_ip_work(service_name,
             # running.
             commands = "ps aux | grep %s | grep -v bash || echo error" % service_name
             output = command.execute_with_output(
-                command.remote(commands, key_path, remote_username, ip), timeout=MAX_POLLING_LATENCY)
-                .rstrip().split("\n")
+                command.remote(commands, key_path, remote_username, ip),
+                timeout=MAX_POLLING_LATENCY).rstrip().split("\n")
             if output != ["error"]:
                 with dict_mutex:
                     if dict_writable:
@@ -97,7 +102,7 @@ def wait_for_server_ip_work(service_name,
             # Any zombie threads won't be allowed to modify the dict.
             dict_writable = False
         if len(ip_nproc_dict) < len(poller_threads):
-            write_to_log(
+            log.write(
                 "Only {} out of {} instances responded to polling;  {} threads are timing out.".
                 format(
                     len(ip_nproc_dict), len(poller_threads),
@@ -129,7 +134,7 @@ def wait_for_server_ip_work(service_name,
             had_to_wait[0] = True
             wait_seconds = random.randint(
                 max(20, MAX_POLLING_LATENCY), max(60, MAX_POLLING_LATENCY))
-            write_to_log("%s servers busy. Wait for %d seconds" %
+            log.write("%s servers busy. Wait for %d seconds" %
                          (service_name, wait_seconds))
             time.sleep(wait_seconds)
 
@@ -150,14 +155,14 @@ def wait_for_server_ip(service_name,
             last_checks[service_name] = [None]
         lc = last_checks[service_name]
         mx = mutexes[service_name]
-    write_to_log("Chunk {chunk_id} of {service_name} is at second gate".format(
+    log.write("Chunk {chunk_id} of {service_name} is at second gate".format(
         chunk_id=chunk_id, service_name=service_name))
     with mx:
         if lc[0] is not None:
             sleep_time = (60.0 / MAX_DISPATCHES_PER_MINUTE) - (
                 time.time() - lc[0])
             if sleep_time > 0:
-                write_to_log(
+                log.write(
                     "Sleeping for {:3.1f} seconds to rate-limit wait_for_server_ip.".
                     format(sleep_time))
                 time.sleep(sleep_time)
