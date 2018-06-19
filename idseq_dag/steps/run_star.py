@@ -67,9 +67,7 @@ class PipelineStepRunStar(PipelineStep):
         # count input (since run_star is the first step):
         self.counts_dict = self.total_counts_from_star
         # count output:
-        num_outputs = len(self.output_files)
-        reads_in_first_output = count.reads(self.output_files_local()[0])
-        self.counts_dict[self.name] = num_outputs * reads_in_first_output
+        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
 
     def run_star_part(self, output_dir,
                       genome_dir,

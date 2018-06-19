@@ -1,5 +1,11 @@
 import idseq_dag.util.command as command
 
+def reads_in_group(file_group):
+    ''' Count reads in a group of matching files '''
+    num_files = len(file_group)
+    reads_in_first_file = count.reads(file_group[0])
+    return num_files * reads_in_first_file
+
 def reads(local_file_path):
     ''' Count reads in a local file '''
     line_count = int(command.execute_with_output("wc -l < {}".format(local_file_path)))
