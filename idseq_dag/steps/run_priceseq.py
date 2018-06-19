@@ -42,7 +42,7 @@ class PipelineStepRunPriceSeq(PipelineStep):
                 self.fq2fa(price_out[1], output_files[1])
 
     def count_reads(self):
-        self.count_reads_work
+        self.count_reads_work()
 
     @staticmethod
     def fq2fa(input_fastq, output_fasta):

@@ -49,4 +49,4 @@ class PipelineStepRunGsnapFilter(PipelineStep):
                 output_sam_file, output_fas[0])
 
     def count_reads(self):
-        self.count_reads_work
+        self.count_reads_work()

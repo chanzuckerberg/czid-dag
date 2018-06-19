@@ -21,4 +21,4 @@ class PipelineStepRunCDHitDup(PipelineStep):
         command.execute(" ".join(cdhitdup_params))
 
     def count_reads(self):
-        self.count_reads_work
+        self.count_reads_work()

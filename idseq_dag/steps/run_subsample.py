@@ -17,7 +17,7 @@ class PipelineStepRunSubsample(PipelineStep):
         PipelineStepRunSubsample.subsample_fastas(input_fas, output_fas, max_reads)
 
     def count_reads(self):
-        self.count_reads_work
+        self.count_reads_work()
 
     @staticmethod
     def subsample_fastas(input_fas, output_fas, max_reads):

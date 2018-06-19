@@ -12,7 +12,7 @@ class PipelineStepRunLZW(PipelineStep):
         PipelineStepRunLZW.generate_lzw_filtered(input_fas, output_fas, cutoff_fractions)
 
     def count_reads(self):
-        self.count_reads_work
+        self.count_reads_work()
 
     @staticmethod
     def lzw_fraction(sequence):
