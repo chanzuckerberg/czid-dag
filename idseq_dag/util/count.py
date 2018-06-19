@@ -11,6 +11,6 @@ def lines2reads(line_count, file_format):
     ''' Convert line count to read count based on file format '''
     read_count = None
     if file_format in ["fq", "fastq"]:
-        assert read_count % 4 == 0, "File does not follow fastq format"
+        assert line_count % 4 == 0, "File does not follow fastq format"
         read_count = line_count // 4
     return read_count
