@@ -4,7 +4,6 @@ import idseq_dag.util.command as command
 import idseq_dag.util.convert as convert
 import idseq_dag.util.log as log
 from idseq_dag.util.s3 import fetch_from_s3
-import idseq_dag.util.count as count
 
 
 class PipelineStepRunGsnapFilter(PipelineStep):

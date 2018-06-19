@@ -5,6 +5,7 @@ import threading
 import time
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
+import idseq_dag.util.count as count
 from abc import abstractmethod
 from enum import IntEnum
 
