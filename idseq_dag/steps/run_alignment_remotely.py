@@ -86,7 +86,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             return [self.input_files_local[0][2]]
         return None
 
-
     def fetch_key(self, key_path_s3):
         key_path = fetch_from_s3(key_path_s3, self.output_dir_local)
         command.execute("chmod 400 %s" % key_path)
@@ -102,7 +101,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         for input_file in input_files:
             # Count number of lines in the file
             nlines = int(command.execute_with_output("wc -l %s" % input_file)
-                                .decode('utf-8').strip().split()[0])
+                                .strip().split()[0])
             # Number of lines should be the same in paired files
             if known_nlines is not None:
                 msg = "Mismatched line counts in supposedly paired files: {}".format(
@@ -125,8 +124,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
             # Get the partial file names
             partial_files = []
-            paths = command.execute_with_output("ls %s*" % out_prefix)
-                           .decode('utf-8').rstrip().split("\n")
+            paths = command.execute_with_output("ls %s*" % out_prefix).rstrip().split("\n")
             for pf in paths:
                 partial_files.append(os.path.basename(pf))
 
@@ -249,7 +247,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                     verification_command = "grep -v '^#' %s" % multihit_remote_outfile
                 verification_command += " | awk '{print NF}' | sort -nu | head -n 1"
                 min_column_number_string = command.execute_with_output(
-                    command.remote(verification_command, key_path, remote_username, instance_ip)).decode('utf-8')
+                    command.remote(verification_command, key_path, remote_username, instance_ip))
                 min_column_number = interpret_min_column_number_string(
                     min_column_number_string, correct_number_of_output_columns,
                     try_number)

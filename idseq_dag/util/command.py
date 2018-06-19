@@ -251,7 +251,7 @@ def execute_with_output(command,
         timeout,
         grace_period,
         capture_stdout=True,
-        merge_stderr=merge_stderr)
+        merge_stderr=merge_stderr).decode('utf-8')
 
 
 def execute_remote(base_command, key_path, remote_username, instance_ip):

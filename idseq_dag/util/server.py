@@ -9,6 +9,7 @@ import idseq_dag.util.log as log
 
 MIN_INTERVAL_BETWEEN_DESCRIBE_INSTANCES = 180
 MAX_INTERVAL_BETWEEN_DESCRIBE_INSTANCES = 900
+MAX_POLLING_LATENCY = 10  # seconds
 
 @command.retry
 def get_server_ips_work(service_name, environment):
@@ -17,7 +18,7 @@ def get_server_ips_work(service_name, environment):
     describe_json = json.loads(
         command.execute_with_output(
             "aws ec2 describe-instances --filters 'Name=tag:%s,Values=%s' 'Name=instance-state-name,Values=running'"
-            % (tag, value)).decode('utf-8'))
+            % (tag, value)))
     server_ips = []
     for reservation in describe_json["Reservations"]:
         for instance in reservation["Instances"]:
@@ -79,7 +80,7 @@ def wait_for_server_ip_work(service_name,
             commands = "ps aux | grep %s | grep -v bash || echo error" % service_name
             output = command.execute_with_output(
                 command.remote(commands, key_path, remote_username, ip), timeout=MAX_POLLING_LATENCY)
-                .decode('utf-8').rstrip().split("\n")
+                .rstrip().split("\n")
             if output != ["error"]:
                 with dict_mutex:
                     if dict_writable:
