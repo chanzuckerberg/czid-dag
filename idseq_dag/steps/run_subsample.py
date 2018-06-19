@@ -17,8 +17,7 @@ class PipelineStepRunSubsample(PipelineStep):
         PipelineStepRunSubsample.subsample_fastas(input_fas, output_fas, max_reads)
 
     def count_reads(self):
-        ''' Count reads remaining after subsampling '''
-        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
+        self.count_reads_work
 
     @staticmethod
     def subsample_fastas(input_fas, output_fas, max_reads):

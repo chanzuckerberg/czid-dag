@@ -21,5 +21,4 @@ class PipelineStepRunCDHitDup(PipelineStep):
         command.execute(" ".join(cdhitdup_params))
 
     def count_reads(self):
-        """ Count reads remaining after deduplication """
-        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
+        self.count_reads_work

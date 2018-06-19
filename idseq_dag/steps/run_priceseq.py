@@ -42,8 +42,7 @@ class PipelineStepRunPriceSeq(PipelineStep):
                 self.fq2fa(price_out[1], output_files[1])
 
     def count_reads(self):
-        """ Count reads passing quality filter """
-        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
+        self.count_reads_work
 
     @staticmethod
     def fq2fa(input_fastq, output_fasta):

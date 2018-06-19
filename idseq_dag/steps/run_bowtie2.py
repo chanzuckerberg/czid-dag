@@ -48,5 +48,4 @@ class PipelineStepRunBowtie2(PipelineStep):
                 output_sam_file, output_fas[0])
 
     def count_reads(self):
-        """ Count reads remaining after bowtie2 filter """
-        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
+        self.count_reads_work

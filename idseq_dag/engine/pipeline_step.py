@@ -49,6 +49,18 @@ class PipelineStep(object):
     def count_reads(self):
         ''' count reads '''
 
+    def count_reads_work(self):
+        '''
+        Count reads for outputs consisting of sequence records.
+
+        Assumptions:
+        - For paired inputs, the outputs to be counted are the first two in the target.
+        - When the pipeline input is single-ended, the target consists of only a single
+          output, which is to be counted.
+        '''
+        files_to_count = self.output_files_local()[0:2] # will be either 1 or 2 files
+        self.counts_dict[self.name] = count.reads_in_group(files_to_count)
+
     def save_counts(self):
         if self.counts_dict:
             count_file_name = "%s/%s.count" % (self.output_dir_local, self.name)
