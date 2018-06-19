@@ -3,6 +3,7 @@ import random
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
+import idseq_dag.util.count as count
 
 class PipelineStepRunSubsample(PipelineStep):
     '''
@@ -14,6 +15,10 @@ class PipelineStepRunSubsample(PipelineStep):
         output_fas = self.output_files_local()
         max_reads = self.additional_attributes["max_reads"]
         PipelineStepRunSubsample.subsample_fastas(input_fas, output_fas, max_reads)
+
+    def count_reads(self):
+        ''' Count reads remaining after subsampling '''
+        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
 
     @staticmethod
     def subsample_fastas(input_fas, output_fas, max_reads):

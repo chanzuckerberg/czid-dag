@@ -4,6 +4,7 @@ import idseq_dag.util.command as command
 import idseq_dag.util.convert as convert
 import idseq_dag.util.log as log
 from idseq_dag.util.s3 import fetch_from_s3
+import idseq_dag.util.count as count
 
 
 class PipelineStepRunGsnapFilter(PipelineStep):
@@ -46,3 +47,7 @@ class PipelineStepRunGsnapFilter(PipelineStep):
         else:
             convert.generate_unmapped_singles_from_sam(
                 output_sam_file, output_fas[0])
+
+    def count_reads(self):
+        """ Count reads remaining after gsnap filtering """
+        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
