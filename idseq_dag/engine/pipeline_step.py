@@ -38,11 +38,23 @@ class PipelineStep(object):
         self.upload_thread = None
         self.input_files_local = []
         self.additional_files_to_upload = []
+        self.counts_dict = {}
 
 
     @abstractmethod
     def run(self):
         ''' implement what is actually being run in this step '''
+
+    @abstractmethod
+    def count_reads(self):
+        ''' count reads '''
+
+    def save_counts(self):
+        if self.counts_dict:
+            count_file_name = "%s/%s.count" % (self.output_dir_local, self.name)
+            with open(count_file_name, 'w') as count_file:
+                json.dump(self.counts_dict, count_file)
+            self.additional_files_to_upload.append(count_file_name)
 
     def output_files_local(self):
         ''' Get list of output files on local folder '''
@@ -105,6 +117,7 @@ class PipelineStep(object):
             # Tag the done files
             done_file = self.done_file(f)
             command.execute("date > %s" % done_file)
+        self.count_reads()
 
     def wait_until_finished(self):
         self.exec_thread.join()
@@ -126,6 +139,7 @@ class PipelineStep(object):
         self.run()
         self.validate()
         self.save_progress()
+        self.save_counts()
         log.write("FINISH STEP %s" % self.name)
         self.upload_thread = threading.Thread(target=self.uploading_results)
         self.upload_thread.start()
