@@ -1,6 +1,7 @@
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
+import idseq_dag.util.count as count
 
 class PipelineStepRunLZW(PipelineStep):
 
@@ -11,7 +12,7 @@ class PipelineStepRunLZW(PipelineStep):
         PipelineStepRunLZW.generate_lzw_filtered(input_fas, output_fas, cutoff_fractions)
 
     def count_reads(self):
-        self.count_reads_work()
+        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
 
     @staticmethod
     def lzw_fraction(sequence):

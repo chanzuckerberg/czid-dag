@@ -5,7 +5,7 @@ from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.s3 as s3
-
+import idseq_dag.util.count as count
 
 class PipelineStepRunStar(PipelineStep):
     def run(self):
@@ -62,11 +62,10 @@ class PipelineStepRunStar(PipelineStep):
         command.execute("cd %s; rm -rf *" % scratch_dir)
 
     def count_reads(self):
-        """ Count input reads and reads after STAR filtering """
         # count input (since run_star is the first step):
         self.counts_dict = self.total_counts_from_star
         # count output:
-        self.count_reads_work()
+        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
 
     def run_star_part(self, output_dir,
                       genome_dir,

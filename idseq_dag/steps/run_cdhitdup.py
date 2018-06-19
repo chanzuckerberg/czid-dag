@@ -1,5 +1,6 @@
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
+import idseq_dag.util.count as count
 
 class PipelineStepRunCDHitDup(PipelineStep):
     '''
@@ -20,4 +21,5 @@ class PipelineStepRunCDHitDup(PipelineStep):
         command.execute(" ".join(cdhitdup_params))
 
     def count_reads(self):
-        self.count_reads_work()
+        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
+
