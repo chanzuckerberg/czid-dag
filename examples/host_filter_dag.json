@@ -3,7 +3,7 @@
   "targets": {
     "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"],
     "star_out": ["unmapped1.fq", "unmapped2.fq"],
-    "priceseq_out": ["priceseq1.fq", "priceseq2.fq"],
+    "priceseq_out": ["priceseq1.fa", "priceseq2.fa"],
     "cdhitdup_out": ["dedup1.fa", "dedup2.fa"],
     "lzw_out": ["lzw1.fa", "lzw2.fa"],
     "bowtie2_out": ["bowtie2_1.fa", "bowtie2_2.fa", "bowtie2_merged.fa"],
