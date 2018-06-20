@@ -26,7 +26,7 @@ def iterate_m8(m8_file, debug_caller=None, logging_interval=25000000):
     """
     invalid_hits = 0
     last_invalid_line = None
-    with open(m8_file, 'rb') as m8f:
+    with open(m8_file, 'r', encoding='utf-8') as m8f:
         line_count = 0
         for line in m8f:
             line_count += 1
@@ -213,8 +213,8 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
     # Generate output files. outf is the main output_m8 file and outf_sum is
     # the summary level info.
     emitted = set()
-    with open(output_m8, "wb") as outf:
-        with open(output_summary, "wb") as outf_sum:
+    with open(output_m8, "w") as outf:
+        with open(output_summary, "w") as outf_sum:
             # Iterator over the lines of the m8 file. Emit the hit with the
             # best value that provides the most specific taxonomy
             # information. If there are multiple hits (also called multiple
@@ -255,7 +255,7 @@ def generate_taxon_count_json_from_m8(
     # our desired attributes, including aggregated statistics.
 
     def read_file_into_set(file_name):
-        with open(file_name) as f:
+        with open(file_name, 'r') as f:
             S = set(x.rstrip() for x in f)
             S.discard('')
         return S
@@ -273,8 +273,8 @@ def generate_taxon_count_json_from_m8(
 
     # Setup
     aggregation = {}
-    hit_f = open(hit_level_file, 'rb')
-    m8_f = open(m8_file, 'rb')
+    hit_f = open(hit_level_file, 'r', encoding='utf-8')
+    m8_f = open(m8_file, 'r', encoding='utf-8')
     # Lines in m8_file and hit_level_file correspond (same read_id)
     hit_line = hit_f.readline()
     m8_line = m8_f.readline()
@@ -392,7 +392,7 @@ def generate_taxon_count_json_from_m8(
             "taxon_counts_attributes": taxon_counts_attributes
         }
     }
-    with open(output_json_file, 'wb') as outf:
+    with open(output_json_file, 'w') as outf:
         json.dump(output_dict, outf)
 
 
