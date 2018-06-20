@@ -17,7 +17,14 @@ class PipelineStepRunSubsample(PipelineStep):
         PipelineStepRunSubsample.subsample_fastas(input_fas, output_fas, max_fragments)
 
     def count_reads(self):
-        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
+        files_to_count = self.output_files_local()[0:2]
+        read_count = count.reads_in_group(files_to_count)
+        self.counts_dict[self.name] = read_count
+        # If the read count is exactly equal to the maximum allowed number,
+        # infer that subsampling occurred:
+        max_read_count = len(files_to_count) * self.additional_attributes["max_fragments"]
+        if read_count == max_read_count:
+            self.counts_dict["subsampled"] = 1
 
     @staticmethod
     def subsample_fastas(input_fas, output_fas, max_fragments):
