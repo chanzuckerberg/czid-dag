@@ -8,11 +8,7 @@ def reads_in_group(file_group, max_fragments=None):
     If the input is paired, then 1 fragment == 2 reads.
     '''
     num_files = len(file_group)
-    if max_fragments:
-        max_reads = num_files * max_fragments
-    else:
-        max_reads = None
-    reads_in_first_file = reads(file_group[0], max_reads)
+    reads_in_first_file = reads(file_group[0], max_fragments)
     return num_files * reads_in_first_file
 
 def reads(local_file_path, max_reads=None):
