@@ -35,7 +35,7 @@ def reads(local_file_path, max_reads=None):
 def lines2reads(line_count, file_format):
     '''
     Convert line count to read count based on file format.
-    Supports fastq and fasta formats.
+    Supports fastq and SINGLE-LINE fasta formats.
     TODO: add support for m8 files here once the relevant steps are added in the pipeline engine.
     '''
     read_count = None
@@ -58,9 +58,12 @@ def lines2reads(line_count, file_format):
 def reads2lines(read_count, file_format):
     '''
     Convert read count to line count based on file format.
-    Currently supports fastq only.
+    Currently supports fastq or SINGLE-LINE fasta.
     '''
     line_count = None
     if file_format in ["fq", "fastq"]:
         line_count = 4 * read_count
+    elif file_format in ["fa", "fasta"]:
+        # Assumes the format is single-line fasta rather than multiline fasta
+        line_count = 2 * read_count
     return line_count

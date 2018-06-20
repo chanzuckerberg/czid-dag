@@ -61,5 +61,5 @@
       "additional_attributes": {}
     }
   ],
-  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/samples/1/10/fastqs", "max_fragments":75000000 } }
+  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/samples/1/10/fastqs", "count_reads": True, "max_fragments": 75000000 } }
 }

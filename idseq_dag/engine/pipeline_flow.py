@@ -177,8 +177,7 @@ class PipelineFlow(object):
         PipelineFlow.fetch_input_files_from_s3(input_files=self.targets[target],
                                                input_dir_s3=input_path_s3,
                                                result_dir_local=self.output_dir_local)
-        if target in self.given_targets:
-            # If the target was a given input, we need to count its reads here:
+        if self.given_targets[target].get("count_reads"):
             PipelineFlow.count_input_reads(input_files=self.targets[target],
                                            result_dir_local=self.output_dir_local,
                                            result_dir_s3=self.output_dir_s3,

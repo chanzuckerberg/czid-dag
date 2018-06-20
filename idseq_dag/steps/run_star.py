@@ -165,8 +165,11 @@ class PipelineStepRunStar(PipelineStep):
         return output_fnames
 
     def max_input_lines(self, input_file):
-        """Truncate to maximum lines. Fasta has 2 lines per read. Fastq has 4
-        lines per read.
+        """
+        Truncate to maximum lines. Fastq has 4 lines per read.
+        Fasta has 2 lines per read, ASSUMING it is single-line fasta, not multiline fasta.
+        TODO: Add support for multiline fasta. We do not have control over the inputs uploaded 
+        by the user, so our assumption of single-line fasta will probably be violated in the future.
         """
         res = self.additional_attributes["truncate_fragments_to"] * 2
         if "fasta" not in input_file:  # Assume it's FASTQ
