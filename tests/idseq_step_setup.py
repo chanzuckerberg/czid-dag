@@ -150,7 +150,7 @@ class IdseqStepSetup(object):
       "additional_attributes": {}
     }
   ],
-  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_fragments":75000000 } }
+  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "count_reads": 1, "max_fragments":75000000 } }
 }
         ''')
 
@@ -249,7 +249,7 @@ class IdseqStepSetup(object):
       "additional_attributes": {}
     }
   ],
-  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_fragments":75000000 } }
+  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "count_reads": 1, "max_fragments": 75000000 } }
 
   }
         ''')
