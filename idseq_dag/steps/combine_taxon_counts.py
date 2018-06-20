@@ -12,7 +12,7 @@ class PipelineStepCombineTaxonCounts(PipelineStep):
         for target in self.input_files_local:
             input_files.append(target[3])
         output_file = self.output_files_local()[0]
-        PipelineStepRunCombineTaxonCounts.combine_counts(input_files, output_file)
+        self.combine_counts(input_files, output_file)
 
 
     def count_reads(self):
