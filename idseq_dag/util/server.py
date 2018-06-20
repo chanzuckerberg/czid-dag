@@ -149,6 +149,9 @@ def wait_for_server_ip(service_name,
                        mutexes={},
                        last_checks={}):  #pylint: disable=dangerous-default-value
     # We rate limit these to ensure fairness across jobs regardless of job size
+    if service_name == 'rapsearch2':
+        # TODO: remove this duct tape
+        service_name = 'rapsearch'
     with mutex:
         if service_name not in mutexes:
             mutexes[service_name] = threading.RLock()
