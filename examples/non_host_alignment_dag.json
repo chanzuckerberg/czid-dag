@@ -43,20 +43,20 @@
         }
     },
     {
-      "in": ["gsnap_out", "rapsearch_out"],
+      "in": ["gsnap_out", "rapsearch2_out"],
       "out": "taxon_count_out",
       "class": "PipelineStepCombinedTaxonCounts",
       "module": "idseq_dag.steps.combined_taxon_counts",
       "additional_files": {},
-      additional_attributes": {}
+      "additional_attributes": {}
     },
     {
-      "in": ["host_filter_out", "gsnap_out", "rapsearch_out"],
+      "in": ["host_filter_out", "gsnap_out", "rapsearch2_out"],
       "out": "annotated_out",
       "class": "PipelineStepGenerateAnnotatedFasta",
       "module": "idseq_dag.steps.generate_annotated_fasta",
       "additional_files": {},
-      additional_attributes": {}
+      "additional_attributes": {}
     }
   ],
   "given_targets": {
