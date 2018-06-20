@@ -7,35 +7,35 @@ import idseq_dag.util.count as count
 
 class PipelineStepRunSubsample(PipelineStep):
     '''
-    Subsample the input data to max_reads
+    Subsample the input data to max_fragments
     '''
     def run(self):
         ''' Invoking subsampling '''
         input_fas = self.input_files_local[0]
         output_fas = self.output_files_local()
-        max_reads = self.additional_attributes["max_reads"]
-        PipelineStepRunSubsample.subsample_fastas(input_fas, output_fas, max_reads)
+        max_fragments = self.additional_attributes["max_fragments"]
+        PipelineStepRunSubsample.subsample_fastas(input_fas, output_fas, max_fragments)
 
     def count_reads(self):
         self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
 
     @staticmethod
-    def subsample_fastas(input_fas, output_fas, max_reads):
+    def subsample_fastas(input_fas, output_fas, max_fragments):
         ''' In memory subsampling '''
         paired = len(input_fas) >= 2
         # count lines
         cmd = "wc -l %s | cut -f1 -d ' '" % input_fas[0]
         total_records = int(command.execute_with_output(cmd).decode('utf-8')) // 2
         log.write("total reads: %d" % total_records)
-        log.write("target reads: %d" % max_reads)
-        if total_records <= max_reads:
+        log.write("target reads: %d" % max_fragments)
+        if total_records <= max_fragments:
             for infile, outfile in zip(input_fas, output_fas):
                 command.execute("cp %s %s" % (infile, outfile))
             return
 
-        # total_records > max_reads, sample
+        # total_records > max_fragments, sample
         randgen = random.Random(x=hash(input_fas[0]))
-        records_to_keep = randgen.sample(range(total_records), max_reads)
+        records_to_keep = randgen.sample(range(total_records), max_fragments)
         PipelineStepRunSubsample.subset(input_fas[0], output_fas[0], records_to_keep)
         if paired:
             PipelineStepRunSubsample.subset(input_fas[1], output_fas[1], records_to_keep)

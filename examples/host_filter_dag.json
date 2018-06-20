@@ -40,7 +40,7 @@
     {
       "in" : ["bowtie2_out"], "out": "subsampled_out", "class": "PipelineStepRunSubsample", "module": "idseq_dag.steps.run_subsample",
       "additional_files": {},
-      "additional_attributes": {"max_reads": 1000000}
+      "additional_attributes": {"max_fragments": 1000000}
     },
     {
       "in" : ["subsampled_out"], "out": "gsnap_filter_out", "class": "PipelineStepRunGsnapFilter", "module": "idseq_dag.steps.run_gsnap_filter",
@@ -48,5 +48,5 @@
       "additional_attributes": {"output_sam_file": "gsnap_filter.sam"}
     }
   ],
-  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/samples/71/4542/fastqs", "max_reads":75000000 } }
+  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/samples/71/4542/fastqs", "max_fragments":75000000 } }
 }
