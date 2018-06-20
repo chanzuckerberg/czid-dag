@@ -34,6 +34,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         command.execute("mkdir -p %s" % self.chunks_result_dir_local)
 
+    def count_reads(self):
+        pass
+
     def run(self):
         ''' Run alignmment remotely '''
         input_fas = self.get_input_fas()

@@ -45,8 +45,8 @@
     {
       "in": ["gsnap_out", "rapsearch_out"],
       "out": "taxon_count_out",
-      "class": "PipelineStepGenerateCombinedTaxonCounts",
-      "module": "idseq_dag.steps.generate_combined_taxon_counts",
+      "class": "PipelineStepCombinedTaxonCounts",
+      "module": "idseq_dag.steps.combined_taxon_counts",
       "additional_files": {},
       additional_attributes": {}
     },
