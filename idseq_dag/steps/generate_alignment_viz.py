@@ -59,7 +59,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         # sequence, lineage info.
         groups = {}
         line_count = 0
-        nt_loc_dict = shelve.open(nt_loc_db.rstrip("db"))
+        db_path = nt_loc_db.replace(".db", "")
+        nt_loc_dict = shelve.open(db_path)
         with open(annotated_m8, 'r') as m8f:
             for line in m8f:
                 line_count += 1
@@ -112,34 +113,25 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
         # "ad" is short for "accession_dict" aka "accession_info"
         for accession_id, ad in groups.items():
-            print("ad: " + str(ad))
             try:
                 tmp_file = 'accession-%s' % accession_id
-                print("tmp file should be: " + tmp_file)
                 if ad['ref_seq_len'] <= self.MAX_SEQ_DISPLAY_SIZE and 'ref_seq' not in ad:
                     if ad['ref_seq_len'] == 0:
                         ad['ref_seq'] = "REFERENCE SEQUENCE NOT FOUND"
                     else:
                         with open(tmp_file, "rb") as tf:
-                            print("should have content here")
                             ad['ref_seq'] = tf.read()
-                            print("content: " + str(ad['ref_seq']))
                         to_be_deleted.append(tmp_file)
 
                 if 'ref_seq' in ad:
                     ref_seq = ad['ref_seq']
                     for read in ad['reads']:
                         prev_start, ref_start, ref_end, post_end = read[3]
-                        print("prev: " + str(read[3]))
-                        print(len(ref_seq))
-                        print(ref_seq)
                         read[3] = [
                             ref_seq[prev_start:ref_start],
                             ref_seq[ref_start:ref_end],
                             ref_seq[ref_end:post_end]
                         ]
-                        print("IN THIS BLOCK")
-                        print(read[3])
                 else:
                     # The reference sequence is too long to read entirely in RAM,
                     # so we only read the mapped segments.
@@ -307,7 +299,6 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                                 semaphore,
                                 mutex,
                                 seq_count=[0]):  #pylint: disable=dangerous-default-value
-        print("foobar get seq for thread")
         try:
             (
                 ref_seq_len, seq_name
@@ -333,7 +324,6 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
     def get_sequence_by_accession_id_ntf(accession_id, nt_loc_dict, ntf):
         ref_seq = ''
         seq_name = ''
-        print("in get seq by acc id ntf")
         entry = nt_loc_dict.get(accession_id)
         if entry:
             range_start = entry[0]
@@ -355,7 +345,6 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
         (range_start, name_length, seq_len) = entry
 
-        print("IN GET SEQ BY ACC ID S3")
         accession_file = 'accession-%s' % accession_id
         NUM_RETRIES = 3
         for attempt in range(NUM_RETRIES):
@@ -382,7 +371,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                 if attempt + 1 < NUM_RETRIES:
                     time.sleep(1.0 * (4**attempt))
                 else:
-                    print(
+                    log.write(
                         "All retries failed for get_sequence_by_accession_id_s3."
                     )
                     raise
