@@ -148,11 +148,11 @@ class PipelineFlow(object):
             command.execute("date > %s" % done_file)
 
     @staticmethod
-    def count_input_reads(input_files, result_dir_local, target_name, max_fragments=None):
+    def count_input_reads(input_files, result_dir_local, result_dir_s3, target_name, max_fragments=None):
         local_input_files = [os.path.join(result_dir_local, f) for f in input_files[0:2]]
         count_file_basename = "%s.count" % target_name
         local_count_file = "%s/%s" % (result_dir_local, count_file_basename)
-        s3_count_file = "%s/%s" % (self.output_dir_s3, count_file_basename)
+        s3_count_file = "%s/%s" % (result_dir_s3, count_file_basename)
 
         read_count = count.reads_in_group(local_input_files, max_fragments=max_fragments)
         counts_dict = { target_name: read_count }
@@ -181,6 +181,7 @@ class PipelineFlow(object):
             # If the target was a given input, we need to count its reads here:
             PipelineFlow.count_input_reads(input_files=self.targets[target],
                                            result_dir_local=self.output_dir_local,
+                                           result_dir_s3=self.output_dir_s3,
                                            target_name=target,
                                            max_fragments=self.given_targets[target]["max_fragments"])
 
