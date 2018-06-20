@@ -1,7 +1,12 @@
 import idseq_dag.util.command as command
 
 def reads_in_group(file_group, max_fragments=None):
-    ''' Count reads in a group of matching files '''
+    '''
+    Count reads in a group of matching files, up to a maximum number of fragments.
+    The term "fragment" refers to the physical DNA fragments the reads derive from.
+    If the input is single, then 1 fragment == 1 read.
+    If the input is paired, then 1 fragment == 2 reads.
+    '''
     num_files = len(file_group)
     if max_fragments:
         max_reads = num_files * max_fragments
@@ -12,7 +17,8 @@ def reads_in_group(file_group, max_fragments=None):
 
 def reads(local_file_path, max_reads=None):
     '''
-    Count reads in a local file based on file format inferred from extension.
+    Count reads in a local file based on file format inferred from extension,
+    up to a maximum of max_reads.
     '''
     if max_reads:
         max_lines = reads2lines(max_reads)

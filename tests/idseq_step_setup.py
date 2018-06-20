@@ -123,7 +123,7 @@ class IdseqStepSetup(object):
     {
       "in" : ["bowtie2_out"], "out": "subsampled_out", "class": "PipelineStepRunSubSample", "module": "idseq_dag.steps.run_subsample",
       "additional_files": {},
-      "additional_attributes": {"max_reads": 1000000}
+      "additional_attributes": {"max_fragments": 1000000}
     },
     {
       "in" : ["bowtie2_out"], "out": "gsnap_filter_out", "class": "PipelineStepRunGsnapFilter", "module": "idseq_dag.steps.run_gsnap_filter",
@@ -150,7 +150,7 @@ class IdseqStepSetup(object):
       "additional_attributes": {}
     }
   ],
-  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_reads":75000000 } }
+  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_fragments":75000000 } }
 }
         ''')
 
@@ -222,7 +222,7 @@ class IdseqStepSetup(object):
     {
       "in" : ["bowtie2_out"], "out": "subsampled_out", "class": "PipelineStepRunSubSample", "module": "idseq_dag.steps.run_subsample",
       "additional_files": {},
-      "additional_attributes": {"max_reads": 1000000}
+      "additional_attributes": {"max_fragments": 1000000}
     },
     {
       "in" : ["bowtie2_out"], "out": "gsnap_filter_out", "class": "PipelineStepRunGsnapFilter", "module": "idseq_dag.steps.run_gsnap_filter",
@@ -249,7 +249,7 @@ class IdseqStepSetup(object):
       "additional_attributes": {}
     }
   ],
-  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_reads":75000000 } }
+  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/test_samples/1/fastqs", "max_fragments":75000000 } }
 
   }
         ''')
