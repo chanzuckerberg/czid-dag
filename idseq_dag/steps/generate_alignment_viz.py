@@ -36,7 +36,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             self.additional_files["nt_loc_db"],
             self.ref_dir_local,
             allow_s3mi=True)
-        db_type = "NT"
+        db_type = "nt"  # Only NT supported for now
         # TODO: Design a way to map in/out files more robustly, e.g. by name/type
         annotated_m8 = self.input_files_local[0][1]
         annotated_fasta = self.input_files_local[1][0]
@@ -48,12 +48,52 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             annotated_fasta, db_type)
         log.write(f"Read to Seq dictionary size: {len(read2seq)}")
 
+        db_path = nt_loc_db.replace(".db", "")
+        nt_loc_dict = shelve.open(db_path)
+        groups, line_count = self.process_reads_from_m8_file(
+            annotated_m8, read2seq)
+
+        if nt_db.startswith("s3://"):
+            PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_s3(
+                groups, nt_loc_dict, nt_db)
+        else:
+            PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_file(
+                groups, nt_loc_dict, nt_db)
+
+        for accession_id, ad in groups.items():
+            ad['coverage_summary'] = PipelineStepGenerateAlignmentViz.calculate_alignment_coverage(
+                ad)
+
+        result_dict, to_be_deleted = self.populate_reference_sequences(groups)
+
+        # Delete temp files
+        def safe_multi_delete(files):
+            for f in files:
+                try:
+                    os.remove(f)
+                except:
+                    pass
+
+        deleter_thread = threading.Thread(
+            target=safe_multi_delete, args=[to_be_deleted])
+        deleter_thread.start()
+
+        self.dump_align_viz_json(output_json_dir, db_type, result_dict)
+
+        deleter_thread.join()
+
+        # Write summary file
+        summary_msg = f"Read2Seq Size: {len(read2seq)}, M8 lines {line_count}, " \
+                  f"{len(groups)} unique accession ids "
+        summary_file_name = f"{output_json_dir}.summary"
+        with open(summary_file_name, 'w') as summary_f:
+            summary_f.write(summary_msg)
+
+    def process_reads_from_m8_file(self, annotated_m8, read2seq):
         # Go through m8 file and infer the alignment info. Grab the fasta
         # sequence, lineage info.
         groups = {}
         line_count = 0
-        db_path = nt_loc_db.replace(".db", "")
-        nt_loc_dict = shelve.open(db_path)
         with open(annotated_m8, 'r') as m8f:
             for line in m8f:
                 line_count += 1
@@ -74,14 +114,14 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                     ref_start = int(metrics[-4])
                     ref_end = int(metrics[-3])
                     if ref_start > ref_end:  # SWAP
-                        (ref_start, ref_end) = (ref_end, ref_start)
+                        ref_start, ref_end = ref_end, ref_start
                     ref_start -= 1
 
                     prev_start = ref_start - self.REF_DISPLAY_RANGE
                     if prev_start < 0:
                         prev_start = 0
                     post_end = ref_end + self.REF_DISPLAY_RANGE
-                    markers = (prev_start, ref_start, ref_end, post_end)
+                    markers = prev_start, ref_start, ref_end, post_end
                     ad['reads'].append([read_id, sequence, metrics, markers])
                     base_url = "https://www.ncbi.nlm.nih.gov/nuccore"
                     ad['ref_link'] = f"{base_url}/{accession_id}?report=fasta"
@@ -89,20 +129,12 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
         log.write(f"{line_count} lines in the m8 file")
         log.write(f"{len(groups)} unique accession ids")
+        return groups, line_count
 
-        if nt_db.startswith("s3://"):
-            PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_s3(
-                groups, nt_loc_dict, nt_db)
-        else:
-            PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_file(
-                groups, nt_loc_dict, nt_db)
-
+    def populate_reference_sequences(self, groups):
         result_dict = {}
         to_be_deleted = []
         error_count = 0  # Cap max errors
-        for accession_id, ad in groups.items():
-            ad['coverage_summary'] = PipelineStepGenerateAlignmentViz.calculate_alignment_coverage(
-                ad)
 
         # "ad" is short for "accession_dict" aka "accession_info"
         for accession_id, ad in groups.items():
@@ -168,20 +200,11 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                   "{error_count} accession IDs.".format(error_count=error_count)
             raise RuntimeError(msg)
 
-        # Delete temp files
-        def safe_multi_delete(files):
-            for f in files:
-                try:
-                    os.remove(f)
-                except:
-                    pass
+        return result_dict, to_be_deleted
 
-        deleter_thread = threading.Thread(
-            target=safe_multi_delete, args=[to_be_deleted])
-        deleter_thread.start()
-
+    def dump_align_viz_json(self, output_json_dir, db_type, result_dict):
         def align_viz_name(tag, lin_id):
-            return f"{output_json_dir}/{db_type.lower()}.{tag}.{int(lin_id)}.align_viz.json"
+            return f"{output_json_dir}/{db_type}.{tag}.{int(lin_id)}.align_viz.json"
 
         # Generate JSON files for the align_viz folder
         command.execute("mkdir -p %s" % output_json_dir)
@@ -203,19 +226,9 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                         json.dump(species_dict, out_f)
                     self.additional_files_to_upload.append(fn)
 
-        deleter_thread.join()
-
-        # Write summary file
-        summary = f"Read2Seq Size: {len(read2seq)}, M8 lines {line_count}, " \
-                  f"{len(groups)} unique accession ids "
-        summary_file_name = f"{output_json_dir}.summary"
-        with open(summary_file_name, 'w') as summary_f:
-            summary_f.write(summary)
-
     @staticmethod
     def parse_reads(annotated_fasta, db_type):
         read2seq = {}
-        db_type = db_type.lower()
         search_string = f"species_{db_type}"
         adv_search_string = "family_%s:([-\d]+):.*genus_%s:([-\d]+):.*species_%s:(" \
                             "[-\d]+).*NT:[^:]*:(.*)" % (
@@ -265,7 +278,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         for accession_id, accession_info in accession_id_groups.items():
             semaphore.acquire()
             t = threading.Thread(
-                target=PipelineStepGenerateAlignmentViz.get_sequence_for_thread,
+                target=PipelineStepGenerateAlignmentViz.
+                get_sequence_for_thread,
                 args=[
                     error_flags, accession_info, accession_id, nt_loc_dict,
                     nt_bucket, nt_key, semaphore, mutex
