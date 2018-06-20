@@ -168,7 +168,7 @@ class PipelineStepRunStar(PipelineStep):
         """Truncate to maximum lines. Fasta has 2 lines per read. Fastq has 4
         lines per read.
         """
-        res = self.additional_attributes["truncate_reads_to"] * 2
+        res = self.additional_attributes["truncate_fragments_to"] * 2
         if "fasta" not in input_file:  # Assume it's FASTQ
             res *= 2
         return res

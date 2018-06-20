@@ -17,7 +17,7 @@
     {
       "in" : ["fastqs"], "out": "star_out", "class": "PipelineStepRunStar",
       "additional_files": {"star_genome": "s3://idseq-database/star_genome"},
-      "additional_attributes": {"truncate_reads_to": 75000000}
+      "additional_attributes": {"truncate_fragments_to": 75000000}
     },
     {
       "in" : ["star_out"], "out": "priceseq_out", "class": "PipelineStepRunPriceSeq",
