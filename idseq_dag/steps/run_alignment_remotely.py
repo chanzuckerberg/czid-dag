@@ -46,7 +46,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         # get database
         lineage_db = fetch_from_s3(self.additional_files["lineage_db"], self.ref_dir_local)
-        accession2taxid_db = fetch_from_s3(self.additional_files["accession2taxid"], self.ref_dir_local)
+        accession2taxid_db = fetch_from_s3(self.additional_files["accession2taxid_db"], self.ref_dir_local)
 
         m8.call_hits_m8(output_m8, lineage_db, accession2taxid_db,
                         deduped_output_m8, output_hitsummary)
