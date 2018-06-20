@@ -14,7 +14,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('dag_json', help='pipeline dag in json file format')
     parser.add_argument('--no-lazy-run', dest='lazy_run', action='store_false')
-    parser.add_argument('--key-s3-path', dest='key_path_s3', help='ssh key')
+    parser.add_argument('--key-path-s3', dest='key_path_s3', help='ssh key')
     parser.set_defaults(lazy_run=True)
     args = parser.parse_args()
     if args.key_path_s3:
