@@ -5,24 +5,24 @@ from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.s3 as s3
-
+import idseq_dag.util.count as count
 
 class PipelineStepRunStar(PipelineStep):
     def run(self):
         """Run STAR to filter out host reads."""
         # Setup
         input_files = self.input_files_local[0][0:2]
-        num_inputs = len(self.input_files[0])
+        num_inputs = len(input_files)
         scratch_dir = os.path.join(self.output_dir_local, "scratch_star")
 
-        total_counts_from_star = {}
         output_files_local = self.output_files_local()
         output_gene_file = self.additional_attributes.get("output_gene_file")
 
-        genome_dir = s3.fetch_from_s3(self.additional_files["star_genome"],
-                                   self.ref_dir_local,
-                                   allow_s3mi=True,
-                                   auto_untar=True)
+        genome_dir = s3.fetch_from_s3(
+            self.additional_files["star_genome"],
+            self.ref_dir_local,
+            allow_s3mi=True,
+            auto_untar=True)
 
         # Check parts file for the number of partitioned indexes
         parts_file = os.path.join(genome_dir, "parts.txt")
@@ -38,21 +38,18 @@ class PipelineStepRunStar(PipelineStep):
             count_genes = part_idx == 0
             self.run_star_part(tmp, genome_part, unmapped, count_genes)
 
-            unmapped = PipelineStepRunStar.sync_pairs(PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
+            unmapped = PipelineStepRunStar.sync_pairs(
+                PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
 
             # Run part 0 in gene-counting mode:
             # (a) ERCCs are doped into part 0 and we want their counts.
             # (b) If there is only 1 part (e.g. human), the host gene counts also
             # make sense.
-            # (c) At part 0, we can also extract out total input reads and if the
-            # total_counts is exactly the same as max_input_reads then we know the
-            # input file is truncated.
             if part_idx == 0:
                 gene_count_file = os.path.join(tmp, "ReadsPerGene.out.tab")
-                self.extract_total_counts(tmp, num_inputs,
-                                          total_counts_from_star)
                 if os.path.isfile(gene_count_file) and output_gene_file:
-                    moved = os.path.join(self.output_dir_local, output_gene_file)
+                    moved = os.path.join(self.output_dir_local,
+                                         output_gene_file)
                     command.execute(f"mv {gene_count_file} {moved}")
                     self.additional_files_to_upload.append(moved)
 
@@ -61,7 +58,11 @@ class PipelineStepRunStar(PipelineStep):
             command.execute(f"mv {src} {dst}")  # Move out of scratch dir
         command.execute("cd %s; rm -rf *" % scratch_dir)
 
-    def run_star_part(self, output_dir,
+    def count_reads(self):
+        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
+
+    def run_star_part(self,
+                      output_dir,
                       genome_dir,
                       input_files,
                       count_genes=False):
@@ -93,8 +94,8 @@ class PipelineStepRunStar(PipelineStep):
         command.execute(cmd)
 
     @staticmethod
-    def handle_outstanding_read(r0, r0id, outstanding_r0, outstanding_r1,
-                                of0, of1, mem, max_mem):
+    def handle_outstanding_read(r0, r0id, outstanding_r0, outstanding_r1, of0,
+                                of1, mem, max_mem):
         # If read r0 completes an outstanding r1, output the pair (r0, r1).
         # Else r0 becomes outstanding, so in future some r1 may complete it.
         if r0id:
@@ -145,10 +146,12 @@ class PipelineStepRunStar(PipelineStep):
             return fastq_files
 
         output_fnames = [ifn + ".synchronized_pairs.fq" for ifn in fastq_files]
-        with open(fastq_files[0], "rb") as if_0, open(fastq_files[1], "rb") as if_1:
-                with open(output_fnames[0], "wb") as of_0, open(output_fnames[1], "wb") as of_1:
-                        outstanding_r0, outstanding_r1, max_mem = PipelineStepRunStar.sync_pairs_work(
-                            of_0, of_1, if_0, if_1)
+        with open(fastq_files[0], "rb") as if_0, open(fastq_files[1],
+                                                      "rb") as if_1:
+            with open(output_fnames[0], "wb") as of_0, open(
+                    output_fnames[1], "wb") as of_1:
+                outstanding_r0, outstanding_r1, max_mem = PipelineStepRunStar.sync_pairs_work(
+                    of_0, of_1, if_0, if_1)
         if max_mem:
             # This will be printed if some pairs were out of order.
             msg = "WARNING: Pair order out of sync in {fqf}. " \
@@ -167,23 +170,14 @@ class PipelineStepRunStar(PipelineStep):
             assert discrepancies_count <= max_discrepancies, msg
         return output_fnames
 
-    def extract_total_counts(self, result_dir, num_fastqs,
-                             total_counts_from_star):
-        """Grab the total reads from the Log.final.out file."""
-        log_file = os.path.join(result_dir, "Log.final.out")
-        cmd = "grep 'Number of input reads' %s" % log_file
-        total_reads = command.execute_with_output(cmd).split(b"\t")[1]
-        total_reads = int(total_reads)
-        # If it's exactly the same, it must have been truncated.
-        if total_reads == self.additional_attributes["truncate_reads_to"]:
-            total_counts_from_star['truncated'] = 1
-        total_counts_from_star['total_reads'] = total_reads * num_fastqs
-
     def max_input_lines(self, input_file):
-        """Truncate to maximum lines. Fasta has 2 lines per read. Fastq has 4
-        lines per read.
         """
-        res = self.additional_attributes["truncate_reads_to"] * 2
+        Truncate to maximum lines. Fastq has 4 lines per read.
+        Fasta has 2 lines per read, ASSUMING it is single-line fasta, not multiline fasta.
+        TODO: Add support for multiline fasta. We do not have control over the inputs uploaded 
+        by the user, so our assumption of single-line fasta will probably be violated in the future.
+        """
+        res = self.additional_attributes["truncate_fragments_to"] * 2
         if "fasta" not in input_file:  # Assume it's FASTQ
             res *= 2
         return res
