@@ -32,7 +32,7 @@ class PipelineStepGenerateAnnotatedFasta(PipelineStep):
         nt_map = get_map(nt_m8)
         nr_map = get_map(nr_m8)
 
-        with open(merged_input_fasta, 'r', encodeing='utf-8') as input_fasta_f:
+        with open(merged_input_fasta, 'r', encoding='utf-8') as input_fasta_f:
             with open(output_fasta, 'w') as output_fasta_f:
                 sequence_name = input_fasta_f.readline()
                 sequence_data = input_fasta_f.readline()
