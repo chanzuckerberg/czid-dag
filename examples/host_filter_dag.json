@@ -48,5 +48,5 @@
       "additional_attributes": {"output_sam_file": "gsnap_filter.sam"}
     }
   ],
-  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/samples/71/4542/fastqs", "count_reads": True, "max_fragments":75000000 } }
+  "given_targets": {"fastqs": {"s3_dir":  "s3://idseq-samples-prod/samples/71/4542/fastqs", "count_reads": True, "max_fragments": 75000000 } }
 }
