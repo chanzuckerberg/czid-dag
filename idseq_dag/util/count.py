@@ -20,19 +20,20 @@ def reads(local_file_path, max_reads=None):
     Count reads in a local file based on file format inferred from extension,
     up to a maximum of max_reads.
     '''
-    if max_reads:
-        max_lines = reads2lines(max_reads)
-        assert max_lines is not None, "Could not convert max_reads to max_lines"
-        truncate_pipe = "| head -n {}".format(max_lines)
-    else:
-        truncate_pipe = ""
     if local_file_path.endswith(".gz"):
-        count_cmd = "zcat {} {} | wc -l".format(local_file_path, truncate_pipe)
+        cmd = "zcat {}".format(local_file_path)
         file_format = local_file_path.split(".")[-2]
     else:
-        count_cmd = "cat {} {} | wc -l".format(local_file_path, truncate_pipe)
+        cmd = "cat {}".format(local_file_path)
         file_format = local_file_path.split(".")[-1]
-    line_count = int(command.execute_with_output(count_cmd))
+
+    if max_reads:
+        max_lines = reads2lines(max_reads, file_format)
+        assert max_lines is not None, "Could not convert max_reads to max_lines"
+        cmd += " | head -n {}".format(max_lines)
+
+    cmd += " |  wc -l"
+    line_count = int(command.execute_with_output(cmd))
     return lines2reads(line_count, file_format)
 
 def lines2reads(line_count, file_format):
