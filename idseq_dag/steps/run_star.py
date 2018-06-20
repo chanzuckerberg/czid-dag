@@ -18,10 +18,11 @@ class PipelineStepRunStar(PipelineStep):
         output_files_local = self.output_files_local()
         output_gene_file = self.additional_attributes.get("output_gene_file")
 
-        genome_dir = s3.fetch_from_s3(self.additional_files["star_genome"],
-                                   self.ref_dir_local,
-                                   allow_s3mi=True,
-                                   auto_untar=True)
+        genome_dir = s3.fetch_from_s3(
+            self.additional_files["star_genome"],
+            self.ref_dir_local,
+            allow_s3mi=True,
+            auto_untar=True)
 
         # Check parts file for the number of partitioned indexes
         parts_file = os.path.join(genome_dir, "parts.txt")
@@ -37,7 +38,8 @@ class PipelineStepRunStar(PipelineStep):
             count_genes = part_idx == 0
             self.run_star_part(tmp, genome_part, unmapped, count_genes)
 
-            unmapped = PipelineStepRunStar.sync_pairs(PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
+            unmapped = PipelineStepRunStar.sync_pairs(
+                PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
 
             # Run part 0 in gene-counting mode:
             # (a) ERCCs are doped into part 0 and we want their counts.
@@ -46,7 +48,8 @@ class PipelineStepRunStar(PipelineStep):
             if part_idx == 0:
                 gene_count_file = os.path.join(tmp, "ReadsPerGene.out.tab")
                 if os.path.isfile(gene_count_file) and output_gene_file:
-                    moved = os.path.join(self.output_dir_local, output_gene_file)
+                    moved = os.path.join(self.output_dir_local,
+                                         output_gene_file)
                     command.execute(f"mv {gene_count_file} {moved}")
                     self.additional_files_to_upload.append(moved)
 
@@ -58,7 +61,8 @@ class PipelineStepRunStar(PipelineStep):
     def count_reads(self):
         self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
 
-    def run_star_part(self, output_dir,
+    def run_star_part(self,
+                      output_dir,
                       genome_dir,
                       input_files,
                       count_genes=False):
@@ -90,8 +94,8 @@ class PipelineStepRunStar(PipelineStep):
         command.execute(cmd)
 
     @staticmethod
-    def handle_outstanding_read(r0, r0id, outstanding_r0, outstanding_r1,
-                                of0, of1, mem, max_mem):
+    def handle_outstanding_read(r0, r0id, outstanding_r0, outstanding_r1, of0,
+                                of1, mem, max_mem):
         # If read r0 completes an outstanding r1, output the pair (r0, r1).
         # Else r0 becomes outstanding, so in future some r1 may complete it.
         if r0id:
@@ -142,10 +146,12 @@ class PipelineStepRunStar(PipelineStep):
             return fastq_files
 
         output_fnames = [ifn + ".synchronized_pairs.fq" for ifn in fastq_files]
-        with open(fastq_files[0], "rb") as if_0, open(fastq_files[1], "rb") as if_1:
-                with open(output_fnames[0], "wb") as of_0, open(output_fnames[1], "wb") as of_1:
-                        outstanding_r0, outstanding_r1, max_mem = PipelineStepRunStar.sync_pairs_work(
-                            of_0, of_1, if_0, if_1)
+        with open(fastq_files[0], "rb") as if_0, open(fastq_files[1],
+                                                      "rb") as if_1:
+            with open(output_fnames[0], "wb") as of_0, open(
+                    output_fnames[1], "wb") as of_1:
+                outstanding_r0, outstanding_r1, max_mem = PipelineStepRunStar.sync_pairs_work(
+                    of_0, of_1, if_0, if_1)
         if max_mem:
             # This will be printed if some pairs were out of order.
             msg = "WARNING: Pair order out of sync in {fqf}. " \
