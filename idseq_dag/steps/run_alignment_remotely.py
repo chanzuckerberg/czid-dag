@@ -48,8 +48,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         self.run_remotely(input_fas, output_m8, service)
 
         # get database
-        lineage_db = fetch_from_s3(self.additional_files["lineage_db"], self.ref_dir_local)
-        accession2taxid_db = fetch_from_s3(self.additional_files["accession2taxid_db"], self.ref_dir_local)
+        lineage_db = fetch_from_s3(self.additional_files["lineage_db"], self.ref_dir_local, allow_s3mi=True)
+        accession2taxid_db = fetch_from_s3(self.additional_files["accession2taxid_db"], self.ref_dir_local, allow_s3mi=True)
 
         m8.call_hits_m8(output_m8, lineage_db, accession2taxid_db,
                         deduped_output_m8, output_hitsummary)
@@ -60,7 +60,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         evalue_type = 'log10' if service == 'rapsearch2' else 'raw'
         if self.additional_files.get("deuterostome_db"):
             deuterostome_db = fetch_from_s3(self.additional_files["deuterostome_db"],
-                                            self.ref_dir_local)
+                                            self.ref_dir_local, allow_s3mi=True)
         m8.generate_taxon_count_json_from_m8(
             deduped_output_m8, output_hitsummary, evalue_type, db_type,
             lineage_db, deuterostome_db, output_counts_json)

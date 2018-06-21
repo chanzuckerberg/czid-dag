@@ -279,7 +279,7 @@ def generate_taxon_count_json_from_m8(
     hit_line = hit_f.readline()
     m8_line = m8_f.readline()
     lineage_map = shelve.open(lineage_map_path.replace('.db', ''))
-    NUM_RANKS = len(lineage.NULL_LINEAGE)
+    num_ranks = len(lineage.NULL_LINEAGE)
     # See https://en.wikipedia.org/wiki/Double-precision_floating-point_format
     MIN_NORMAL_POSITIVE_DOUBLE = 2.0**-1022
 
@@ -330,7 +330,7 @@ def generate_taxon_count_json_from_m8(
         hit_taxids_all_levels = lineage_map.get(hit_taxid, lineage.NULL_LINEAGE)
         cleaned_hit_taxids_all_levels = lineage.validate_taxid_lineage(
             hit_taxids_all_levels, hit_taxid, hit_level)
-        assert NUM_RANKS == len(cleaned_hit_taxids_all_levels)
+        assert num_ranks == len(cleaned_hit_taxids_all_levels)
 
         if not any_hits_to_remove(cleaned_hit_taxids_all_levels):
             # Aggregate each level and collect statistics
@@ -359,7 +359,7 @@ def generate_taxon_count_json_from_m8(
     taxon_counts_attributes = []
     for agg_key, agg_bucket in aggregation.items():
         count = agg_bucket['count']
-        tax_level = NUM_RANKS - len(agg_key) + 1
+        tax_level = num_ranks - len(agg_key) + 1
         # TODO: Extend taxonomic ranks as indicated on the commented out lines.
         taxon_counts_attributes.append({
             "tax_id":
