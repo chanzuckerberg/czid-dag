@@ -45,7 +45,7 @@
       "subsample_1000000/summary.multihit.rapsearch2.filter.deuterostomes.taxids.gsnapl.unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.tab",
       "subsample_1000000/nr_multihit_idseq_web_sample.json"
     ],
-    "taxon_count_out": ["web_sample.json"],
+    "taxon_count_out": ["taxon_counts.json"],
     "annotated_out": ["annotated_merged.fa","unidentified.fa"],
     "taxid_fasta_in": [
       "accessions.rapsearch2.gsnapl.fasta",
