@@ -25,8 +25,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     Run gsnap/rapsearch2 remotely
     '''
 
-    def __init__(self, *args):
-        PipelineStep.__init__(self, *args)
+    def __init__(self, *args, **kwrds):
+        PipelineStep.__init__(self, *args, **kwrds)
         self.chunks_in_flight = threading.Semaphore(self.additional_attributes['chunks_in_flight'])
         self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
         self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
