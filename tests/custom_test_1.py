@@ -22,6 +22,8 @@ class CustomTest1(unittest.TestCase):
         A_expected = truth_base + runstep.output_files[0]
         self.compare(A_expected, A_actual)
 
+        
+
     def compare(self, expected, actual):
         expected_content = command.execute_with_output(f"aws s3 cp {expected} -")
         actual_content = command.execute_with_output(f"cat {actual}")
