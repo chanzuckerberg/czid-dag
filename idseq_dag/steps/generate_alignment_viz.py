@@ -28,7 +28,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
     def run(self):
         # Setup
-        nt_db = self.additional_files["nt_db"]
+        nt_db = self.additional_attributes("nt_db")
         if nt_db.startswith("s3://") and not s3.check_s3_presence(nt_db):
             raise RuntimeError(f"nt_db at {nt_db} not found.")
         nt_loc_db = s3.fetch_from_s3(
