@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 import os
 import re
 import shelve
@@ -31,6 +32,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         nt_db = self.additional_attributes["nt_db"]
         if nt_db.startswith("s3://") and not s3.check_s3_presence(nt_db):
             raise RuntimeError(f"nt_db at {nt_db} not found.")
+        nt_db = "s3://idseq-database/20170824/blast_db/nt"
         nt_loc_db = s3.fetch_from_s3(
             self.additional_files["nt_loc_db"],
             self.ref_dir_local,
@@ -121,6 +123,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                         prev_start = 0
                     post_end = ref_end + self.REF_DISPLAY_RANGE
                     markers = prev_start, ref_start, ref_end, post_end
+                    print("MARKERS:")
+                    print(markers)
                     ad['reads'].append([read_id, sequence, metrics, markers])
                     base_url = "https://www.ncbi.nlm.nih.gov/nuccore"
                     ad['ref_link'] = f"{base_url}/{accession_id}?report=fasta"
@@ -144,18 +148,27 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                         ad['ref_seq'] = "REFERENCE SEQUENCE NOT FOUND"
                     else:
                         with open(tmp_file, "rb") as tf:
+                            print("OPENED TMP FILE")
                             ad['ref_seq'] = tf.read()
+                            # ad['ref_seq'] = tf.read().decode('utf-8')
+                            print(f"REF SEQ: {ref_seq}")
                         to_be_deleted.append(tmp_file)
 
                 if 'ref_seq' in ad:
                     ref_seq = ad['ref_seq']
                     for read in ad['reads']:
                         prev_start, ref_start, ref_end, post_end = read[3]
-                        read[3] = [
-                            ref_seq[prev_start:ref_start],
-                            ref_seq[ref_start:ref_end],
-                            ref_seq[ref_end:post_end]
-                        ]
+                        print(f"REF SEQ IS: {ref_seq}")
+                        if type(ref_seq) is str:
+                            # Only when ref_seq == "REFERENCE SEQUENCE NOT FOUND"
+                            read[3] = ['', '', '']
+                        else:
+                            read[3] = [
+                                ref_seq[prev_start:ref_start].decode('utf-8'),
+                                ref_seq[ref_start:ref_end].decode('utf-8'),
+                                ref_seq[ref_end:post_end].decode('utf-8')
+                            ]
+                        print(f"REF SEQ IS: {ref_seq} and read[3] is {read[3]}")
                 else:
                     # The reference sequence is too long to read entirely in RAM,
                     # so we only read the mapped segments.
@@ -164,19 +177,25 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                             prev_start, ref_start, ref_end, post_end = read[3]
                             tf.seek(prev_start, 0)
                             segment = tf.read(post_end - prev_start)
+                            # segment = tf.read(post_end - prev_start)
+                            print(f"SEGMENT: {segment}")
                             read[3] = [
-                                segment[0:(ref_start - prev_start)],
+                                segment[0:(ref_start - prev_start)].decode('utf-8'),
                                 segment[(ref_start - prev_start):(
-                                    ref_end - prev_start)],
+                                    ref_end - prev_start)].decode('utf-8'),
                                 segment[(ref_end - prev_start):(
-                                    post_end - prev_start)]
+                                    post_end - prev_start)].decode('utf-8')
                             ]
                     to_be_deleted.append(tmp_file)
                 if ad['ref_seq_len'] > self.MAX_SEQ_DISPLAY_SIZE:
                     ad['ref_seq'] = '...Reference Seq Too Long ...'
-            except:
+                if type(ad['ref_seq']) is bytes:
+                    ad['ref_seq'] = ad['ref_seq'].decode('utf-8')
+            except Exception as e:
                 ad['ref_seq'] = "ERROR ACCESSING REFERENCE SEQUENCE FOR ACCESSION " \
                                 "ID {}".format(accession_id)
+                print(f"WE HAVE A PROBLEM: {e}")
+                traceback.print_exc()
                 if error_count == 0:
                     # Print stack trace for first error
                     traceback.print_exc()
@@ -210,6 +229,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         for (family_id, family_dict) in result_dict.items():
             fn = align_viz_name("family", family_id)
             with open(fn, 'w') as out_f:
+                print("TO DUMP:")
+                print(family_dict)
                 json.dump(family_dict, out_f)
             self.additional_files_to_upload.append(fn)
 
@@ -271,11 +292,13 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                                                 nt_loc_dict, nt_s3_path):
         threads = []
         error_flags = {}
-        semaphore = threading.Semaphore(64)
+        semaphore = threading.Semaphore(5)
         mutex = threading.RLock()
         nt_bucket, nt_key = nt_s3_path[5:].split("/", 1)
         for accession_id, accession_info in accession_id_groups.items():
+            log.write(f"Still in get_sequences_by_accession_list_from_s3")
             semaphore.acquire()
+            # log.write(f"VALUE: {semaphore._value}")
             t = threading.Thread(
                 target=PipelineStepGenerateAlignmentViz.
                 get_sequence_for_thread,
@@ -304,6 +327,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             ref_seq_len, seq_name = PipelineStepGenerateAlignmentViz.get_sequence_by_accession_id_s3(
                 accession_id, nt_loc_dict, nt_bucket, nt_key)
             with mutex:
+                log.write("In get_sequence_for_thread mutex")
                 accession_info['ref_seq_len'] = ref_seq_len
                 accession_info['name'] = seq_name
                 seq_count[0] += 1
@@ -339,6 +363,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         try:
             from subprocess import DEVNULL
         except ImportError:
+            log.write("Setting DEVNULL from os.devnull.")
             DEVNULL = open(os.devnull, "r+b")
 
         seq_len = 0
@@ -350,38 +375,48 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         range_start, name_length, seq_len = entry
 
         accession_file = f'accession-{accession_id}'
-        num_retries = 3
+        num_retries = 6
         for attempt in range(num_retries):
             try:
                 pipe_file = f'pipe-{attempt}-accession-{accession_id}'
-                os.mkfifo(pipe_file)
+                # os.mkfifo(pipe_file)
                 range_end = range_start + name_length + seq_len - 1
                 get_range = f"aws s3api get-object " \
                             f"--range bytes={range_start}-{range_end} " \
                             f"--bucket {nt_bucket} " \
                             f"--key {nt_key} {pipe_file}"
+                log.write(f"GET RANGE IS: {get_range}")
                 get_range_proc = subprocess.Popen(
                     get_range, shell=True, stdout=DEVNULL)
+                stdout, stderr = get_range_proc.communicate()
 
-                cmd = f"cat {pipe_file} | " \
-                      f"tee >(tail -n+2 | tr -d '\n' > {accession_file}) | " \
-                      f"head -1"
-                seq_name = subprocess.check_output(
-                    cmd, executable='/bin/bash', shell=True).split(" ", 1)[1]
+                cmd = "cat {pipe_file} |tee >(tail -n+2 |tr -d '\n' > {accession_file}) |head -1".format(pipe_file=pipe_file, accession_file=accession_file)
+                log.write(f"Second command is: {cmd}")
+                log.write("Before range_proc check")
                 exitcode = get_range_proc.wait()
+                log.write(f"First command finished: {pipe_file}")
+                seq_name = subprocess.check_output(
+                    cmd, executable='/bin/bash', shell=True).decode("utf-8").split(" ", 1)[1]
+
+                log.write("After second command")
+                assert os.path.getsize(pipe_file) != 0, "Zero size file"
                 assert exitcode == 0, "Error in getting sequence by accession ID."
+                log.write("before seq_len")
                 seq_len = os.stat(accession_file).st_size
+                log.write(f"Len was {seq_len}")
                 break
-            except:
+            except Exception as e:
+                log.write(f"There was an error. Going to retry: {e}")
                 if attempt + 1 < num_retries:  # Exponential backoff
                     time.sleep(1.0 * (4**attempt))
                 else:
-                    msg = "All retries failed for getting sequence by accession ID."
+                    msg = f"All retries failed for getting sequence by accession ID: {e}"
                     raise RuntimeError(msg)
             finally:
                 try:
                     os.remove(pipe_file)
-                except:
+                except Exception as e:
+                    log.write(f"Could not delete file: {e}")
                     pass
         return seq_len, seq_name
 
