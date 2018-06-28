@@ -151,7 +151,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                             print("OPENED TMP FILE")
                             ad['ref_seq'] = tf.read()
                             # ad['ref_seq'] = tf.read().decode('utf-8')
-                            print(f"REF SEQ: {ref_seq}")
+                            print(f"REF SEQ: {ad['ref_seq']}")
                         to_be_deleted.append(tmp_file)
 
                 if 'ref_seq' in ad:
