@@ -4,6 +4,7 @@ import os
 import re
 import shelve
 import subprocess
+import sys
 import threading
 import time
 import traceback
@@ -14,6 +15,8 @@ from idseq_dag.util.lineage import INVALID_CALL_BASE_ID
 import idseq_dag.util.log as log
 import idseq_dag.util.command as command
 import idseq_dag.util.s3 as s3
+
+from subprocess import DEVNULL
 
 
 class PipelineStepGenerateAlignmentViz(PipelineStep):
@@ -360,19 +363,18 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
     @staticmethod
     def get_sequence_by_accession_id_s3(accession_id, nt_loc_dict, nt_bucket,
                                         nt_key):
-        try:
-            from subprocess import DEVNULL
-        except ImportError:
-            log.write("Setting DEVNULL from os.devnull.")
-            DEVNULL = open(os.devnull, "r+b")
-
         seq_len = 0
         seq_name = ''
+        log.write(f"GETTING ACC {accession_id}:")
         entry = nt_loc_dict.get(accession_id)
+        log.write(f"RESULT WAS: {entry}")
         if not entry:
+            log.write(f"NOT FOUND: {accession_id} {seq_len} {seq_name}")
             return seq_len, seq_name
 
         range_start, name_length, seq_len = entry
+        if accession_id == "KX384958.1":
+            log.write(f"ENTRY HERE: {accession_id} {range_start} {name_length}")
 
         accession_file = f'accession-{accession_id}'
         num_retries = 6
@@ -389,14 +391,27 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                 get_range_proc = subprocess.Popen(
                     get_range, shell=True, stdout=DEVNULL)
                 stdout, stderr = get_range_proc.communicate()
+                if accession_id == "KX384958.1":
+                    size = os.path.getsize(pipe_file)
+                    log.write(f"THE SIZE KX384958.1 WE GOT WAS: {size}")
 
-                cmd = "cat {pipe_file} |tee >(tail -n+2 |tr -d '\n' > {accession_file}) |head -1".format(pipe_file=pipe_file, accession_file=accession_file)
+                # with open(pipe_file, 'r') as myfile:
+                #     print("BEFORE: ")
+                #     print(myfile.read())
+                #     time.sleep(10)
+
+                cmd = """cat {pipe_file} |tee >(tail -n+2 |tr -d '\\n' > {accession_file}) |head -1""".format(pipe_file=pipe_file, accession_file=accession_file)
                 log.write(f"Second command is: {cmd}")
                 log.write("Before range_proc check")
                 exitcode = get_range_proc.wait()
                 log.write(f"First command finished: {pipe_file}")
                 seq_name = subprocess.check_output(
                     cmd, executable='/bin/bash', shell=True).decode("utf-8").split(" ", 1)[1]
+
+                # with open(accession_file, 'r') as myfile:
+                #     print("AFTER: ")
+                #     print(myfile.read())
+                #     time.sleep(10)
 
                 log.write("After second command")
                 assert os.path.getsize(pipe_file) != 0, "Zero size file"
@@ -407,6 +422,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                 break
             except Exception as e:
                 log.write(f"There was an error. Going to retry: {e}")
+                if os.path.exists(accession_file):
+                    os.remove(accession_file)
                 if attempt + 1 < num_retries:  # Exponential backoff
                     time.sleep(1.0 * (4**attempt))
                 else:
@@ -414,7 +431,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                     raise RuntimeError(msg)
             finally:
                 try:
-                    os.remove(pipe_file)
+                    # os.remove(pipe_file)
+                    pass
                 except Exception as e:
                     log.write(f"Could not delete file: {e}")
                     pass
