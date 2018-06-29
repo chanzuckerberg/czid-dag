@@ -13,7 +13,6 @@ class IdseqStepSetup(object):
         """Return the PipelineStep with the default parameters ready for
         test.
         """
-        dag_file = "examples/postprocess_dag.json"
         if dag_file:
             with open(dag_file) as f:
                 dag = json.load(f)
