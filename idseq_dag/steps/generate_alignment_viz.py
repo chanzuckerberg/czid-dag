@@ -177,6 +177,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                     # so we only read the mapped segments.
                     with open(tmp_file, "rb") as tf:
                         for read in ad['reads']:
+                            print(f"READ HERE: {read}")
                             prev_start, ref_start, ref_end, post_end = read[3]
                             tf.seek(prev_start, 0)
                             segment = tf.read(post_end - prev_start)
@@ -388,9 +389,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                             f"--bucket {nt_bucket} " \
                             f"--key {nt_key} {pipe_file}"
                 log.write(f"GET RANGE IS: {get_range}")
-                get_range_proc = subprocess.Popen(
-                    get_range, shell=True, stdout=DEVNULL)
-                stdout, stderr = get_range_proc.communicate()
+                command.execute(get_range)
+                # stdout, stderr = get_range_proc.communicate()
                 if accession_id == "KX384958.1":
                     size = os.path.getsize(pipe_file)
                     log.write(f"THE SIZE KX384958.1 WE GOT WAS: {size}")
@@ -400,13 +400,25 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                 #     print(myfile.read())
                 #     time.sleep(10)
 
-                cmd = """cat {pipe_file} |tee >(tail -n+2 |tr -d '\\n' > {accession_file}) |head -1""".format(pipe_file=pipe_file, accession_file=accession_file)
-                log.write(f"Second command is: {cmd}")
-                log.write("Before range_proc check")
-                exitcode = get_range_proc.wait()
+                with open(pipe_file, 'r', encoding='utf-8') as pfile:
+                    raw_file = pfile.read()
+                    split_str = raw_file.split('\n', 1) # Split on first newline
+                    seq_name = split_str[0].split(" ", 1)[1]
+                    sequence = split_str[-1].replace("\n", "")
+
+                    with open(accession_file, 'w') as f:
+                        f.write(sequence)
+                os.remove(pipe_file)
+
+# cmd = """cat {pipe_file} |tee >(tail -n+2 |tr -d '\\n' > {accession_file}) |head -1""".format(pipe_file=pipe_file, accession_file=accession_file)
+                # Get rid of the first two lines and then get rid of all the new lines and write to accession_file
+
+                # log.write(f"Second command is: {cmd}")
+                # log.write("Before range_proc check")
+                # exitcode = get_range_proc.wait()
                 log.write(f"First command finished: {pipe_file}")
-                seq_name = subprocess.check_output(
-                    cmd, executable='/bin/bash', shell=True).decode("utf-8").split(" ", 1)[1]
+                # seq_name = subprocess.check_output(
+                #     cmd, executable='/bin/bash', shell=True).decode("utf-8").split(" ", 1)[1]
 
                 # with open(accession_file, 'r') as myfile:
                 #     print("AFTER: ")
@@ -414,8 +426,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                 #     time.sleep(10)
 
                 log.write("After second command")
-                assert os.path.getsize(pipe_file) != 0, "Zero size file"
-                assert exitcode == 0, "Error in getting sequence by accession ID."
+                # assert os.path.getsize(pipe_file) != 0, "Zero size file"
+                # assert exitcode == 0, "Error in getting sequence by accession ID."
                 log.write("before seq_len")
                 seq_len = os.stat(accession_file).st_size
                 log.write(f"Len was {seq_len}")
@@ -436,6 +448,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                 except Exception as e:
                     log.write(f"Could not delete file: {e}")
                     pass
+        log.write(f"RETURNING: {accession_id} {seq_len} {seq_name}")
         return seq_len, seq_name
 
     @staticmethod
