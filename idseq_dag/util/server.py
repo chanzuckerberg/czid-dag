@@ -25,7 +25,7 @@ def get_server_ips_work(service_name, environment):
             "aws ec2 describe-instances --filters 'Name=tag:%s,Values=%s' 'Name=instance-state-name,Values=running'"
             % (tag, value)))
     server_ips = [
-        instance["NetworkInterfaces"][0]["Association"]["PrivateIp"] 
+        instance["NetworkInterfaces"][0]["PrivateIpAddress"]
         for reservation in describe_json["Reservations"] 
         for instance in reservation["Instances"]
     ]
