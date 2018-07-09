@@ -6,6 +6,7 @@ import threading
 import time
 import traceback
 from collections import defaultdict
+import subprocess
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.lineage import INVALID_CALL_BASE_ID
@@ -361,17 +362,15 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                             f"--key {nt_key} {pipe_file}"
                 command.execute(get_range)
 
-                # TODO: Revert to using Unix commands for this for performance
-                # so that the Python thread is not tied up.
-                with open(pipe_file, 'r', encoding='utf-8') as pfile:
-                    raw_file = pfile.read()
-                    split_str = raw_file.split('\n', 1)  # Split on first newline
-                    seq_name = split_str[0].split(" ", 1)[1]
-                    sequence = split_str[-1].replace("\n", "")
-                    with open(accession_file, 'w') as f:
-                        f.write(sequence)
+                # (1) Take everything below the first two lines, remove the
+                # newlines chars, and put the sequence into accession_file
+                # (2) Send the first line to stdout
+                cmd = """cat {pipe_file} |tail -n+2 |tr -d '\\n' > {accession_file}; cat {pipe_file} |head -1""".format(pipe_file=pipe_file, accession_file=accession_file)
+                seq_name = subprocess.check_output(
+                    cmd, executable='/bin/bash', shell=True).decode("utf-8").split(" ", 1)[1]
                 os.remove(pipe_file)
 
+                # Get the sequence length based on the file size
                 seq_len = os.stat(accession_file).st_size
                 break
             except Exception as e:
