@@ -354,7 +354,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         num_retries = 3
         for attempt in range(num_retries):
             try:
-                range_file = f'pipe-{attempt}-accession-{accession_id}'
+                range_file = f'range-{attempt}-accession-{accession_id}'
                 range_end = range_start + name_length + seq_len - 1
                 get_range = f"aws s3api get-object " \
                             f"--range bytes={range_start}-{range_end} " \
