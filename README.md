@@ -31,6 +31,8 @@ When merging a commit to master, you need to increase the version number in `ids
 - 2.4.0
    - New directed acyclic graph-based execution model for the pipeline. Changes integration with the web app as well.
 
+Below is copied from https://github.com/chanzuckerberg/idseq-pipeline :
+
 - 1.8.7
    - Bug fix for count_reads and non-host read counts.
 
