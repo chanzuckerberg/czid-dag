@@ -97,7 +97,7 @@ class PipelineStep(object):
                         flist.append(local_file)
                         break
                     else:
-                        if self.shoud_terminate:
+                        if self.should_terminate:
                             raise RuntimeError("Step %s being terminated" % self.name)
                         time.sleep(5)
             self.input_files_local.append(flist)
