@@ -1,5 +1,10 @@
 # IDSEQ-DAG
 
+idseq_dag is the pipeline execution engine for idseq (see idseq.net). It's a dag based pipelining system where the pipeline could be composed with indivisual python classes through json.
+
+The pipeline would be run on where you execute them with local machine resources. More details could be found below.
+
+
 ## Installation
 
 ```
@@ -13,12 +18,25 @@ idseq_dag examples/host_filter_dag.json
 
 ```
 
+` idseq_dag --help ` for more options
+
 ## Test
 
 ```
 cd idseq-dag; python3 -m unittest
 
 ```
+
+or `python3 -m unittest tests/<module_file>
+
+## DAG Execution Details
+
+
+
+
+### Design
+
+
 
 ## Developers
 When merging a commit to master, you need to increase the version number in `idseq_dag/__init__.py`:
@@ -103,3 +121,7 @@ Below is copied from https://github.com/chanzuckerberg/idseq-pipeline :
 - 1.2.0
     - Synchronize pair order after STAR to improve sensitivity in 10% of
       samples with paired-end reads.
+
+
+
+
