@@ -98,6 +98,7 @@ class PipelineStep(object):
                         break
                     else:
                         if self.should_terminate:
+                            # If the step is not supposed to be run any more.
                             raise RuntimeError("Step %s being terminated" % self.name)
                         time.sleep(5)
             self.input_files_local.append(flist)
