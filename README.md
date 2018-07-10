@@ -27,7 +27,7 @@ cd idseq-dag; python3 -m unittest
 
 ```
 
-or `python3 -m unittest tests/<module_file>
+or `python3 -m unittest tests/<module_file> ` for testing individual modules.
 
 ## DAG Execution Details
 
@@ -35,8 +35,10 @@ or `python3 -m unittest tests/<module_file>
 
 
 ### Design
+idseq-dag embraced simplicity. There are only two major components for dag execution:
 
-
+ -  *[PipelineFlow](blob/master/idseq_dag/engine/pipeline_flow.py):*
+ -  *[PipelineStep](blob/master/idseq_dag/engine/pipeline_step.py):*
 
 ## Developers
 When merging a commit to master, you need to increase the version number in `idseq_dag/__init__.py`:
