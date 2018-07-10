@@ -5,6 +5,7 @@ import pdb
 
 from idseq_dag.steps.run_star import PipelineStepRunStar
 from idseq_dag.util import command
+import idseq_dag.util.test as test
 from tests.idseq_step_setup import IdseqStepSetup
 
 
@@ -20,14 +21,4 @@ class CustomTest1(unittest.TestCase):
         A_actual = actual[0]
         truth_base = "s3://idseq-samples-staging/samples-test/truth/"
         A_expected = truth_base + runstep.output_files[0]
-        self.compare(A_expected, A_actual)
-
-        
-
-    def compare(self, expected, actual):
-        expected_content = command.execute_with_output(f"aws s3 cp {expected} -")
-        actual_content = command.execute_with_output(f"cat {actual}")
-        if expected_content == actual_content:
-            print(f"File {expected} is the same as {actual}")
-        else:
-            raise RuntimeError(f"{actual} not equal to {expected}")
+        test.should_match_exactly(A_expected, A_actual)

@@ -25,6 +25,7 @@ class PipelineStepRunStar(PipelineStep):
             auto_untar=True)
 
         # Check parts file for the number of partitioned indexes
+        print("genome dir is: " + genome_dir)
         parts_file = os.path.join(genome_dir, "parts.txt")
         assert os.path.isfile(parts_file)
         with open(parts_file, 'rb') as parts_f:
