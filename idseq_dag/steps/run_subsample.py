@@ -54,8 +54,6 @@ class PipelineStepRunSubsample(PipelineStep):
                 PipelineStepRunSubsample.subset(input_fas[2], output_fas[2],
                                                 records_to_keep_merged)
 
-
-
     @staticmethod
     def subset(input_fa, output_fa, records_to_keep):
         ''' Subset input_fa based on record indice specified in records_to_keep '''

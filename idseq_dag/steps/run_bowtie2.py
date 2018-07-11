@@ -37,6 +37,9 @@ class PipelineStepRunBowtie2(PipelineStep):
             bowtie2_params.extend(['-1', input_fas[0], '-2', input_fas[1]])
         else:
             bowtie2_params.extend(['-U', input_fas[0]])
+        if self.additional_attributes["random_seed"]:
+            seed = str(self.additional_attributes["random_seed"])
+            bowtie2_params.extend(['--seed', seed])
         command.execute(" ".join(bowtie2_params))
         log.write("Finished Bowtie alignment.")
 
