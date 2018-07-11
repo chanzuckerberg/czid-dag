@@ -31,14 +31,157 @@ or `python3 -m unittest tests/<module_file> ` for testing individual modules.
 
 ## DAG Execution Details
 
+### Composing an example dag json file
+There are four basic elements of an IdSeq Dag
 
+ - *output_dir_s3*: the s3 directory where the output files will be copied to.
+ - *targets*: the outputs that are to be generated through dag execution. Each target consists of a list of files that will be copied to *output_dir_s3*
+ - *steps*: the steps that will be exeucuted in order to generate the targets. For each step, the following attributes can be specified:
+   * *in*: the input targets
+   * *out*: the output target
+   * *module*: name of python module
+   * *class*: name of python class that inherits [PipelineStep](blob/master/idseq_dag/engine/pipeline_step.py)
+   * *additional_files*: additional S3 files required for dag execution, i.e. reference files.
+   * *additional_attributes*: additional input parameters for the pipeline class
+ - *given_targets*: the list of targets that are given and directly downloadable.
 
+The following is an example dag for generating alignment output for idseq. The *host_filter_out* is given, once downloaded, gsnap_out and rapsearch2_out steps will run in parallel. When gsnap_out and rapsearch2_out are both completed, taxon_count_out and annotated_out will be run simultaneously and the pipeline will be complete once everything is uploaded to S3.
+
+```
+{
+  "output_dir_s3": "s3://idseq-samples-prod/samples/12/5815/results_test",
+  "targets": {
+    "host_filter_out": [
+        "gsnap_filter_1.fa"
+          , "gsnap_filter_2.fa"
+          , "gsnap_filter_merged.fa"
+    ],
+    "gsnap_out": [
+      "gsnap.m8",
+      "gsnap.deduped.m8",
+      "gsnap.hitsummary.tab",
+      "gsnap_counts.json"
+    ],
+    "rapsearch2_out": [
+      "rapsearch2.m8",
+      "rapsearch2.deduped.m8",
+      "rapsearch2.hitsummary.tab",
+      "rapsearch2_counts.json"
+    ],
+    "taxon_count_out": ["taxon_counts.json"],
+    "annotated_out": ["annotated_merged.fa", "unidentified.fa"]
+  },
+  "steps": [
+    {
+      "in": ["host_filter_out"],
+      "out": "gsnap_out",
+      "class": "PipelineStepRunAlignmentRemotely",
+      "module": "idseq_dag.steps.run_alignment_remotely",
+      "additional_files": {
+        "lineage_db": "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/taxid-lineages.db",
+        "accession2taxid_db": "s3://idseq-database/alignment_data/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/accession2taxid.db"
+
+          ,"deuterostome_db": "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/deuterostome_taxids.txt"
+
+      },
+      "additional_attributes": {
+        "service": "gsnap",
+        "chunks_in_flight": 32,
+        "chunk_size": 15000,
+        "max_concurrent": 3,
+        "environment": "prod"
+      }
+    },
+    {
+      "in": ["host_filter_out"],
+      "out": "rapsearch2_out",
+      "class": "PipelineStepRunAlignmentRemotely",
+      "module": "idseq_dag.steps.run_alignment_remotely",
+      "additional_files": {
+        "lineage_db": "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/taxid-lineages.db",
+        "accession2taxid_db": "s3://idseq-database/alignment_data/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/accession2taxid.db"
+
+          ,"deuterostome_db": "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/deuterostome_taxids.txt"
+
+      },
+      "additional_attributes": {
+        "service": "rapsearch2",
+        "chunks_in_flight": 32,
+        "chunk_size": 10000,
+        "max_concurrent": 6,
+        "environment": "prod"
+      }
+    },
+    {
+      "in": ["gsnap_out", "rapsearch2_out"],
+      "out": "taxon_count_out",
+      "class": "PipelineStepCombineTaxonCounts",
+      "module": "idseq_dag.steps.combine_taxon_counts",
+      "additional_files": {},
+      "additional_attributes": {}
+    },
+    {
+      "in": ["host_filter_out", "gsnap_out", "rapsearch2_out"],
+      "out": "annotated_out",
+      "class": "PipelineStepGenerateAnnotatedFasta",
+      "module": "idseq_dag.steps.generate_annotated_fasta",
+      "additional_files": {},
+      "additional_attributes": {}
+    }
+  ],
+  "given_targets": {
+    "host_filter_out": {
+      "s3_dir": "s3://idseq-samples-prod/samples/12/5815/results_test/2.4"
+    }
+  }
+}
+
+```
 
 ### Design
+
 idseq-dag embraced simplicity. There are only two major components for dag execution:
 
- -  *[PipelineFlow](blob/master/idseq_dag/engine/pipeline_flow.py):*
- -  *[PipelineStep](blob/master/idseq_dag/engine/pipeline_step.py):*
+ -  *[PipelineFlow](blob/master/idseq_dag/engine/pipeline_flow.py)* validates the DAG, downloads the give targets, starts prefetching the additional files in a different thread and starts the pipeline steps in parallel and coordinates the execution.
+ -  *[PipelineStep](blob/master/idseq_dag/engine/pipeline_step.py)* waits for the input targets to be available, executes the run method, validates the output and uploaded to S3.
+
+Here is a quick example of a PipelineStep implementation for generating [taxon_count_out]/(blob/master/idseq_dag/steps/combine_taxon_counts.py). Anyone can implement their own step by subclassing PipelineStep and implements the *run* and *count_reads* method. *count_reads* is a method we use to count the output files. If you are not sure how to implement the count_reads function, just put a dummy function there as shown below.
+
+In the *run* function, you need to make sure your implementation generates all the files specified in the `self.output_files_local()` list. Otherwise, the step will fail and the whole pipeline will also fail.
+
+```
+
+import json
+from idseq_dag.engine.pipeline_step import PipelineStep
+import idseq_dag.util.command as command
+import idseq_dag.util.count as count
+
+class PipelineStepCombineTaxonCounts(PipelineStep):
+    '''
+    Combine counts from gsnap and rapsearch
+    '''
+    def run(self):
+        input_files = []
+        for target in self.input_files_local:
+            input_files.append(target[3])
+        output_file = self.output_files_local()[0]
+        self.combine_counts(input_files, output_file)
+
+
+    def count_reads(self):
+        pass
+    @staticmethod
+    def combine_counts(input_json_files, output_json_path):
+        taxon_counts = []
+        for input_file_name in input_json_files:
+            with open(input_file_name, 'r') as input_file:
+                data = json.load(input_file)
+                taxon_counts += data["pipeline_output"]["taxon_counts_attributes"]
+        output_dict = {"pipeline_output": { "taxon_counts_attributes": taxon_counts}}
+        with open(output_json_path, 'w') as output_file:
+            json.dump(output_dict, output_file)
+
+```
 
 ## Developers
 When merging a commit to master, you need to increase the version number in `idseq_dag/__init__.py`:
