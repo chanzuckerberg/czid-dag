@@ -1,9 +1,12 @@
 # IDSEQ-DAG
 
-idseq_dag is the pipeline execution engine for idseq (see idseq.net). It's a dag based pipelining system where the pipeline could be composed with indivisual python classes through json.
+idseq_dag is the pipeline execution engine for idseq (see idseq.net). It is a pipelining system that implements a directed acyclic graph (DAG) where the nodes (steps) correspond to individual python classes. The graph is defined using JSON.
 
-The pipeline would be run on where you execute them with local machine resources. More details could be found below.
+The pipeline would be executed locally with local machine resources. idseq-dag could be installed inside a docker container and run inside the container. See the [Dockerfile](Dockerfile) for our setup.  More details could be found below.
 
+## Requirements
+
+Python 3.6 and up
 
 ## Installation
 
@@ -36,16 +39,16 @@ There are four basic elements of an IdSeq Dag
 
  - **output_dir_s3**: the s3 directory where the output files will be copied to.
  - **targets**: the outputs that are to be generated through dag execution. Each target consists of a list of files that will be copied to *output_dir_s3*
- - **steps**: the steps that will be exeucuted in order to generate the targets. For each step, the following attributes can be specified:
+ - **steps**: the steps that will be executed in order to generate the targets. For each step, the following attributes can be specified:
    * *in*: the input targets
    * *out*: the output target
    * *module*: name of python module
-   * *class*: name of python class that inherits [PipelineStep](idseq_dag/engine/pipeline_step.py)
+   * *class*: name of python class that inherits from [PipelineStep](idseq_dag/engine/pipeline_step.py)
    * *additional_files*: additional S3 files required for dag execution, i.e. reference files.
    * *additional_attributes*: additional input parameters for the pipeline class
- - **given_targets**: the list of targets that are given and directly downloadable.
+ - **given_targets**: the list of targets that are given. Given targets will be downloaded from S3 before the pipeline execution starts.
 
-The following is an example dag for generating alignment output for idseq. The *host_filter_out* is given, once downloaded, gsnap_out and rapsearch2_out steps will run in parallel. When gsnap_out and rapsearch2_out are both completed, taxon_count_out and annotated_out will be run simultaneously and the pipeline will be complete once everything is uploaded to S3.
+The following is an example dag for generating alignment output for idseq. The *host_filter_out* is given, and once downloaded, *gsnap_out* and *rapsearch2_out* steps will run in parallel. When *gsnap_out* and *rapsearch2_out* are both completed, *taxon_count_out* and *annotated_out* will be run simultaneously and the pipeline will be complete once everything is uploaded to S3.
 
 ```
 {
@@ -140,14 +143,16 @@ The following is an example dag for generating alignment output for idseq. The *
 
 ### Design
 
-idseq-dag embraced simplicity. There are only two major components for dag execution:
+idseq-dag follows the KISS design principle. There are only two major components for dag execution:
 
- -  *[PipelineFlow](idseq_dag/engine/pipeline_flow.py)* validates the DAG, downloads the give targets, starts prefetching the additional files in a different thread and starts the pipeline steps in parallel and coordinates the execution.
- -  *[PipelineStep](idseq_dag/engine/pipeline_step.py)* waits for the input targets to be available, executes the run method, validates the output and uploaded to S3.
+ -  *[PipelineFlow](idseq_dag/engine/pipeline_flow.py)* validates the DAG, downloads the given targets, starts prefetching the additional files in a different thread, starts the pipeline steps in parallel and coordinates the execution.
+ -  *[PipelineStep](idseq_dag/engine/pipeline_step.py)* waits for the input targets to be available, executes the run method, validates the output and uploads the files to S3.
 
-Here is a quick example of a PipelineStep implementation for generating [taxon_count_out]/(master/idseq_dag/steps/combine_taxon_counts.py). Anyone can implement their own step by subclassing PipelineStep and implements the *run* and *count_reads* method. *count_reads* is a method we use to count the output files. If you are not sure how to implement the count_reads function, just put a dummy function there as shown below.
+Here is a quick example of a PipelineStep implementation for generating [taxon_count_out]/(master/idseq_dag/steps/combine_taxon_counts.py). Anyone can implement their own step by subclassing PipelineStep and implementing the *run* and *count_reads* method. *count_reads* is a method we use to count the output files. If you are not sure how to implement the count_reads function, just put a dummy function there as shown below.
 
 In the *run* function, you need to make sure your implementation generates all the files specified in the `self.output_files_local()` list. Otherwise, the step will fail, which will trigger the whole pipeline to also fail.
+
+By default, idseq-dag will only execute a step when the output target is not generated yet. You can turn off this caching mechanism with `--no-lazy-run` option with `idseq_dag` command.
 
 ```
 
