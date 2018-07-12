@@ -35,7 +35,11 @@ class PipelineStepRunSRST2(PipelineStep):
         ]
         command.execute(" ".join(srst2_params))
         print(os.listdir())
-        os.cwd
+        print('-----SELF.OUTPUT_FILES_LOCAL-----')
+        print(self.output_files_local())
+        print('------CWD-----')
+        print(os.getcwd())
+        shutil.copy2('output__genes__ARGannot_r2__results.txt', self.output_files_local()[0])
     # Inherited method
     def count_reads(self):
         pass
