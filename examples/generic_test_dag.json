@@ -50,7 +50,12 @@
       "rapsearch2_counts.json"
     ],
     "taxon_count_out": ["taxon_counts.json"],
-    "annotated_out": ["annotated_merged.fa", "unidentified.fa"]
+    "annotated_out": ["annotated_merged.fa", "unidentified.fa"],
+    "taxid_fasta_in": [
+      "annotated_merged.fa",
+      "gsnap.hitsummary.tab",
+      "rapsearch2.hitsummary.tab"
+    ]
   },
 
   "steps": [
@@ -123,7 +128,7 @@
       "additional_attributes": { "output_sam_file": "gsnap_filter.sam" }
     },
     {
-      "in": ["gsnap_out"],
+      "in": ["taxid_fasta_in"],
       "out": "taxid_fasta_out",
       "class": "PipelineStepGenerateTaxidFasta",
       "module": "idseq_dag.steps.generate_taxid_fasta",

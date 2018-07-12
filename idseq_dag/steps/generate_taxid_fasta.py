@@ -34,9 +34,13 @@ class PipelineStepGenerateTaxidFasta(PipelineStep):
             # :12720:8743/2"
             # Translate the read information into our custom format with fake
             # taxids at non-specific hit levels.
+            print("seq name:")
+            print(seq_name)
             annotated_read_id = seq_name.decode("utf-8").rstrip().lstrip('>')
             read_id = annotated_read_id.split(":", 4)[-1]
 
+            print("valid hits: ")
+            print(valid_hits)
             nr_taxid_species, nr_taxid_genus, nr_taxid_family = PipelineStepGenerateTaxidFasta.get_valid_lineage(
                 valid_hits, lineage_map, read_id, 'NR')
             nt_taxid_species, nt_taxid_genus, nt_taxid_family = PipelineStepGenerateTaxidFasta.get_valid_lineage(
@@ -84,9 +88,14 @@ class PipelineStepGenerateTaxidFasta(PipelineStep):
         # "valid_hits" entry is just ("-1", "-1"). If the read didn't align
         # to anything, we also represent that with ("-1", "-1"). This ("-1",
         # "-1") gets translated to NULL_LINEAGE.
+        print("read id: ")
+        print(read_id)
         hit_taxid_str, hit_level_str = valid_hits[count_type].get(
             read_id, ("-1", "-1"))
+        print("str is: " + hit_taxid_str)
         hit_lineage = lineage_map.get(hit_taxid_str,
                                       lineage.NULL_LINEAGE)
+        print("hit lineage is:")
+        print(hit_lineage)
         return lineage.validate_taxid_lineage(hit_lineage, hit_taxid_str,
                                                     hit_level_str)

@@ -24,13 +24,13 @@ class CustomTest1(unittest.TestCase):
         output_dir_s3 = "s3://idseq-samples-test/scratch"
 
         step_pairs = [
-            (PipelineStepRunStar, "star_out"),
-            (PipelineStepRunPriceSeq, "priceseq_out"),
-            (PipelineStepRunCDHitDup, "cdhitdup_out"),
-            (PipelineStepRunLZW, "lzw_out"),
-            (PipelineStepRunBowtie2, "bowtie2_out"),
-            (PipelineStepRunSubsample, "subsampled_out"),
-            (PipelineStepRunGsnapFilter, "gsnap_filter_out"),
+            # (PipelineStepRunStar, "star_out"),
+            # (PipelineStepRunPriceSeq, "priceseq_out"),
+            # (PipelineStepRunCDHitDup, "cdhitdup_out"),
+            # (PipelineStepRunLZW, "lzw_out"),
+            # (PipelineStepRunBowtie2, "bowtie2_out"),
+            # (PipelineStepRunSubsample, "subsampled_out"),
+            # (PipelineStepRunGsnapFilter, "gsnap_filter_out"),
         ]
 
         for p in step_pairs:
@@ -48,10 +48,10 @@ class CustomTest1(unittest.TestCase):
                 test.should_match_exactly(expected, actual)
 
         step_pairs = [
-            (PipelineStepCombineTaxonCounts, "taxon_count_out"),
-            (PipelineStepGenerateAnnotatedFasta, "annotated_out"),
-            (PipelineStepGenerateTaxidFasta, "taxid_fasta_out"),
-            (PipelineStepGenerateTaxidLocator, "taxid_locator_out")
+            # (PipelineStepCombineTaxonCounts, "taxon_count_out"),
+            # (PipelineStepGenerateAnnotatedFasta, "annotated_out"),
+            (PipelineStepGenerateTaxidFasta, "taxid_fasta_out")
+            # (PipelineStepGenerateTaxidLocator, "taxid_locator_out")
         ]
 
         for p in step_pairs:
@@ -68,14 +68,14 @@ class CustomTest1(unittest.TestCase):
                 test.should_match_exactly(expected, actual)
 
         # Verify align viz output
-        runstep = IdseqStepSetup.get_test_step_object(
-            PipelineStepGenerateAlignmentViz, "alignment_viz_out", dag_file, test_set, output_dir_s3)
-        runstep.start()
-        runstep.wait_until_finished()
-        actual_files = runstep.additional_files_to_upload
-        expected_files = [
-            test_set + "/align_viz/" + os.path.basename(f) for f in runstep.additional_files_to_upload
-        ]
-
-        for expected, actual in zip(expected_files, actual_files):
-            test.should_match_exactly(expected, actual)
+        # runstep = IdseqStepSetup.get_test_step_object(
+        #     PipelineStepGenerateAlignmentViz, "alignment_viz_out", dag_file, test_set, output_dir_s3)
+        # runstep.start()
+        # runstep.wait_until_finished()
+        # actual_files = runstep.additional_files_to_upload
+        # expected_files = [
+        #     test_set + "/align_viz/" + os.path.basename(f) for f in runstep.additional_files_to_upload
+        # ]
+        #
+        # for expected, actual in zip(expected_files, actual_files):
+        #     test.should_match_exactly(expected, actual)
