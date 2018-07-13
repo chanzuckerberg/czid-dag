@@ -61,7 +61,7 @@ class IdseqStepSetup(object):
                              step_name,
                              dag_file,
                              input_dir_s3=None,
-                             output_dir_s3=None, fastqs=None):
+                             output_dir_s3=None):
         with open(dag_file) as f:
             dag = json.load(f)
         step_info = {}
@@ -73,12 +73,10 @@ class IdseqStepSetup(object):
             raise ValueError(f"no steps correspond to {step_name}")
 
         # Download input data to local
-        if not output_dir_s3:
-            output_dir_s3 = os.path.join(
-                dag["output_dir_s3"], "testrun_%s_1_%d" % (step_name,
-                                                           int(time.time())))
-        result_dir_local = "/mnt/idseq/results/%s_1/%d" % (step_name,
-                                                           os.getpid())
+        od = output_dir_s3 or dag["output_dir_s3"]
+        output_dir_s3 = os.path.join(od,
+                                     f"testrun_{step_name}_{int(time.time())}")
+        result_dir_local = f"/mnt/idseq/results/{step_name}/{os.getpid()}"
         ref_dir_local = '/mnt/idseq/ref'
         command.execute(f"mkdir -p {result_dir_local} {ref_dir_local}")
 

@@ -12,15 +12,19 @@ from idseq_dag.steps.generate_taxid_locator import PipelineStepGenerateTaxidLoca
 from idseq_dag.steps.generate_alignment_viz import PipelineStepGenerateAlignmentViz
 from idseq_dag.steps.combine_taxon_counts import PipelineStepCombineTaxonCounts
 from idseq_dag.steps.generate_annotated_fasta import PipelineStepGenerateAnnotatedFasta
-import tests.test_utils as test_utils
+from tests import test_utils
 
 
-class CustomTest1(unittest.TestCase):
-    def test_custom1(self):
+class TestSamplesOnLocalSteps(unittest.TestCase):
+    def test_all_samples(self):
         dag_file = "examples/generic_test_dag.json"
-        test_set = "s3://idseq-samples-test/test-sets/RR004_water_2_S23"
+        samples_to_test = ["s3://idseq-samples-test/test-sets/RR004_water_2_S23"]
         output_dir_s3 = "s3://idseq-samples-test/test-run-outputs"
 
+        for bundle in samples_to_test:
+            self.test_all_local_steps(dag_file, bundle, output_dir_s3)
+
+    def test_all_local_steps(self, dag_file, test_bundle, output_dir_s3):
         step_pairs = [
             (PipelineStepRunStar, "star_out"),
             (PipelineStepRunPriceSeq, "priceseq_out"),
@@ -32,7 +36,7 @@ class CustomTest1(unittest.TestCase):
         ]
 
         for step_class, step_name in step_pairs:
-            test_utils.run_step_and_match_outputs(step_class, step_name, dag_file, test_set, output_dir_s3, True)
+            test_utils.run_step_and_match_outputs(step_class, step_name, dag_file, test_bundle, output_dir_s3, True)
 
         step_pairs = [
             (PipelineStepCombineTaxonCounts, "taxon_count_out"),
@@ -42,6 +46,6 @@ class CustomTest1(unittest.TestCase):
         ]
 
         for step_class, step_name in step_pairs:
-            test_utils.run_step_and_match_outputs(step_class, step_name, dag_file, test_set, output_dir_s3)
+            test_utils.run_step_and_match_outputs(step_class, step_name, dag_file, test_bundle, output_dir_s3)
 
-        test_utils.run_step_and_match_outputs(PipelineStepGenerateAlignmentViz, "alignment_viz_out", dag_file, test_set, output_dir_s3, False, "align_viz")
+        test_utils.run_step_and_match_outputs(PipelineStepGenerateAlignmentViz, "alignment_viz_out", dag_file, test_bundle, output_dir_s3, "align_viz")
