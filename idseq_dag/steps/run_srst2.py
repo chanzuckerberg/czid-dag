@@ -1,6 +1,7 @@
 import shutil
 
 from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.util.s3 import fetch_from_s3
 import idseq_dag.util.command as command
 
 class PipelineStepRunSRST2(PipelineStep):
@@ -11,21 +12,21 @@ class PipelineStepRunSRST2(PipelineStep):
     def run(self):
         ''' Invoking srst2 '''
         fwd_rd = self.input_files_local[0][0]
-        rev_rd = self.input_files_local[0][1]
-        # TODO: pass in database in additional_files field 
-        db_file_path = self.input_files_local[1][0]
-        db_name = "ARGannot_r2" # hardcode for now
-        # srst2 assumes database file is in current directory
-        shutil.copy2(db_file_path, db_name)
+        rev_rd = self.input_files_local[0][1] 
+        db_file_path = fetch_from_s3(self.additional_files["resist_gene_db"], self.output_dir_local)
         min_cov = str(self.additional_attributes['min_cov'])
-        n_threads = str(self.additional_attributes['n_threads'])
-        output_prefix = self.additional_attributes['output_prefix']   
-        # Note that we pass in 001 assuming reads are in standard fastq.gz format.
-        srst2_params = [
-            'srst2', '--input_pe', fwd_rd, rev_rd, '--forward', '001', '--reverse', '001',
-            '--min_coverage', min_cov,'--threads', n_threads, '--output', output_prefix,
-            '--log', '--gene_db', db_file_path
-        ]
+        n_threads = str(self.additional_attributes['n_threads'])   
+        if len(self.input_files_local[0]) == 2:
+            shutil.copy2(fwd_rd, 'R1_001.fastq.gz')
+            shutil.copy2(rev_rd, 'R2_001.fastq.gz')
+            srst2_params = [
+                'srst2', '--input_pe', 'R1_001.fastq.gz', 'R2_001.fastq.gz', '--forward', '001', '--reverse', '001',
+                '--min_coverage', min_cov,'--threads', n_threads, '--output', self.output_dir_local,
+                '--log', '--gene_db', db_file_path
+            ]
+        else:
+            # TODO: run srst2 with other set of flags
+            pass
         command.execute(" ".join(srst2_params))
         shutil.copy2('output__genes__ARGannot_r2__results.txt', self.output_files_local()[0])
 

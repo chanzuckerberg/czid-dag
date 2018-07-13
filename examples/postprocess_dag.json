@@ -25,8 +25,7 @@
     ],
     "alignment_viz_out": ["align_viz.summary"],
     "srst2_out": ["output__genes__ARGannot_r2__results.txt"],
-    "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"],
-    "amr_db": ["ARGannot_r2.fasta"]
+    "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"]
   },
   "steps": [
     {
@@ -60,16 +59,14 @@
       }
     },
     {
-      "in": ["fastqs", "amr_db"],
+      "in": ["fastqs"],
       "out": "srst2_out",
       "class": "PipelineStepRunSRST2",
       "module": "idseq_dag.steps.run_srst2",
       "additional_files": {"resist_gene_db": "s3://idseq-database/test/AMR/ARGannot_r2.fasta"},
       "additional_attributes": {
         "min_cov": 0,
-        "n_threads": 16,
-        "output_prefix": "output",
-        "db_name": "ARGannot_r2"
+        "n_threads": 16
       }
     }
   ],
@@ -81,10 +78,7 @@
       "s3_dir": "s3://idseq-samples-prod/samples/12/5815/results/2.4"
     },
     "fastqs": {
-      "s3_dir":  "s3://idseq-samples-prod/samples/71/4542/fastqs", "count_reads": 1, "max_fragments": 75000000},
-    "amr_db": {
-      "s3_dir": "s3://idseq-database/test/AMR"
-    } 
+      "s3_dir":  "s3://idseq-samples-prod/samples/71/4542/fastqs", "count_reads": 1, "max_fragments": 75000000} 
   }
 }
 
