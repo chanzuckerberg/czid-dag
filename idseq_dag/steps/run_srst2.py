@@ -1,4 +1,4 @@
-import shutil
+import os
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.s3 import fetch_from_s3
@@ -32,7 +32,12 @@ class PipelineStepRunSRST2(PipelineStep):
                 '--output', self.output_dir_local+'/output', '--log', '--gene_db', db_file_path
             ]
         command.execute(" ".join(srst2_params))
-
+        if 'output__fullgenes__ARGannot_r2__results.txt' not in os.listdir(self.output_dir_local): 
+            # Cp to aws fails if output file is empty
+            with open('output__fullgenes__ARGannot_r2__results.txt', 'a') as out:
+                out.write('\n')
+            command.execute('mv output__fullgenes__ARGannot_r2__results.txt ' + self.output_files_local()[2])
+    
     # Inherited method
     def count_reads(self):
         pass
