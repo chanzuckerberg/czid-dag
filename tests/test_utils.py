@@ -1,5 +1,6 @@
 import os
 import re
+import difflib
 
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
@@ -17,6 +18,9 @@ def should_match_exactly(expected, actual):
     if contents[0] == contents[1]:
         log.write(f"File {expected} is the same as {actual}")
     else:
+        diff = difflib.unified_diff(contents[0], contents[1])
+        log.write(f"Diff between {expected} and {actual} :")
+        log.write('\n'.join(list(diff)))
         raise ValueError(f"{expected} not equal to {actual}")
 
 
@@ -51,13 +55,15 @@ def run_step_and_match_outputs(step_class,
                                dag_file,
                                test_bundle,
                                output_dir_s3,
-                               with_counts=False, subfolder=None):
+                               subfolder=None):
+    # Run the step
     step = IdseqStepSetup.get_test_step_object(step_class, step_name, dag_file,
                                                test_bundle, output_dir_s3)
     step.start()
     step.wait_until_finished()
 
-    if with_counts:
+    # Get lists of expected and actual files
+    if step.should_count_reads:
         step.output_files.append(f"{step_name}.count")
 
     expected_files = [os.path.join(test_bundle, f) for f in step.output_files]
@@ -74,6 +80,7 @@ def run_step_and_match_outputs(step_class,
                 to_append = os.path.join(test_bundle, basename)
             expected_files.append(to_append)
 
+    # Check results
     for expected, actual in zip(expected_files, actual_files):
         if expected.endswith(".sam"):
             should_match_sam(expected, actual)
