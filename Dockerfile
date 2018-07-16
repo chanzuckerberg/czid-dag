@@ -95,11 +95,9 @@ RUN make -j 16 && make check && make install
 RUN rm -rf /tmp/gmap-gsnap /tmp/gmap-gsnap-2017-11-15.tar.gz
 RUN gsnapl --version
 
-# For srst2. Samtools line is from https://github.com/dahak-metagenomics/dahak/blob/master/docker_files/srst2/Dockerfile.
-# TODO: Update to install forked python 3 compatible srst2 repo, verify that different samtools produces same output  
-RUN curl -O -L https://sourceforge.net/projects/samtools/files/samtools/0.1.18/samtools-0.1.18.tar.bz2 && tar xvfj samtools-0.1.18.tar.bz2 && cd samtools-0.1.18 && make && cp samtools /usr/local/bin &&  cp bcftools/bcftools /usr/local/bin && cd misc/ &&  cp *.pl maq2sam-long maq2sam-short md5fa md5sum-lite wgsim /usr/local/bin/ && cd 
+# For srst2, install forked srst2 python 3 compatible repo 
 RUN pip install scipy 
-RUN pip install git+https://github.com/katholt/srst2
+RUN pip install git+https://github.com/chanzuckerberg/srst2
 
 # Cleanup
 RUN rm -rf /tmp/*
