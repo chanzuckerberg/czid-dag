@@ -24,7 +24,7 @@
       "taxid_locations_combined.json"
     ],
     "alignment_viz_out": ["align_viz.summary"],
-    "srst2_out": ["output__genes__ARGannot_r2__results.txt"],
+    "srst2_out": ["output.log", "output__genes__ARGannot_r2__results.txt"],
     "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"]
   },
   "steps": [
