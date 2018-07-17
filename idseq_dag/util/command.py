@@ -214,7 +214,7 @@ def execute(command,
             timeout=None,
             grace_period=None,
             capture_stdout=False,
-            merge_stderr=True):
+            merge_stderr=False):
     """Primary way to start external commands in subprocesses and handle
     execution with logging.
     """
