@@ -4,10 +4,15 @@ import difflib
 
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
+import idseq_dag.util.s3 as s3
 from tests.idseq_step_setup import IdseqStepSetup
 
 
 def should_match_exactly(expected, actual):
+    if expected.startswith("s3://"):
+        s3.fetch_from_s3(expected, "./tmp", allow_s3mi=True)
+
+
     contents = [None, None]
     for i, path in enumerate([expected, actual]):
         if path.startswith("s3://"):
@@ -43,7 +48,7 @@ def should_match_sam(expected, actual):
 
 
 def s3_file_contents(path):
-    return command.execute_with_output(f"aws s3 cp {path} -")
+    return command.execute_with_output(f"aws s3 cp {path} tmp")
 
 
 def cat_file_contents(path):
