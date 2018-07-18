@@ -1,6 +1,5 @@
 import os
 import re
-import difflib
 import filecmp
 
 import idseq_dag.util.command as command
@@ -10,55 +9,23 @@ from tests.idseq_step_setup import IdseqStepSetup
 
 
 def should_match_exactly(expected, actual):
-    expected_local = expected
-    if expected.startswith("s3://"):
-        expected_local = s3.fetch_from_s3(expected, "./test-tmp", allow_s3mi=True)
-        if expected_local is None:
-            raise RuntimeError("Fetch from S3 failed")
-
-    if filecmp.cmp(expected_local, actual, shallow=False):
-        log.write(f"File {expected} is the same as {actual}")
-    else:
-        raise ValueError(f"{expected} not equal to {actual}")
-
-    # contents = [None, None]
-    # for i, path in enumerate([expected, actual]):
-    #     if path.startswith("s3://"):
-    #         contents[i] = s3_file_contents(path)
-    #     else:
-    #         contents[i] = cat_file_contents(path)
-    #
-    # if contents[0] == contents[1]:
-    #     log.write(f"File {expected} is the same as {actual}")
-    # else:
-    #     diff = difflib.unified_diff(contents[0], contents[1])
-    #     log.write(f"Diff between {expected} and {actual} :")
-    #     log.write('\n'.join(list(diff)))
-    #     raise ValueError(f"{expected} not equal to {actual}")
+    to_compare = [expected, actual]
+    download_to_compare(to_compare)
+    compare_local_files(to_compare)
 
 
 def should_match_sorted_fastq(expected, actual):
     # Download the files locally
     to_compare = [expected, actual]
-    for i, path in enumerate(to_compare):
-        if path.startswith("s3://"):
-            local_name = "./tmp-" + os.path.basename(path)
-            path = s3.fetch_from_s3(expected, local_name, allow_s3mi=True)
-            if path is None:
-                raise RuntimeError(f"Fetch from S3 failed for {path}")
-            to_compare[i] = path
+    download_to_compare(to_compare)
 
     # Sort the fastqs
-    to_compare = [expected, actual]
     for i, path in enumerate(to_compare):
-        new_name = f"sorted-{path}"
+        new_name = f"sorted-" + os.path.basename(path)
         command.execute(f"cat {path} | paste - - - - | sort -k1,1 -S 3G | tr '\t' '\n' > {new_name}")
         to_compare[i] = new_name
 
-    if filecmp.cmp(to_compare[0], to_compare[1]):
-        log.write(f"File {expected} is semantically the same as {actual}")
-    else:
-        raise ValueError(f"{expected} does not match {actual}")
+    compare_local_files(to_compare)
 
 
 def should_match_sam(expected, actual):
@@ -75,6 +42,23 @@ def should_match_sam(expected, actual):
 
     if contents[0] == contents[1]:
         log.write(f"File {expected} is semantically the same as {actual}")
+    else:
+        raise ValueError(f"{expected} does not match {actual}")
+
+
+def download_to_compare(to_compare):
+    for i, path in enumerate(to_compare):
+        if path.startswith("s3://"):
+            local_name = "tmp-" + os.path.basename(path)
+            path = s3.fetch_from_s3(path, local_name, allow_s3mi=True)
+            if path is None:
+                raise RuntimeError(f"Fetch from S3 failed for {path}")
+            to_compare[i] = path
+
+
+def compare_local_files(to_compare):
+    if filecmp.cmp(to_compare[0], to_compare[1]):
+        log.write(f"File {expected} matches {actual}")
     else:
         raise ValueError(f"{expected} does not match {actual}")
 
