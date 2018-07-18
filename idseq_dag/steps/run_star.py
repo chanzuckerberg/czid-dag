@@ -27,16 +27,20 @@ class PipelineStepRunStar(PipelineStep):
         # Check parts file for the number of partitioned indexes
         parts_file = os.path.join(genome_dir, "parts.txt")
         assert os.path.isfile(parts_file)
+        print(self.additional_files["star_genome"])
+        print(parts_file)
         with open(parts_file, 'rb') as parts_f:
             num_parts = int(parts_f.read())
 
         # Run STAR on each partition and save the unmapped read info
         unmapped = input_files
+        set_cpus = self.additional_attributes.get("set_cpus")  # OK to be None
+
         for part_idx in range(num_parts):
             tmp = f"{scratch_dir}/star-part-{part_idx}"
             genome_part = f"{genome_dir}/part-{part_idx}"
             count_genes = part_idx == 0
-            self.run_star_part(tmp, genome_part, unmapped, count_genes)
+            self.run_star_part(tmp, genome_part, unmapped, count_genes, set_cpus)
 
             unmapped = PipelineStepRunStar.sync_pairs(
                 PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
@@ -66,9 +70,9 @@ class PipelineStepRunStar(PipelineStep):
                       output_dir,
                       genome_dir,
                       input_files,
-                      count_genes=False):
+                      count_genes=False, set_cpus=None):
         command.execute("mkdir -p %s" % output_dir)
-        cpus = str(multiprocessing.cpu_count())
+        cpus = multiprocessing.cpu_count()
         params = [
             'cd', output_dir, ';', 'STAR', '--outFilterMultimapNmax', '99999',
             '--outFilterScoreMinOverLread', '0.5',
