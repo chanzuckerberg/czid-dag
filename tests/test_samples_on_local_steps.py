@@ -17,6 +17,7 @@ from idseq_dag.steps.run_priceseq import PipelineStepRunPriceSeq
 from idseq_dag.steps.run_star import PipelineStepRunStar
 from idseq_dag.steps.run_subsample import PipelineStepRunSubsample
 from tests import test_utils
+import idseq_dag.util.command as command
 
 
 class TestSamplesOnLocalSteps(unittest.TestCase):
@@ -25,6 +26,7 @@ class TestSamplesOnLocalSteps(unittest.TestCase):
         test_samples_base = "s3://idseq-samples-test/test-sets"
         samples_to_test = [
             "RR004_water_2_S23",
+            # TODO: Set up the rest of these test sets
             # "OPS_006_VAP_RNA_TA_4153_P1037810_S177",
             # "X26_H2O-B_no-frag_rAPID_Nav-no-zymo_AMR-SA-532"
         ]
@@ -36,10 +38,10 @@ class TestSamplesOnLocalSteps(unittest.TestCase):
 
     def test_all_local_steps(self, dag_file, test_bundle, output_dir_s3):
         step_pairs = [
-            # (PipelineStepRunStar, "star_out"),
-            # (PipelineStepRunPriceSeq, "priceseq_out"),
-            # (PipelineStepRunCDHitDup, "cdhitdup_out"),
-            # (PipelineStepRunLZW, "lzw_out"),
+            (PipelineStepRunStar, "star_out"),
+            (PipelineStepRunPriceSeq, "priceseq_out"),
+            (PipelineStepRunCDHitDup, "cdhitdup_out"),
+            (PipelineStepRunLZW, "lzw_out"),
             (PipelineStepRunBowtie2, "bowtie2_out"),
             (PipelineStepRunSubsample, "subsampled_out"),
             (PipelineStepRunGsnapFilter, "gsnap_filter_out"),
@@ -55,3 +57,5 @@ class TestSamplesOnLocalSteps(unittest.TestCase):
         test_utils.run_step_and_match_outputs(
             PipelineStepGenerateAlignmentViz, "alignment_viz_out", dag_file,
             test_bundle, output_dir_s3, "align_viz")
+
+        command.execute("rm tmp*")

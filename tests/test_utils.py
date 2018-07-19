@@ -21,7 +21,7 @@ def should_match_sorted_fastq(expected, actual):
 
     # Sort the fastqs
     for i, path in enumerate(to_compare):
-        new_name = f"sorted-{i}-" + os.path.basename(path)
+        new_name = f"tmp-sorted-{i}-" + os.path.basename(path)
         command.execute(f"cat {path} | paste - - - - | sort -k1,1 -S 3G | tr '\t' '\n' > {new_name}")
         to_compare[i] = new_name
 
