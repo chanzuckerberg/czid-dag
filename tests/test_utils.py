@@ -21,7 +21,7 @@ def should_match_sorted_fastq(expected, actual):
 
     # Sort the fastqs
     for i, path in enumerate(to_compare):
-        new_name = f"sorted-" + os.path.basename(path)
+        new_name = f"sorted-{i}-" + os.path.basename(path)
         command.execute(f"cat {path} | paste - - - - | sort -k1,1 -S 3G | tr '\t' '\n' > {new_name}")
         to_compare[i] = new_name
 
@@ -46,10 +46,20 @@ def should_match_sam(expected, actual):
         raise ValueError(f"{expected} does not match {actual}")
 
 
+def s3_file_contents(path):
+    return command.execute_with_output(f"aws s3 cp {path} -")
+
+
+def cat_file_contents(path):
+    return command.execute_with_output("cat " + path)
+
+
 def download_to_compare(to_compare):
     for i, path in enumerate(to_compare):
         if path.startswith("s3://"):
-            local_name = "tmp-" + os.path.basename(path)
+            local_name = f"tmp-{i}-" + os.path.basename(path)
+            if os.path.isfile(local_name):
+                os.remove(local_name)
             path = s3.fetch_from_s3(path, local_name, allow_s3mi=True)
             if path is None:
                 raise RuntimeError(f"Fetch from S3 failed for {path}")
@@ -58,17 +68,9 @@ def download_to_compare(to_compare):
 
 def compare_local_files(to_compare):
     if filecmp.cmp(to_compare[0], to_compare[1]):
-        log.write(f"File {expected} matches {actual}")
+        log.write(f"File {to_compare[0]} matches {to_compare[1]}")
     else:
-        raise ValueError(f"{expected} does not match {actual}")
-
-
-def s3_file_contents(path):
-    return command.execute_with_output(f"aws s3 cp {path} tmp")
-
-
-def cat_file_contents(path):
-    return command.execute_with_output("cat " + path)
+        raise ValueError(f"{to_compare[0]} does not match {to_compare[1]}")
 
 
 def run_step_and_match_outputs(step_class,
@@ -104,6 +106,8 @@ def run_step_and_match_outputs(step_class,
 
     # Check that results match
     for expected, actual in zip(expected_files, actual_files):
+        log.write(f"Expected test file: {expected}")
+        log.write(f"Actual test file: {actual}")
         if expected.endswith(".sam"):
             fn = should_match_sam
         elif expected.endswith((".fastq", ".fq")):
