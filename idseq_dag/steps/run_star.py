@@ -196,7 +196,7 @@ class PipelineStepRunStar(PipelineStep):
                 read.append(line)
                 for i in range(3):
                     read.append(f.readline())
-            elif line[0] == 62:
+            elif line[0] == 62: # Equivalent to '>', fasta format
                 rid = line.decode('utf-8').split('\t', 1)[0].strip()
                 read.append(line)
                 read.append(f.readline())
