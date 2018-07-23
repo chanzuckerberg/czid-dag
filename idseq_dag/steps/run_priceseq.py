@@ -38,7 +38,7 @@ class PipelineStepRunPriceSeq(PipelineStep):
         command.execute(cmd)
 
         # Run FASTQ to FASTA if needed
-        if file_type != 'fasta' or file_type != 'fa':
+        if file_type != 'fasta' and file_type != 'fa':
             # Fastq
             self.fq2fa(price_out[0], output_files[0])
             if is_paired:
