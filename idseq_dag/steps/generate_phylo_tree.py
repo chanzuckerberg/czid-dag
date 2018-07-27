@@ -15,7 +15,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         output_files = self.output_files_local()
 
         taxid = self.additional_attributes["taxid"]
-        local_ncbi_fastas = get_ncbi_genomes(taxid)
+        local_ncbi_fastas = PipelineStepGeneratePhyloTree.get_ncbi_genomes(taxid)
 
         command.execute(f"echo {local_ncbi_fastas} > {output_files[0]}") # temporary
 
