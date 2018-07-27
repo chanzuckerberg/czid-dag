@@ -15,15 +15,14 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         output_files = self.output_files_local()
 
         taxid = self.additional_attributes["taxid"]
-        local_ncbi_fastas = PipelineStepGeneratePhyloTree.get_ncbi_genomes(taxid)
+        local_ncbi_fastas = self.get_ncbi_genomes(taxid)
 
         command.execute(f"echo {local_ncbi_fastas} > {output_files[0]}") # temporary
 
     def count_reads(self):
         pass
 
-    @staticmethod
-    def get_ncbi_genomes(taxid, n=10):
+    def get_ncbi_genomes(self, taxid, n=10):
         '''
         Retrieve up to n GenBank reference genomes under taxid.
         Assumes taxid is species-level.
