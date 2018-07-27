@@ -34,8 +34,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # "other", "metagenomes"]
         for cat in categories:
             genome_list_path = f"ftp://ftp.ncbi.nih.gov/genomes/genbank/{cat}/assembly_summary.txt"
-            cmd = f"cd {self.output_dir_local}; wget {genome_list_path}; "
-            cmd += "cut -f6,7,20 assembly_summary.txt" # columns: 6 = taxid; 7 = species_taxid, 20 = ftp_path
+            genome_list_local = f"{self.output_dir_local}/{os.path.basename(genome_list_path)}"
+            cmd = f"wget -O {genome_list_local} {genome_list_path}; "
+            cmd += "cut -f6,7,20 {genome_list_local}" # columns: 6 = taxid; 7 = species_taxid, 20 = ftp_path
             cmd += f" | grep '\\t{taxid}\\t'" # try to find taxid in the species_taxids
             cmd += f" | head -n {n} | cut -f1,3" # take only top n results
             genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
