@@ -11,7 +11,6 @@ import idseq_dag.util.count as count
 class PipelineStepRunStar(PipelineStep):
     def run(self):
         """Run STAR to filter out host reads."""
-        print("in star. time is 12:38pm")
         self.friendly_name = "STAR filtering"
 
         # Setup

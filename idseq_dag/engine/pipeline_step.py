@@ -151,6 +151,8 @@ class PipelineStep(object):
         self.status = StepStatus.FINISHED
 
     def start(self):
-        ''' function to be called after instantiation to start running the step '''
+        """Function to be called after instantiation to start running the
+        step
+        """
         self.exec_thread = threading.Thread(target=self.thread_run)
         self.exec_thread.start()

@@ -7,8 +7,7 @@ from idseq_dag.engine.pipeline_flow import PipelineFlow
 from idseq_dag import __version__
 
 log.configure_logger()
-import idseq_dag
-print(idseq_dag.__file__)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -24,7 +23,7 @@ def main():
     try:
         flow = PipelineFlow(lazy_run=args.lazy_run,
                             dag_json=args.dag_json)
-        log.write("everything is awesome. idseq dag is valid~ time is 12:41pm")
+        log.write("everything is awesome. idseq dag is valid~")
     except:
         parser.print_help()
         raise
