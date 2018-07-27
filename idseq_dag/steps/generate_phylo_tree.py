@@ -47,7 +47,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             if genomes:
                 local_ncbi_fastas = []
                 for line in genomes:
-                    taxid, ftp_path = genomes.split("\t")
+                    taxid, ftp_path = line.split("\t")
                     ftp_fasta_gz = f"{ftp_path}/{os.path.basename(ftp_path)}_genomic.fna.gz"
                     local_fasta = f"{self.output_dir_local}/refgenome_taxid_{taxid}.fasta"
                     command.execute(f"wget -O {local_fasta}.gz {ftp_fasta_gz}")
