@@ -5,6 +5,7 @@
 
       "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"],
       "star_out": ["unmapped1.fq", "unmapped2.fq"],
+      "srst2_out": ["output.log", "output__genes__ARGannot_r2__results.txt", "output__fullgenes__ARGannot_r2__results.txt"],
       "priceseq_out": ["priceseq1.fa", "priceseq2.fa"],
       "cdhitdup_out": ["dedup1.fa", "dedup2.fa"],
       "lzw_out": ["lzw1.fa", "lzw2.fa"],
@@ -35,6 +36,17 @@
       },
       "additional_attributes": { "truncate_fragments_to": 75000000
                                 ,"output_gene_file": "reads_per_gene.star.tab" }
+    },
+    {
+      "in": ["fastqs"],
+      "out": "srst2_out",
+      "class": "PipelineStepRunSRST2",
+      "module": "idseq_dag.steps.run_srst2",
+      "additional_files": {"resist_gene_db": "s3://idseq-database/test/AMR/ARGannot_r2.fasta"},
+      "additional_attributes": {
+        "min_cov": 0,
+        "n_threads": 16
+      }
     },
     {
       "in": ["star_out"],
