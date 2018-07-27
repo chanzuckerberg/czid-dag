@@ -5,6 +5,8 @@ import os
 import threading
 import traceback
 
+import time
+
 import idseq_dag
 import idseq_dag.util.s3
 import idseq_dag.util.command as command
