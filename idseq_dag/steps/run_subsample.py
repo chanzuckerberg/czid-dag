@@ -11,6 +11,7 @@ class PipelineStepRunSubsample(PipelineStep):
     '''
     def run(self):
         ''' Invoking subsampling '''
+        self.friendly_name = "Subsampling"
         input_fas = self.input_files_local[0]
         output_fas = self.output_files_local()
         max_fragments = self.additional_attributes["max_fragments"]

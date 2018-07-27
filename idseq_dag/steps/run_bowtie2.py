@@ -10,6 +10,12 @@ from idseq_dag.util.s3 import fetch_from_s3
 
 class PipelineStepRunBowtie2(PipelineStep):
     def run(self):
+        """Bowtie2 is an aligner we use for filtering out reads that map to the
+        host genome. Two input FASTAs means paired reads.
+
+        http://bowtie-bio.sourceforge.net/index.shtml
+        """
+        self.friendly_name = "Bowtie2 filtering"
         input_fas = self.input_files_local[0][0:2]
         output_fas = self.output_files_local()
         genome_dir = fetch_from_s3(

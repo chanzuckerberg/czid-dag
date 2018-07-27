@@ -7,10 +7,12 @@ import idseq_dag.util.log as log
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.count as count
 
+
 class PipelineStepRunStar(PipelineStep):
     def run(self):
         """Run STAR to filter out host reads."""
         print("in star. time is 12:38pm")
+        self.friendly_name = "STAR filtering"
 
         # Setup
         input_files = self.input_files_local[0][0:2]

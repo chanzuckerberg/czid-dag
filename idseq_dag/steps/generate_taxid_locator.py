@@ -8,6 +8,7 @@ import json
 class PipelineStepGenerateTaxidLocator(PipelineStep):
     def run(self):
         # Setup
+        self.friendly_name = "Taxid locator generation"
         input_fa = self.input_files_local[0][0]
         out_files = self.output_files_local()
         tmp = os.path.join(self.output_dir_local, "scratch_taxid_locator")

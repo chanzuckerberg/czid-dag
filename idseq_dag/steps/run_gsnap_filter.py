@@ -17,6 +17,7 @@ class PipelineStepRunGsnapFilter(PipelineStep):
     http://research-pub.gene.com/gmap/
     """
     def run(self):
+        self.friendly_name = "GSNAP filtering against hg38 + panTro5"
         input_fas = self.input_files_local[0][0:2]
         output_fas = self.output_files_local()
         output_sam_file = os.path.join(self.output_dir_local,

@@ -28,7 +28,7 @@ def configure_logger(log_file=None):
 
 def write(message, warning=False, flush=True, user_friendly=False):
     if user_friendly:
-        user_friendly_stream.write(message)
+        user_friendly_stream.write(f"{message}\n")
     logger = logging.getLogger()
     with print_lock:
         if warning:

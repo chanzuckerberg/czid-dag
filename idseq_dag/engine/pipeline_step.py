@@ -126,6 +126,7 @@ class PipelineStep(object):
     def wait_until_finished(self):
         self.exec_thread.join()
         if self.status < StepStatus.FINISHED:
+            log.write(f"There was an error in running {self.friendly_name}.", user_friendly=True)
             raise RuntimeError("step %s run failed" % self.name)
 
     def wait_until_all_done(self):
@@ -150,6 +151,6 @@ class PipelineStep(object):
         self.status = StepStatus.FINISHED
 
     def start(self):
-        ''' function to be called after instanitation to start running the step '''
+        ''' function to be called after instantiation to start running the step '''
         self.exec_thread = threading.Thread(target=self.thread_run)
         self.exec_thread.start()

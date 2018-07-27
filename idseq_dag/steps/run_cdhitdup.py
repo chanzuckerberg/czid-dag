@@ -10,6 +10,7 @@ class PipelineStepRunCDHitDup(PipelineStep):
     '''
     def run(self):
         ''' Invoking cd-hit-dup '''
+        self.friendly_name = "CD-HIT-DUP filtering"
         input_fas = self.input_files_local[0]
         output_fas = self.output_files_local()
         cdhitdup_params = [
