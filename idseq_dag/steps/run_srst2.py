@@ -18,8 +18,8 @@ class PipelineStepRunSRST2(PipelineStep):
             fwd_rd = self.input_files_local[0][0]
             rev_rd = self.input_files_local[0][1]
             # Rename to format srst2 expects
-            command.execute(f"mv {fwd_rd} _R1_001.fastq.gz")
-            command.execute(f"mv {rev_rd} _R2_001.fastq.gz")
+            command.execute(f"cp {fwd_rd} _R1_001.fastq.gz")
+            command.execute(f"cp {rev_rd} _R2_001.fastq.gz")
             srst2_params = [
                 'srst2', '--input_pe', '_R1_001.fastq.gz', '_R2_001.fastq.gz', '--forward', '_R1_001', '--reverse', '_R2_001',
                 '--min_coverage', min_cov,'--threads', n_threads, '--output', os.path.join(self.output_dir_local, 'output'),
@@ -27,7 +27,7 @@ class PipelineStepRunSRST2(PipelineStep):
             ]
         else:
             rd = self.input_files_local[0][0]
-            command.execute(f"mv {rd} rd.fastq.gz")
+            command.execute(f"cp {rd} rd.fastq.gz")
             srst2_params = [
                 'srst2', '--input_se', 'rd.fastq.gz', '--min_coverage', min_cov,'--threads', n_threads,
                 '--output', self.output_dir_local+'/output', '--log', '--gene_db', db_file_path
