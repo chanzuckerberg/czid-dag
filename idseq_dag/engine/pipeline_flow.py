@@ -224,5 +224,7 @@ class PipelineFlow(object):
                 for s in step_instances:
                     # notify the waiting step instances to self destruct
                     s.stop_waiting()
+        print("============= START USER FRIENDLY LOG =============")
+        print(log.user_friendly_stream.getvalue())
+        print("============= END USER FRIENDLY LOG =============")
         log.write("all steps are done")
-
