@@ -37,7 +37,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             cmd = f"cd {self.output_dir_local}; wget {genome_list_path}; "
             cmd += "cut -f6,7,20 assembly_summary.txt" # columns: 6 = taxid; 7 = species_taxid, 20 = ftp_path
             cmd += f" | grep '\\t{taxid}\\t'" # try to find taxid in the species_taxids
-            cdm += f" | head -n {n} | cut -f1,3" # take only top n results
+            cmd += f" | head -n {n} | cut -f1,3" # take only top n results
             genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
             if genomes:
                 local_ncbi_fastas = []
