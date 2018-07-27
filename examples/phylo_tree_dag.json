@@ -1,0 +1,27 @@
+{
+  "output_dir_s3": "s3://idseq-samples-development/phylo_trees/8/test/",
+  "targets": {
+    "taxon_fasta_in": [
+      "taxid_573_pipeline_run_1019.fasta",
+      "taxid_573_pipeline_run_1020.fasta",
+      "taxid_573_pipeline_run_1021.fasta",
+      "taxid_573_pipeline_run_1029.fasta"
+    ],
+    "phylo_tree_out": ["phylo_tree.newick"]
+  },
+  "steps": [
+    {
+      "in": ["taxon_fasta_in"],
+      "out": "phylo_tree_out",
+      "class": "PipelineStepGeneratePhyloTree",
+      "module": "idseq_dag.steps.generate_phylo_tree",
+      "additional_files": {},
+      "additional_attributes": {"taxid": 573}
+    }
+  ],
+  "given_targets": {
+    "taxon_fasta_in": {
+      "s3_dir": "s3://idseq-samples-development/phylo_trees/8"
+    }
+  }
+}
