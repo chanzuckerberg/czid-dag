@@ -13,13 +13,26 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     BELOW TO BE IMPLEMENTED
     '''
     def run(self):
+        # Fetch inputs
         input_files = self.input_files_local[0]
-        output_files = self.output_files_local()
-
         taxid = self.additional_attributes["taxid"]
-        local_ncbi_fastas = self.get_ncbi_genomes(taxid)
+        #local_ncbi_fastas = self.get_ncbi_genomes(taxid)
 
-        command.execute(f"echo {local_ncbi_fastas} > {output_files[0]}") # temporary
+        PipelineStepGeneratePhyloTree.install_ksnp3()
+
+        output_files = self.output_files_local()
+        #command.execute(f"echo {local_ncbi_fastas} > {output_files[0]}") # temporary
+
+
+    @staticmethod
+    def install_ksnp3():
+        ''' TODO: install in Dockerfile instead '''
+        cmd = "wget https://sourceforge.net/projects/ksnp/files/kSNP3.1_Linux_package.zip; "
+        cmd += "unzip kSNP3.1_Linux_package.zip; "
+        cmd += "cp -r kSNP3.1_Linux_package/kSNP3/* /usr/local/; "
+        cmd += "echo 'PATH=/usr/local/kSNP3:$PATH' >> ~/.profile; "
+        cmd += "apt install tcsh; "
+        command.execute(cmd)
 
     def count_reads(self):
         pass
