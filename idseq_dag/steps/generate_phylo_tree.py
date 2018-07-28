@@ -21,7 +21,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
         # knsp3 has a command for making a ksnp3-compatible input file from a directory of fasta files.
         # So copy/symlink all fasta files to dedicated directory, then run that command.
-        input_dir_for_ksnp3 = "f{self.output_dir_local}/inputs_for_ksnp3"
+        input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         for local_file in input_files:
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
         local_ncbi_fastas = self.get_ncbi_genomes(taxid, input_dir_for_ksnp3)
