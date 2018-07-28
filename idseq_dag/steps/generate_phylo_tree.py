@@ -27,12 +27,11 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     @staticmethod
     def install_ksnp3():
         ''' TODO: install in Dockerfile instead '''
-        cmd = "wget https://sourceforge.net/projects/ksnp/files/kSNP3.1_Linux_package.zip; "
-        cmd += "unzip kSNP3.1_Linux_package.zip; "
-        cmd += "cp -r kSNP3.1_Linux_package/kSNP3/* /usr/local/; "
-        cmd += "echo 'PATH=/usr/local/kSNP3:$PATH' >> ~/.profile; "
-        cmd += "apt install tcsh; "
-        command.execute(cmd)
+        command.execute("wget https://sourceforge.net/projects/ksnp/files/kSNP3.1_Linux_package.zip")
+        command.execute("unzip kSNP3.1_Linux_package.zip")
+        command.execute("cp -r kSNP3.1_Linux_package/kSNP3/* /usr/local/")
+        command.execute("echo 'PATH=/usr/local/kSNP3:$PATH' >> ~/.profile")
+        command.execute("apt install tcsh")
 
     def count_reads(self):
         pass
