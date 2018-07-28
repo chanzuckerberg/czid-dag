@@ -29,7 +29,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         ''' TODO: install in Dockerfile instead '''
         command.execute("sudo wget -O ~/kSNP3.1_Linux_package.zip https://sourceforge.net/projects/ksnp/files/kSNP3.1_Linux_package.zip")
         command.execute("cd ~; sudo unzip -o kSNP3.1_Linux_package.zip")
-        command.execute("cd ~/kSNP3.1_Linux_package/; sudo cp -r kSNP3/* /usr/local/")
+        command.execute("cd ~/kSNP3.1_Linux_package/kSNP3; sudo cp -r * /usr/local/")
         command.execute("sudo echo 'PATH=/usr/local/kSNP3:$PATH' >> ~/.profile")
         command.execute("sudo apt install tcsh")
 
