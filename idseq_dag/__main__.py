@@ -29,6 +29,12 @@ def main():
         raise
     log.write("start executing the dag")
     flow.start()
+    log.write("all steps are done")
+    log.write("Please contact us at idseqhelp@chanzuckerberg.com or Slack"
+              " #idseqhelp within CZ Biohub for assistance.", user_friendly=True)
+    log.write("============= START USER FRIENDLY LOG =============")
+    log.write(f"\n{log.user_friendly_stream.getvalue()}")
+    log.write("============= END USER FRIENDLY LOG =============")
 
 
 if __name__ == "__main__":
