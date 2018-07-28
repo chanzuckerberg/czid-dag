@@ -13,16 +13,22 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     BELOW TO BE IMPLEMENTED
     '''
     def run(self):
-        # Fetch inputs
         input_files = self.input_files_local[0]
+        output_files = self.output_files_local()
         taxid = self.additional_attributes["taxid"]
-        #local_ncbi_fastas = self.get_ncbi_genomes(taxid)
 
         PipelineStepGeneratePhyloTree.install_ksnp3()
 
-        output_files = self.output_files_local()
-        #command.execute(f"echo {local_ncbi_fastas} > {output_files[0]}") # temporary
-
+        # knsp3 has a command for making a ksnp3-compatible input file from a directory of fasta files.
+        # So copy/symlink all fasta files to dedicated directory, then run that command.
+        input_dir_for_ksnp3 = "f{self.output_dir_local}/inputs_for_ksnp3"
+        for local_file in input_files:
+            command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
+        local_ncbi_fastas = self.get_ncbi_genomes(taxid, input_dir_for_ksnp3)
+        command.execute(f"MakeKSNP3infile {input_dir_for_ksnp3} {self.output_dir_local}/inputs.txt A")
+        # Now run ksnp3.
+        command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
+        command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
 
     @staticmethod
     def install_ksnp3():
@@ -36,7 +42,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     def count_reads(self):
         pass
 
-    def get_ncbi_genomes(self, taxid, n=10):
+    def get_ncbi_genomes(self, taxid, destination_dir, n=10):
         '''
         Retrieve up to n GenBank reference genomes under taxid.
         Assumes taxid is species-level.
@@ -48,20 +54,18 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # "other", "metagenomes"]
         for cat in categories:
             genome_list_path = f"ftp://ftp.ncbi.nih.gov/genomes/genbank/{cat}/assembly_summary.txt"
-            genome_list_local = f"{self.output_dir_local}/{os.path.basename(genome_list_path)}"
-            cmd = f"wget -O {genome_list_local} {genome_list_path}; "
+            genome_list_local = f"{destination_dir}/{os.path.basename(genome_list_path)}"
+            cmd = f"wget -O {self.output_dir_local} {genome_list_path}; "
             cmd += f"cut -f6,7,20 {genome_list_local}" # columns: 6 = taxid; 7 = species_taxid, 20 = ftp_path
             cmd += f" | grep -P '\\t{taxid}\\t'" # try to find taxid in the species_taxids
             cmd += f" | head -n {n} | cut -f1,3" # take only top n results
-            print(f"{cmd}")
             genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
-            print(f"{genomes}")
             if genomes:
                 local_ncbi_fastas = []
                 for line in genomes:
                     taxid, ftp_path = line.split("\t")
                     ftp_fasta_gz = f"{ftp_path}/{os.path.basename(ftp_path)}_genomic.fna.gz"
-                    local_fasta = f"{self.output_dir_local}/refgenome_taxid_{taxid}.fasta"
+                    local_fasta = f"{destination_dir}/refgenome_taxid_{taxid}.fasta"
                     command.execute(f"wget -O {local_fasta}.gz {ftp_fasta_gz}")
                     command.execute(f"gunzip {local_fasta}.gz")
                     local_ncbi_fastas.append(local_fasta)
