@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
-import sys
 import os
-import idseq_dag.util.s3
 import idseq_dag.util.log as log
 from idseq_dag.engine.pipeline_flow import PipelineFlow
 from idseq_dag import __version__
@@ -32,6 +29,12 @@ def main():
         raise
     log.write("start executing the dag")
     flow.start()
+    log.write("all steps are done")
+    log.write("Please contact us at idseqhelp@chanzuckerberg.com or Slack"
+              " #idseqhelp within CZ Biohub for assistance.", user_friendly=True)
+    log.write("============= START USER FRIENDLY LOG =============")
+    log.write(f"\n{log.user_friendly_stream.getvalue()}")
+    log.write("============= END USER FRIENDLY LOG =============")
 
 
 if __name__ == "__main__":

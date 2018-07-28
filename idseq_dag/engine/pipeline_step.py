@@ -23,6 +23,7 @@ class PipelineStep(object):
                  additional_files, additional_attributes):
         ''' Set up all the input_files and output_files here '''
         self.name = name
+        self.friendly_name = name  # Usually overwritten
         self.input_files = input_files # list of list files
         self.output_files = output_files # s3 location
         self.output_dir_local = output_dir_local
@@ -73,12 +74,20 @@ class PipelineStep(object):
 
     def uploading_results(self):
         ''' Upload output files to s3 '''
-        files_to_upload = self.output_files_local() + self.additional_files_to_upload
-        for f in files_to_upload:
-            # upload to S3 - TODO(Boris): parallelize the following with better calls
+        def upload_file(f):
             relative_path = os.path.relpath(f, self.output_dir_local)
             s3_path = os.path.join(self.output_dir_s3, relative_path)
-            idseq_dag.util.s3.upload_with_retries(f, s3_path)
+            idseq_dag.util.s3.upload(f, s3_path)
+
+        files_to_upload = self.output_files_local() + self.additional_files_to_upload
+        execute_all([
+            ThreadWithResult(
+                target=upload_file,
+                args=(f,)
+            )
+            for f in files_to_upload
+        ]
+        )
         self.status = StepStatus.UPLOADED
 
     @staticmethod
@@ -125,6 +134,7 @@ class PipelineStep(object):
     def wait_until_finished(self):
         self.exec_thread.join()
         if self.status < StepStatus.FINISHED:
+            log.write(f"There was an error in running {self.friendly_name}.", user_friendly=True)
             raise RuntimeError("step %s run failed" % self.name)
 
     def wait_until_all_done(self):
@@ -149,6 +159,8 @@ class PipelineStep(object):
         self.status = StepStatus.FINISHED
 
     def start(self):
-        ''' function to be called after instanitation to start running the step '''
+        """Function to be called after instantiation to start running the
+        step
+        """
         self.exec_thread = threading.Thread(target=self.thread_run)
         self.exec_thread.start()

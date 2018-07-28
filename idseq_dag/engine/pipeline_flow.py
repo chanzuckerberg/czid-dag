@@ -5,6 +5,8 @@ import os
 import threading
 import traceback
 
+import time
+
 import idseq_dag
 import idseq_dag.util.s3
 import idseq_dag.util.command as command
@@ -199,8 +201,7 @@ class PipelineFlow(object):
                     threading.Thread(target=self.fetch_target_from_s3, args=(target,)).start()
 
         # TODO(boris): check the following implementation
-        threading.Thread(target=self.prefetch_large_files).start()
-
+        prefetch_thread = threading.Thread(target=self.prefetch_large_files).start()
 
         # Start initializing all the steps and start running them and wait until all of them are done
         step_instances = []
@@ -214,15 +215,27 @@ class PipelineFlow(object):
                                       step["additional_files"], step["additional_attributes"])
             step_instance.start()
             step_instances.append(step_instance)
-        # Collecting stats files
-        for step in step_instances:
-            try:
-                step.wait_until_all_done()
-            except:
-                # Some exception thrown by one of the steps
-                traceback.print_exc()
-                for s in step_instances:
-                    # notify the waiting step instances to self destruct
-                    s.stop_waiting()
-        log.write("all steps are done")
 
+        # Collecting stats files
+        try:
+            for step in step_instances:
+                try:
+                    step.wait_until_all_done()
+                except:
+                    # Some exception thrown by one of the steps
+                    traceback.print_exc()
+                    for s in step_instances:
+                        # notify the waiting step instances to self destruct
+                        s.stop_waiting()
+                    # raise
+        finally:
+            # Show user friendly error log
+            time.sleep(30)
+            log.write("all steps are done")
+            log.write("Please contact us at idseqhelp@chanzuckerberg.com or Slack"
+                      " #idseqhelp within CZ Biohub for assistance.", user_friendly=True)
+            log.write("============= START USER FRIENDLY LOG =============")
+            log.write(f"\n{log.user_friendly_stream.getvalue()}")
+            log.write("============= END USER FRIENDLY LOG =============")
+
+        raise RuntimeError("Should exit as failed.")

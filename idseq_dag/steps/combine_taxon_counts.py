@@ -8,6 +8,7 @@ class PipelineStepCombineTaxonCounts(PipelineStep):
     Combine counts from gsnap and rapsearch
     '''
     def run(self):
+        self.friendly_name = "Combining alignment taxon counts"
         input_files = []
         for target in self.input_files_local:
             input_files.append(target[3])

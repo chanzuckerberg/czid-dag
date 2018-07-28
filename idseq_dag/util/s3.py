@@ -145,22 +145,14 @@ def fetch_from_s3(src,
                 return None
 
 
-@command.retry
-def upload_with_retries(from_f, to_f):
-    command.execute(f"aws s3 cp --only-show-errors {from_f} {to_f}")
+def upload(from_f, to_f):
+    @command.retry
+    def upload_with_retries(from_f, to_f):
+        command.execute(f"aws s3 cp --only-show-errors {from_f} {to_f}")
 
-
-def upload(from_f, to_f, status, status_lock=threading.RLock()):
-    try:
-        with IOSTREAM_UPLOADS:  # Limit concurrent uploads so as not to stall the pipeline.
-            with IOSTREAM:  # Still counts toward the general semaphore.
-                upload_with_retries(from_f, to_f)
-            with status_lock:
-                status[from_f] = "success"
-    except:
-        with status_lock:
-            status[from_f] = "error"
-        raise
+    with IOSTREAM_UPLOADS:  # Limit concurrent uploads so as not to stall the pipeline.
+        with IOSTREAM:  # Still counts toward the general semaphore.
+            upload_with_retries(from_f, to_f)
 
 
 def upload_log_file(sample_s3_output_path, lock=threading.RLock()):

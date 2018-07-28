@@ -12,6 +12,7 @@ class PipelineStepRunPriceSeq(PipelineStep):
 
         See: http://derisilab.ucsf.edu/software/price/
         """
+        self.friendly_name = "PriceSeqFilter"
         input_files = self.input_files_local[0][0:2]
         output_files = self.output_files_local()
         is_paired = (len(input_files) == 2)

@@ -28,6 +28,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
     def run(self):
         # Setup
+        self.friendly_name = "Alignment visualization generation"
         nt_db = self.additional_attributes["nt_db"]
         if nt_db.startswith("s3://") and not s3.check_s3_presence(nt_db):
             raise RuntimeError(f"nt_db at {nt_db} not found.")

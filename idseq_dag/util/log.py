@@ -2,8 +2,10 @@ import logging
 import multiprocessing
 import os
 import sys
+from io import StringIO
 
 print_lock = multiprocessing.RLock()
+user_friendly_stream = StringIO()
 
 
 def configure_logger(log_file=None):
@@ -24,7 +26,9 @@ def configure_logger(log_file=None):
     logger.addHandler(handler)
 
 
-def write(message, warning=False, flush=True):
+def write(message, warning=False, flush=True, user_friendly=False):
+    if user_friendly:
+        user_friendly_stream.write(f"{message}\n")
     logger = logging.getLogger()
     with print_lock:
         if warning:

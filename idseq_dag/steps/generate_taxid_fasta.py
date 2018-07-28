@@ -11,6 +11,7 @@ class PipelineStepGenerateTaxidFasta(PipelineStep):
 
     def run(self):
         # Setup
+        self.friendly_name = "Taxid fasta generation"
         input_files = self.input_files_local[0]
         hit_summary_files = {'NT': input_files[1], 'NR': input_files[2]}
 

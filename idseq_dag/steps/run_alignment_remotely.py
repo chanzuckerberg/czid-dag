@@ -42,6 +42,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         input_fas = self.get_input_fas()
         [output_m8, deduped_output_m8, output_hitsummary, output_counts_json] = self.output_files_local()
         service = self.additional_attributes["service"]
+        self.friendly_name = f"{service.capitalize()} alignment"
         assert service in ("gsnap", "rapsearch2")
 
         # TODO: run the alignment remotely and make lazy_chunk=True, revisit this later

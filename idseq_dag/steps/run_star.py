@@ -7,9 +7,12 @@ import idseq_dag.util.log as log
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.count as count
 
+
 class PipelineStepRunStar(PipelineStep):
     def run(self):
         """Run STAR to filter out host reads."""
+        self.friendly_name = "STAR filtering"
+
         # Setup
         input_files = self.input_files_local[0][0:2]
         num_inputs = len(input_files)
@@ -17,6 +20,9 @@ class PipelineStepRunStar(PipelineStep):
 
         output_files_local = self.output_files_local()
         output_gene_file = self.additional_attributes.get("output_gene_file")
+
+        log.write("This is a friendly error msg", user_friendly=True)
+        raise RuntimeError("uh oh!")
 
         genome_dir = s3.fetch_from_s3(
             self.additional_files["star_genome"],

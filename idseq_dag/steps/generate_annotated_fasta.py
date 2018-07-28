@@ -9,6 +9,7 @@ class PipelineStepGenerateAnnotatedFasta(PipelineStep):
     '''
     def run(self):
         ''' annotate fasta '''
+        self.friendly_name = "Taxid annotation"
         merged_fasta = self.input_files_local[0][-1]
         gsnap_m8 = self.input_files_local[1][1]
         rapsearch2_m8 = self.input_files_local[2][1]

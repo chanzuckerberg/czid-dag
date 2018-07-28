@@ -3,9 +3,10 @@ import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
 
-class PipelineStepRunLZW(PipelineStep):
 
+class PipelineStepRunLZW(PipelineStep):
     def run(self):
+        self.friendly_name = "LZW sequence compression"
         input_fas = self.input_files_local[0]
         output_fas = self.output_files_local()
         cutoff_fractions = self.additional_attributes["thresholds"]
