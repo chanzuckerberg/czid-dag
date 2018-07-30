@@ -26,7 +26,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         for local_file in input_files:
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
         local_ncbi_fastas = self.get_ncbi_genomes(taxid, input_dir_for_ksnp3)
-        command.execute(f"MakeKSNP3infile {input_dir_for_ksnp3} {self.output_dir_local}/inputs.txt A")
+        command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {self.output_dir_local}/inputs.txt A") # MakeKSNP3infile makes stupid assumptions about local and full paths...
         # Now run ksnp3.
         command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
