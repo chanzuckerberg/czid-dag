@@ -22,8 +22,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # knsp3 has a command for making a ksnp3-compatible input file from a directory of fasta files.
         # So copy/symlink all fasta files to dedicated directory, then run that command.
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
+        command.execute(f"mkdir {input_dir_for_ksnp3}")
         for local_file in input_files:
-            command.execute(f"mkdir {input_dir_for_ksnp3}; ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
+            command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
         local_ncbi_fastas = self.get_ncbi_genomes(taxid, input_dir_for_ksnp3)
         command.execute(f"MakeKSNP3infile {input_dir_for_ksnp3} {self.output_dir_local}/inputs.txt A")
         # Now run ksnp3.
@@ -55,7 +56,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         for cat in categories:
             genome_list_path = f"ftp://ftp.ncbi.nih.gov/genomes/genbank/{cat}/assembly_summary.txt"
             genome_list_local = f"{destination_dir}/{os.path.basename(genome_list_path)}"
-            cmd = f"wget -O {self.output_dir_local} {genome_list_path}; "
+            cmd = f"wget -O {genome_list_local} {genome_list_path}; "
             cmd += f"cut -f6,7,20 {genome_list_local}" # columns: 6 = taxid; 7 = species_taxid, 20 = ftp_path
             cmd += f" | grep -P '\\t{taxid}\\t'" # try to find taxid in the species_taxids
             cmd += f" | head -n {n} | cut -f1,3" # take only top n results
