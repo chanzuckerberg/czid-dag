@@ -7,7 +7,7 @@ from idseq_dag.util.command import run_in_subprocess
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
 import idseq_dag.util.fasta as fasta
-from idseq_dag.util.thread_with_result import ThreadWithResult, execute_all
+from idseq_dag.util.thread_with_result import mt_map
 
 
 class PipelineStepRunLZW(PipelineStep):
@@ -65,7 +65,7 @@ class PipelineStepRunLZW(PipelineStep):
         return float(len(results)) / len(sequence)
 
     @staticmethod
-    def lzw_compute(input_files, slice_step=NUM_SLICES, lzw_fraction=lzw_fraction):
+    def lzw_compute(input_files, slice_step=NUM_SLICES):
         """Spawn subprocesses on NUM_SLICES of the input files, then coalesce the
         scores into a temp file, and return that file's name."""
 
@@ -77,53 +77,50 @@ class PipelineStepRunLZW(PipelineStep):
         def lzw_compute_slice(slice_start):
             """For each read, or read pair, in input_files, such that read_index % slice_step == slice_start,
             output the lzw fraction for the read, or the min lzw fraction for the pair."""
+            lzw_fraction = PipelineStepRunLZW.lzw_fraction
             with open(temp_file_names[slice_start], "a") as slice_output:
                 for i, reads in enumerate(fasta.synchronized_iterator(input_files)):
                     if i % slice_step == slice_start:
                         lzw_min_fraction = min(lzw_fraction(r.sequence) for r in reads)
-                        slice_output.write(lzw_min_fraction.str() + "\n")
+                        slice_output.write(str(lzw_min_fraction) + "\n")
 
-        execute_all([
-            ThreadWithResult(
-                target=lzw_compute_slice,
-                args=(slice_start,)
-            )
-            for slice_start in range(slice_step)
-        ])
+        # slices run in parallel
+        mt_map(lzw_compute_slice, range(slice_step))
 
         slice_outputs = temp_file_names[:-1]
         coalesced_score_file = temp_file_names[-1]
-        command.execute("paste -d '\n' " + " ".join(slice_outputs) + " > " + coalesced_score_file)
-        for tmp in slice_outputs:
-            os.remove(tmp)
+        # Paste can insert newlines at the end;  we grep those out.
+        command.execute("paste -d '\n' " + " ".join(slice_outputs) + " | grep -v ^$ > " + coalesced_score_file)
+        for tfn in slice_outputs:
+            os.remove(tfn)
         return coalesced_score_file
 
     @staticmethod
-    def generate_lzw_filtered(fasta_files, output_files, cutoff_fractions, lzw_compute=lzw_compute):
+    def generate_lzw_filtered(fasta_files, output_files, cutoff_fractions):
         assert len(fasta_files) == len(output_files)
 
         # This is the bulk of the computation.  Everything else below is just binning by cutoff score.
-        coalesced_score_file = lzw_compute(fasta_files)
+        coalesced_score_file = PipelineStepRunLZW.lzw_compute(fasta_files)
 
         cutoff_fractions.sort(reverse=True) # Make sure cutoff is from high to low
 
         readcount_list = [] # one item per cutoff
-        outstream_list = [] # one item per cutoff
+        outstreams_list = [] # one item per cutoff
         outfiles_list = [] # one item per cutoff
 
         for cutoff in cutoff_fractions:
             readcount_list.append(0)
-            outstream = []
+            outstreams = []
             outfiles = []
             for f in output_files:
                 outfile_name = "%s-%f" % (f, cutoff)
                 outfiles.append(outfile_name)
-                outstream.append(open(outfile_name, 'w'))
+                outstreams.append(open(outfile_name, 'w'))
 
-            outstream_list.append(outstream)
+            outstreams_list.append(outstreams)
             outfiles_list.append(outfiles)
 
-        outstreams_for_cutoff = zip(outstream_list, cutoff_fractions)
+        outstreams_for_cutoff = list(zip(outstreams_list, cutoff_fractions))
 
         def score_iterator(score_file: str) -> Iterator[float]:
             with open(score_file, "r") as sf:
@@ -143,7 +140,7 @@ class PipelineStepRunLZW(PipelineStep):
         os.remove(coalesced_score_file)
 
         # closing all the streams
-        for outstreams in outstream_list:
+        for outstreams in outstreams_list:
             for ostr in outstreams:
                 ostr.close()
 

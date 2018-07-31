@@ -3,6 +3,7 @@ import threading
 import traceback
 import random
 import time
+from typing import Iterable, List, Any
 
 class ThreadWithResult(threading.Thread):
     """A simple replacement for Python's built-in threading.Thread class,
@@ -32,7 +33,7 @@ class ThreadWithResult(threading.Thread):
         self.result = None
         self.print_traceback = True
 
-    def run(self):
+    def run(self) -> None:
         try:
             self.result = self.target(*self.args, **self.kwargs)
             self.exception = False
@@ -43,9 +44,10 @@ class ThreadWithResult(threading.Thread):
         finally:
             self.completed = True
 
-def execute_all(threads):
+def run_all(threads: Iterable[ThreadWithResult]) -> List[Any]:
     """Run the provided threads.  If all complete without raising an exception,
     return a list of their results."""
+    threads = list(threads)
     for t in threads:
         t.start()
     for t in threads:
@@ -54,14 +56,22 @@ def execute_all(threads):
         assert t.completed and not t.exception, f"Problem in thread {i}."
     return [t.result for t in threads]
 
+def mt_starmap(func, seq: Iterable) -> List[Any]:
+    """Like the built-in starmap function, but runs each func invocation in its own thread."""
+    return run_all(ThreadWithResult(func, args) for args in seq)
+
+def mt_map(func, seq: Iterable):
+    """Like the built-in map function, but runs each func invocation in its own thread."""
+    return mt_starmap(func, ((arg,) for arg in seq))
+
 # ONLY TESTS BELOW THIS LINE
 # Run this module as a command to trigger the unit test.
 
-def unit_test(r=random.Random(time.time())):
-    "Test thread_with_result.py"
+def _unit_test_1(r=random.Random(time.time())):
+    test = "thread_with_result: exception handling test"
     try:
         threads_to_fail = set([2, 3, 5, 7])
-        def target(i):
+        def target(i: int) -> int:
             time.sleep(r.random())
             if i in threads_to_fail:
                 raise RuntimeError()
@@ -74,7 +84,7 @@ def unit_test(r=random.Random(time.time())):
             if i in threads_to_fail:
                 t.print_traceback = False
         try:
-            execute_all(threads)
+            run_all(threads)
         except AssertionError:
             pass
         except:  #pylint: disable=bare-except
@@ -90,10 +100,35 @@ def unit_test(r=random.Random(time.time())):
             else:
                 assert not t.exception, f"Thread {i} should not have raised an exception."
                 assert t.result == i, f"Thread {i} should have returned result {i}."
-        print("Tests passed.")
+        print(f"{test} passed")
     except:
-        print("Tests failed.")
+        print(f"{test} failed")
+        raise
+
+def _unit_test_2(r=random.Random(time.time())):
+    test = "thread_with_result: mt_map and mt_starmap test"
+    try:
+        numbers_to_modify = set([2, 3, 5, 7])
+        def target(i: int) -> int:
+            time.sleep(r.random())
+            if i in numbers_to_modify:
+                return 100 + i
+            return i
+        try:
+            results = mt_map(target, range(16))
+        except:  #pylint: disable=bare-except
+            print("Unexpected exception.")
+            raise
+        for i, r in enumerate(results):
+            if i in numbers_to_modify:
+                assert r == 100 + i
+            else:
+                assert r == i
+        print(f"{test} passed")
+    except:
+        print(f"{test} failed")
         raise
 
 if __name__ == "__main__":
-    unit_test()
+    _unit_test_1()
+    _unit_test_2()
