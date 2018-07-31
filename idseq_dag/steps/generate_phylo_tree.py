@@ -57,17 +57,17 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             genome_list_path = f"ftp://ftp.ncbi.nih.gov/genomes/genbank/{cat}/assembly_summary.txt"
             genome_list_local = f"{destination_dir}/{os.path.basename(genome_list_path)}"
             cmd = f"wget -O {genome_list_local} {genome_list_path}; "
-            cmd += f"cut -f6,7,20 {genome_list_local}" # columns: 6 = taxid; 7 = species_taxid, 20 = ftp_path
+            cmd += f"cut -f6,7,8,20 {genome_list_local}" # columns: 6 = taxid; 7 = species_taxid, 8 = organism name, 20 = ftp_path
             cmd += f" | grep -P '\\t{taxid}\\t'" # try to find taxid in the species_taxids
-            cmd += f" | head -n {n} | cut -f1,3" # take only top n results
+            cmd += f" | head -n {n} | cut -f3,4" # take only top n results, keep name and ftp_path
             genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
             command.execute_with_output(f"rm {genome_list_local}")
             if genomes:
                 local_ncbi_fastas = []
                 for line in genomes:
-                    taxid, ftp_path = line.split("\t")
+                    organism_name, ftp_path = line.split("\t")
                     ftp_fasta_gz = f"{ftp_path}/{os.path.basename(ftp_path)}_genomic.fna.gz"
-                    local_fasta = f"{destination_dir}/refgenome_taxid_{taxid}.fasta"
+                    local_fasta = f"{destination_dir}/genbank_{organism_name.replace(" ", "-")}.fasta"
                     command.execute(f"wget -O {local_fasta}.gz {ftp_fasta_gz}")
                     command.execute(f"gunzip {local_fasta}.gz")
                     local_ncbi_fastas.append(local_fasta)
