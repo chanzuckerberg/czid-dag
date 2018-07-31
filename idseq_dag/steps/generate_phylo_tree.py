@@ -17,28 +17,20 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         output_files = self.output_files_local()
         taxid = self.additional_attributes["taxid"]
 
-        PipelineStepGeneratePhyloTree.install_ksnp3()
-
         # knsp3 has a command for making a ksnp3-compatible input file from a directory of fasta files.
         # So copy/symlink all fasta files to dedicated directory, then run that command.
+        # The command makes some unreasonable assumptions about local paths, so we have to make sure to
+        # run it from the parent directory of the fasta directory.
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
         for local_file in input_files:
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
         local_ncbi_fastas = self.get_ncbi_genomes(taxid, input_dir_for_ksnp3)
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {self.output_dir_local}/inputs.txt A") # MakeKSNP3infile makes stupid assumptions about local and full paths...
+
         # Now run ksnp3.
         command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
-
-    @staticmethod
-    def install_ksnp3():
-        ''' TODO: install in Dockerfile instead '''
-        command.execute("wget -O ~/kSNP3.1_Linux_package.zip https://sourceforge.net/projects/ksnp/files/kSNP3.1_Linux_package.zip")
-        command.execute("cd ~; unzip -o kSNP3.1_Linux_package.zip")
-        command.execute("cd ~/kSNP3.1_Linux_package/kSNP3; cp -r * /usr/local/bin/")
-        command.execute("sed -i 's:set kSNP=/usr/local/kSNP3:set kSNP=/usr/local/bin:g' /usr/local/bin/kSNP3")
-        command.execute("apt install tcsh")
 
     def count_reads(self):
         pass
