@@ -61,7 +61,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                     taxid, organism_name, ftp_path = line.split("\t")
                     clean_organism_name = organism_name.replace(' ', '-').replace('.', '')
                     ftp_fasta_gz = f"{ftp_path}/{os.path.basename(ftp_path)}_genomic.fna.gz"
-                    local_fasta = f"{destination_dir}/genbank__{clean_organism_name}__taxid-{taxid}}.fasta" # include taxid to make sure filenames are distinct
+                    local_fasta = f"{destination_dir}/genbank__{clean_organism_name}__taxid-{taxid}.fasta" # include taxid to make sure filenames are distinct
                     command.execute(f"wget -O {local_fasta}.gz {ftp_fasta_gz}")
                     command.execute(f"gunzip {local_fasta}.gz")
                     local_ncbi_fastas.append(local_fasta)
