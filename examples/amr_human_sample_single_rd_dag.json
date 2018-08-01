@@ -1,8 +1,8 @@
 {
   "output_dir_s3": "s3://idseq-samples-prod/samples/12/5815/postprocess_test",
   "targets": {
-    "srst2_out": ["output.log", "output__genes__ARGannot_r2__results.txt", "output__fullgenes__ARGannot_r2__results.txt"],
-    "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"]
+    "srst2_out": ["out.log", "out__genes__ARGannot_r2__results.txt", "out__fullgenes__ARGannot_r2__results.txt", "amr_processed_results.csv", "amr_summary_results.csv"],
+    "fastqs": ["AMR_TR-DNA-NOVA042518_1-6mo_S111_R2_001.fastq.gz"]
   },
   "steps": [
     {
@@ -19,7 +19,7 @@
   ],
   "given_targets": {
     "fastqs": {
-      "s3_dir":  "s3://idseq-samples-prod/samples/71/4542/fastqs", "count_reads": 1, "max_fragments": 75000000} 
+      "s3_dir":  "s3://idseq-samples-prod/samples/64/4241/fastqs", "count_reads": 1, "max_fragments": 75000000} 
   }
 }
 
