@@ -8,8 +8,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     ''' 
     Generate a phylogenetic tree from the input fasta files using kSNP3:
     http://gensoft.pasteur.fr/docs/kSNP3/01/kSNP3.01%20User%20Guide%20.pdf
-    Augment the inputs with a NCBI reference genomes from the same taxid.
-    BELOW TO BE IMPLEMENTED
+    Augment the inputs with
+      (a) NCBI sequences for the accession IDs specified in 
+      (b) Genbank full reference genomes from the same taxid.
     '''
     def run(self):
         input_files = self.input_files_local[0]
@@ -20,12 +21,12 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # So copy/symlink all fasta files to dedicated directory, then run that command (MakeKSNP3infile).
         # The command makes certain unreasonable assumptions:
         # - current directory is parent directory of the fasta file directory
-        # - file names do not have dots except before extension (also no spaces), so we need to enforce that in the get_ncbi_genomes method.
+        # - file names do not have dots except before extension (also no spaces), so we need to enforce that in the get_genbank_genomes method.
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
         for local_file in input_files:
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
-        local_ncbi_fastas = self.get_ncbi_genomes(taxid, input_dir_for_ksnp3)
+        local_genbank_fastas = self.get_genbank_genomes(taxid, input_dir_for_ksnp3)
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {self.output_dir_local}/inputs.txt A")
 
         # Now run ksnp3.
@@ -35,7 +36,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     def count_reads(self):
         pass
 
-    def get_ncbi_genomes(self, taxid, destination_dir, n=10):
+    def get_genbank_genomes(self, taxid, destination_dir, n=10):
         '''
         Retrieve up to n GenBank reference genomes under taxid.
         Assumes taxid is species-level.
@@ -56,14 +57,16 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
             command.execute_with_output(f"rm {genome_list_local}")
             if genomes:
-                local_ncbi_fastas = []
+                local_genbank_fastas = []
                 for line in genomes:
                     taxid, organism_name, ftp_path = line.split("\t")
                     clean_organism_name = organism_name.replace(' ', '-').replace('.', '')
                     ftp_fasta_gz = f"{ftp_path}/{os.path.basename(ftp_path)}_genomic.fna.gz"
-                    local_fasta = f"{destination_dir}/genbank__{clean_organism_name}__taxid-{taxid}.fasta" # include taxid to make sure filenames are distinct
+                    local_fasta = f"{destination_dir}/genbank__{clean_organism_name}__taxid-{taxid}.fasta"
+                    if os.path.isfile(local_fasta):
+                        local_fasta = f"{local_fasta.split(".")[0]}__I.fasta
                     command.execute(f"wget -O {local_fasta}.gz {ftp_fasta_gz}")
                     command.execute(f"gunzip {local_fasta}.gz")
-                    local_ncbi_fastas.append(local_fasta)
-                return local_ncbi_fastas
+                    local_genbank_fastas.append(local_fasta)
+                return local_genbank_fastas
         return []
