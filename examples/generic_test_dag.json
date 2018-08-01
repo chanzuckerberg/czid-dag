@@ -1,37 +1,21 @@
 {
-  "output_dir_s3": "s3://idseq-samples-prod/test_samples/1/results",
+  "output_dir_s3": "",
   "targets": {
-    "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz"],
-    "star_out": ["unmapped.star.1.fq"],
-    "priceseq_out": ["priceseqfilter.unmapped.star.1.fasta"],
-    "cdhitdup_out": ["cdhitdup.priceseqfilter.unmapped.star.1.fasta"],
-    "lzw_out": ["lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta"],
-    "bowtie2_out": [
-      "unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta"
+    "fastqs": ["1.fastq.gz", "2.fastq.gz"],
+    "star_out": ["unmapped1.fq", "unmapped2.fq"],
+    "priceseq_out": ["priceseq1.fa", "priceseq2.fa"],
+    "cdhitdup_out": ["dedup1.fa", "dedup2.fa"],
+    "lzw_out": ["lzw1.fa", "lzw2.fa"],
+    "bowtie2_out": ["bowtie2_1.fa", "bowtie2_2.fa", "bowtie2_merged.fa"],
+    "subsampled_out": [
+      "subsampled_1.fa",
+      "subsampled_2.fa",
+      "subsampled_merged.fa"
     ],
-    "subsampled_out": ["subsampled_1.fa"],
     "gsnap_filter_out": [
-      "unmapped.gsnap_filter.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.1.fasta"
-    ],
-    "gsnap_out": [
-      "subsample_1000000/multihit.gsnapl.unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.m8",
-      "subsample_1000000/dedup.multihit.gsnapl.unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.m8",
-      "subsample_1000000/summary.multihit.gsnapl.unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.tab",
-      "subsample_1000000/nt_multihit_idseq_web_sample.json"
-    ],
-    "rapsearch2_out": [
-      "subsample_1000000/multihit.rapsearch2.filter.deuterostomes.taxids.gsnapl.unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.m8",
-      "subsample_1000000/dedup.multihit.rapsearch2.filter.deuterostomes.taxids.gsnapl.unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.m8",
-      "subsample_1000000/summary.multihit.rapsearch2.filter.deuterostomes.taxids.gsnapl.unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.tab",
-      "subsample_1000000/nr_multihit_idseq_web_sample.json"
-    ],
-    "taxon_count_out": ["taxon_counts.json"],
-    "annotated_out": ["annotated_merged.fa","unidentified.fa"],
-    "taxid_fasta_in": [
-      "accessions.rapsearch2.gsnapl.fasta",
-      "dedup.multihit.gsnapl.unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.m8",
-      "summary.multihit.gsnapl.unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.tab",
-      "summary.multihit.rapsearch2.filter.deuterostomes.taxids.gsnapl.unmapped.bowtie2.lzw.cdhitdup.priceseqfilter.unmapped.star.tab"
+      "gsnap_filter_1.fa",
+      "gsnap_filter_2.fa",
+      "gsnap_filter_merged.fa"
     ],
     "taxid_fasta_out": ["taxid_annot.fasta"],
     "taxid_locator_out": [
@@ -49,7 +33,29 @@
       "taxid_locations_family_nr.json",
       "taxid_locations_combined.json"
     ],
-    "alignment_viz_out": ["align_viz.summary"]
+    "alignment_viz_out": ["align_viz.summary"],
+    "gsnap_out": [
+      "gsnap.m8",
+      "gsnap.deduped.m8",
+      "gsnap.hitsummary.tab",
+      "gsnap_counts.json"
+    ],
+    "gsnap_m8": [
+      "gsnap.deduped.m8"
+    ],
+    "rapsearch2_out": [
+      "rapsearch2.m8",
+      "rapsearch2.deduped.m8",
+      "rapsearch2.hitsummary.tab",
+      "rapsearch2_counts.json"
+    ],
+    "taxon_count_out": ["taxon_counts.json"],
+    "annotated_out": ["annotated_merged.fa", "unidentified.fa"],
+    "taxid_fasta_in": [
+      "annotated_merged.fa",
+      "gsnap.hitsummary.tab",
+      "rapsearch2.hitsummary.tab"
+    ]
   },
 
   "steps": [
@@ -62,7 +68,10 @@
         "star_genome":
           "s3://idseq-database/host_filter/human/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/STAR_genome.tar"
       },
-      "additional_attributes": { "truncate_fragments_to": 75000000 }
+      "additional_attributes": {
+        "truncate_fragments_to": 75000000,
+        "output_gene_file": "reads_per_gene.tab"
+      }
     },
     {
       "in": ["star_out"],
@@ -97,12 +106,12 @@
         "bowtie2_genome":
           "s3://idseq-database/host_filter/human/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/bowtie2_genome.tar"
       },
-      "additional_attributes": { "output_sam_file": "bowtie2.sam" }
+      "additional_attributes": { "output_sam_file": "bowtie2.sam", "random_seed": 47 }
     },
     {
       "in": ["bowtie2_out"],
       "out": "subsampled_out",
-      "class": "PipelineStepRunSubSample",
+      "class": "PipelineStepRunSubsample",
       "module": "idseq_dag.steps.run_subsample",
       "additional_files": {},
       "additional_attributes": { "max_fragments": 1000000 }
@@ -138,7 +147,7 @@
       "additional_attributes": {}
     },
     {
-      "in": ["taxid_fasta_in", "taxid_locator_out"],
+      "in": ["gsnap_m8", "taxid_locator_out"],
       "out": "alignment_viz_out",
       "class": "PipelineStepGenerateAlignmentViz",
       "module": "idseq_dag.steps.generate_alignment_viz",
@@ -157,15 +166,18 @@
       "additional_files": {
         "lineage_db":
           "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/taxid-lineages.db",
-        "accession2taxid_db": "s3://idseq-database/alignment_data/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/accession2taxid.db",
-        "deuterostome_db":"s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/deuterostome_taxids.txt"
+        "accession2taxid_db":
+          "s3://idseq-database/alignment_data/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/accession2taxid.db",
+        "deuterostome_db":
+          "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/deuterostome_taxids.txt"
       },
       "additional_attributes": {
-        "service": "gsnap", "chunks_in_flight": 32,
-        "chunk_size": 15000, "max_concurrent": 3,
-        "environment": "prod",
-        "index_dir_suffix": "2018-04-01"
-        }
+        "service": "gsnap",
+        "chunks_in_flight": 32,
+        "chunk_size": 15000,
+        "max_concurrent": 3,
+        "environment": "prod"
+      }
     },
     {
       "in": ["gsnap_filter_out"],
@@ -175,15 +187,18 @@
       "additional_files": {
         "lineage_db":
           "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/taxid-lineages.db",
-        "accession2taxid_db": "s3://idseq-database/alignment_data/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/accession2taxid.db",
-        "deuterostome_db":"s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/deuterostome_taxids.txt"
+        "accession2taxid_db":
+          "s3://idseq-database/alignment_data/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/accession2taxid.db",
+        "deuterostome_db":
+          "s3://idseq-database/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/deuterostome_taxids.txt"
       },
       "additional_attributes": {
-        "service": "rapsearch2", "chunks_in_flight": 32,
-        "chunk_size": 10000, "max_concurrent": 6,
-        "environment": "prod",
-        "index_dir_suffix": "2018-04-01"
-        }
+        "service": "rapsearch2",
+        "chunks_in_flight": 32,
+        "chunk_size": 10000,
+        "max_concurrent": 6,
+        "environment": "prod"
+      }
     },
     {
       "in": ["gsnap_out", "rapsearch2_out"],
@@ -204,7 +219,7 @@
   ],
   "given_targets": {
     "fastqs": {
-      "s3_dir": "s3://idseq-samples-prod/test_samples/1/fastqs",
+      "s3_dir": "",
       "count_reads": 1,
       "max_fragments": 75000000
     }

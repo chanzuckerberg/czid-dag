@@ -58,7 +58,7 @@ def install_s3mi(installed={}, mutex=threading.RLock()):  #pylint: disable=dange
                 "which s3mi || pip install git+git://github.com/chanzuckerberg/s3mi.git"
             )
             command.execute(
-                "s3mi tweak-vm || echo s3mi tweak-vm is impossible under docker. Continuing..."
+                "s3mi tweak-vm || echo s3mi tweak-vm sometimes fails under docker. Continuing..."
             )
         finally:
             installed['time'] = time.time()
@@ -131,7 +131,7 @@ def fetch_from_s3(src,
                     log.write(
                         "Failed to download with s3mi. Trying with aws s3 cp..."
                     )
-                    cmd = f"aws s3 cp --quiet {src} - {command_params}"
+                    cmd = f"aws s3 cp --only-show-errors {src} - {command_params}"
                     command.execute(cmd)
                 return dst
             except subprocess.CalledProcessError:
@@ -147,7 +147,7 @@ def fetch_from_s3(src,
 
 @command.retry
 def upload_with_retries(from_f, to_f):
-    command.execute(f"aws s3 cp --quiet {from_f} {to_f}")
+    command.execute(f"aws s3 cp --only-show-errors {from_f} {to_f}")
 
 
 def upload(from_f, to_f, status, status_lock=threading.RLock()):
@@ -167,5 +167,4 @@ def upload_log_file(sample_s3_output_path, lock=threading.RLock()):
     with lock:
         logh = logging.getLogger().handlers[0]
         logh.flush()
-        command.execute("aws s3 cp --quiet %s %s/;" % (logh.baseFilename,
-                                                       sample_s3_output_path))
+        command.execute(f"aws s3 cp --only-show-errors {logh.baseFilename} {sample_s3_output_path}/")

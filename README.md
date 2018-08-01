@@ -148,7 +148,7 @@ idseq-dag follows the KISS design principle. There are only two major components
  -  *[PipelineFlow](idseq_dag/engine/pipeline_flow.py)* validates the DAG, downloads the given targets, starts prefetching the additional files in a different thread, starts the pipeline steps in parallel and coordinates the execution.
  -  *[PipelineStep](idseq_dag/engine/pipeline_step.py)* waits for the input targets to be available, executes the run method, validates the output and uploads the files to S3.
 
-Here is a quick example of a PipelineStep implementation for generating [taxon_count_out]/(master/idseq_dag/steps/combine_taxon_counts.py). Anyone can implement their own step by subclassing PipelineStep and implementing the *run* and *count_reads* method. *count_reads* is a method we use to count the output files. If you are not sure how to implement the count_reads function, just put a dummy function there as shown below.
+Here is a quick example of a PipelineStep implementation for generating [taxon_count_out](master/idseq_dag/steps/combine_taxon_counts.py). Anyone can implement their own step by subclassing PipelineStep and implementing the *run* and *count_reads* method. *count_reads* is a method we use to count the output files. If you are not sure how to implement the count_reads function, just put a dummy function there as shown below.
 
 In the *run* function, you need to make sure your implementation generates all the files specified in the `self.output_files_local()` list. Otherwise, the step will fail, which will trigger the whole pipeline to also fail.
 
@@ -195,6 +195,18 @@ When merging a commit to master, you need to increase the version number in `ids
 
 
 ## Release notes
+
+- 2.7.1
+   - Reduce LZW runtime from 2h 35m to 24 min on the largest samples
+
+- 2.7
+   - ?
+
+- 2.6
+   - ?
+
+- 2.5
+   - ?
 
 - 2.4.0
    - New directed acyclic graph-based execution model for the pipeline. Changes integration with the web app as well.
@@ -271,7 +283,3 @@ Below is copied from https://github.com/chanzuckerberg/idseq-pipeline :
 - 1.2.0
     - Synchronize pair order after STAR to improve sensitivity in 10% of
       samples with paired-end reads.
-
-
-
-
