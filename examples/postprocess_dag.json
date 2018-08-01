@@ -23,9 +23,7 @@
       "taxid_locations_family_nr.json",
       "taxid_locations_combined.json"
     ],
-    "alignment_viz_out": ["align_viz.summary"],
-    "srst2_out": ["output.log", "output__genes__ARGannot_r2__results.txt", "output__fullgenes__ARGannot_r2__results.txt"],
-    "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"]
+    "alignment_viz_out": ["align_viz.summary"]
   },
   "steps": [
     {
@@ -57,17 +55,6 @@
       "additional_attributes": {
         "nt_db": "s3://idseq-database/20170824/blast_db/nt"
       }
-    },
-    {
-      "in": ["fastqs"],
-      "out": "srst2_out",
-      "class": "PipelineStepRunSRST2",
-      "module": "idseq_dag.steps.run_srst2",
-      "additional_files": {"resist_gene_db": "s3://idseq-database/test/AMR/ARGannot_r2.fasta"},
-      "additional_attributes": {
-        "min_cov": 0,
-        "n_threads": 16
-      }
     }
   ],
   "given_targets": {
@@ -76,9 +63,7 @@
     },
     "gsnap_m8": {
       "s3_dir": "s3://idseq-samples-prod/samples/12/5815/results/2.4"
-    },
-    "fastqs": {
-      "s3_dir":  "s3://idseq-samples-prod/samples/71/4542/fastqs", "count_reads": 1, "max_fragments": 75000000} 
+    }
   }
 }
 
