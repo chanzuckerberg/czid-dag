@@ -18,15 +18,16 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         taxid = self.additional_attributes["taxid"]
 
         # knsp3 has a command for making a ksnp3-compatible input file from a directory of fasta files.
-        # So copy/symlink all fasta files to dedicated directory, then run that command.
-        # The command makes some unreasonable assumptions about local paths, so we have to make sure to
-        # run it from the parent directory of the fasta directory.
+        # So copy/symlink all fasta files to dedicated directory, then run that command (MakeKSNP3infile).
+        # The command makes certain unreasonable assumptions:
+        # - current directory is parent directory of the fasta file directory
+        # - file names do not have dots except before extension (also no spaces), so we need to enforce that in the get_ncbi_genomes method.
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
         for local_file in input_files:
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
         local_ncbi_fastas = self.get_ncbi_genomes(taxid, input_dir_for_ksnp3)
-        command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {self.output_dir_local}/inputs.txt A") # MakeKSNP3infile makes stupid assumptions about local and full paths...
+        command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {self.output_dir_local}/inputs.txt A")
 
         # Now run ksnp3.
         command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
@@ -39,6 +40,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         '''
         Retrieve up to n GenBank reference genomes under taxid.
         Assumes taxid is species-level.
+        Saves the references under file names compatible with MakeKSNP3infile.
         '''
         categories = ["bacteria", "viral", "fungi", "protozoa"]
         # additional options in genbank that probably don't need right now:
@@ -59,7 +61,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 for line in genomes:
                     organism_name, ftp_path = line.split("\t")
                     ftp_fasta_gz = f"{ftp_path}/{os.path.basename(ftp_path)}_genomic.fna.gz"
-                    local_fasta = f"{destination_dir}/genbank__{organism_name.replace(' ', '-')}.fasta"
+                    local_fasta = f"{destination_dir}/genbank__{organism_name.replace(' ', '-').replace('.', ''}.fasta"
                     command.execute(f"wget -O {local_fasta}.gz {ftp_fasta_gz}")
                     command.execute(f"gunzip {local_fasta}.gz")
                     local_ncbi_fastas.append(local_fasta)
