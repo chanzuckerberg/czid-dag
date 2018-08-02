@@ -1,6 +1,7 @@
 ''' Generate Phylogenetic tree '''
 import os
 import json
+import shelve
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.steps.generate_alignment_viz import PipelineStepGenerateAlignmentViz
