@@ -15,8 +15,17 @@
       "out": "phylo_tree_out",
       "class": "PipelineStepGeneratePhyloTree",
       "module": "idseq_dag.steps.generate_phylo_tree",
-      "additional_files": {},
-      "additional_attributes": {"taxid": 573}
+      "additional_files": {
+        "nt_loc_db": "s3://idseq-database/20170824/blast_db/nt_loc.db",
+        "align_viz_json_pipeline_run_1019": "s3://idseq-samples-development/samples/84/860/postprocess/2.4/align_viz/nt.species.573.align_viz.json",
+        "align_viz_json_pipeline_run_1020": "s3://idseq-samples-development/samples/84/857/postprocess/2.4/align_viz/nt.species.573.align_viz.json",
+        "align_viz_json_pipeline_run_1021": "s3://idseq-samples-development/samples/84/858/postprocess/2.4/align_viz/nt.species.573.align_viz.json",
+        "align_viz_json_pipeline_run_1029": "s3://idseq-samples-development/samples/84/872/postprocess/2.4/align_viz/nt.species.573.align_viz.json"
+      },
+      "additional_attributes": {
+        "taxid": 573,
+        "nt_db": "s3://idseq-database/20170824/blast_db/nt"
+      }
     }
   ],
   "given_targets": {
