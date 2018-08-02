@@ -312,7 +312,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                 ref_seq_len, seq_name, accession_file = PipelineStepGenerateAlignmentViz.get_sequence_by_accession_id_s3(
                     accession_id, nt_loc_dict, nt_bucket, nt_key, report_accession_file)
                 with mutex:
-                    accession_info['accession_file'] = accession_file
+                    accession_info['seq_file'] = accession_file
+                    accession_info['name'] = seq_name
             else:
                 ref_seq_len, seq_name = PipelineStepGenerateAlignmentViz.get_sequence_by_accession_id_s3(
                     accession_id, nt_loc_dict, nt_bucket, nt_key)
