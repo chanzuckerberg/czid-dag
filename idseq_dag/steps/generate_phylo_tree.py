@@ -109,7 +109,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 self.ref_dir_local)
             local_align_viz_files.append(local_file)
 
-        # Make map of accession to sequence
+        # Make map of accession to sequence file
         accessions = set()
         for local_file in local_align_viz_files:
             with open(local_file, 'rb') as f:
@@ -118,17 +118,14 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         accession2info = dict((acc, {}) for acc in accessions)
         nt_loc_dict = shelve.open(nt_loc_db.replace(".db", ""))
         PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_s3(
-            accession2info, nt_loc_dict, nt_db)
+            accession2info, nt_loc_dict, nt_db, True)
 
-        # Write 1 fasta file per accession
+        # Put 1 fasta file per accession into the destination directory
         local_accession_fastas = []
         for acc, info in accession2info.items():
             clean_accession = PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(acc)
             local_fasta = f"{dest_dir}/NCBI_NT_accession_{clean_accession}"
-            with open(local_fasta, 'w') as lf:
-                lf.write(f">{acc}\n")
-                print(info)
-                lf.write(info['ref_seq'])
+            command.execute(f"ln -s {info['accession_file']} {local_fasta}")
             local_accession_fastas += local_fasta
 
         # Return paths of the new fasta files

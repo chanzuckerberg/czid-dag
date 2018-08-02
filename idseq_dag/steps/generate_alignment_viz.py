@@ -274,7 +274,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
     @staticmethod
     def get_sequences_by_accession_list_from_s3(accession_id_groups,
-                                                nt_loc_dict, nt_s3_path):
+                                                nt_loc_dict, nt_s3_path, report_accession_file=False):
         threads = []
         error_flags = {}
         semaphore = threading.Semaphore(64)
@@ -287,7 +287,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                 get_sequence_for_thread,
                 args=[
                     error_flags, accession_info, accession_id, nt_loc_dict,
-                    nt_bucket, nt_key, semaphore, mutex
+                    nt_bucket, nt_key, semaphore, mutex, report_accession_file
                 ])
             t.start()
             threads.append(t)
@@ -305,18 +305,25 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                                 nt_key,
                                 semaphore,
                                 mutex,
+                                report_accession_file=False,
                                 seq_count=[0]):  #pylint: disable=dangerous-default-value
         try:
-            ref_seq_len, seq_name = PipelineStepGenerateAlignmentViz.get_sequence_by_accession_id_s3(
-                accession_id, nt_loc_dict, nt_bucket, nt_key)
-            with mutex:
-                accession_info['ref_seq_len'] = ref_seq_len
-                accession_info['name'] = seq_name
-                seq_count[0] += 1
-                if seq_count[0] % 100 == 0:
-                    msg = f"{seq_count[0]} sequences fetched, most recently " \
-                          f"{accession_id}"
-                    log.write(msg)
+            if report_accession_file:
+                ref_seq_len, seq_name, accession_file = PipelineStepGenerateAlignmentViz.get_sequence_by_accession_id_s3(
+                    accession_id, nt_loc_dict, nt_bucket, nt_key, report_accession_file)
+                with mutex:
+                    accession_info['accession_file'] = accession_file
+            else:
+                ref_seq_len, seq_name = PipelineStepGenerateAlignmentViz.get_sequence_by_accession_id_s3(
+                    accession_id, nt_loc_dict, nt_bucket, nt_key)
+                with mutex:
+                    accession_info['ref_seq_len'] = ref_seq_len
+                    accession_info['name'] = seq_name
+                    seq_count[0] += 1
+                    if seq_count[0] % 100 == 0:
+                        msg = f"{seq_count[0]} sequences fetched, most recently " \
+                              f"{accession_id}"
+                        log.write(msg)
         except:
             with mutex:
                 if not error_flags:
@@ -341,7 +348,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
     @staticmethod
     def get_sequence_by_accession_id_s3(accession_id, nt_loc_dict, nt_bucket,
-                                        nt_key):
+                                        nt_key, report_accession_file=False):
         seq_len = 0
         seq_name = ''
         entry = nt_loc_dict.get(accession_id)
@@ -385,7 +392,11 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                     pass
                 except:
                     pass
-        return seq_len, seq_name
+        if report_accession_file:
+            accession_file_full_path = f"{os.getcwd()}/{accession_file}"
+            return seq_len, seq_name, accession_file_full_path
+        else:
+            return seq_len, seq_name
 
     @staticmethod
     def compress_coverage(coverage):
