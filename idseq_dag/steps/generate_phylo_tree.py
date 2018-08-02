@@ -125,8 +125,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         for acc, info in accession2info.items():
             clean_accession = PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(acc)
             local_fasta = f"{dest_dir}/NCBI_NT_accession_{clean_accession}"
-            with open(local_fasta, 'wb') as lf:
+            with open(local_fasta, 'w') as lf:
                 lf.write(f">{acc}\n")
+                print(info)
                 lf.write(info['ref_seq'])
             local_accession_fastas += local_fasta
 
