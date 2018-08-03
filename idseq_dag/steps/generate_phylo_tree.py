@@ -96,9 +96,12 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
     def get_accession_sequences(self, dest_dir, n=10):
         '''
-        Retrieve NCBI NT references for up to n of the accessions in the alignment viz files
-        and write them to separate fasta files.
+        Retrieve NCBI NT references for the most-matched accession in each alignment viz file, up to a maximum of n references.
+        Write each reference to a separate fasta files.
         '''
+        if n == 0:
+            return []
+
         # Retrieve files
         nt_db = self.additional_attributes["nt_db"]
         nt_loc_db = s3.fetch_from_s3(
@@ -113,16 +116,23 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 self.ref_dir_local)
             local_align_viz_files.append(local_file)
 
-        # Make map of accession to sequence file
+        # Choose accessions to process
         accessions = set()
         for local_file in local_align_viz_files:
             with open(local_file, 'rb') as f:
                 align_viz_dict = json.load(f)
-            accessions |= set(align_viz_dict.keys())
+            most_matched_accession = None
+            max_num_reads = 0
+            for acc, info in align_viz_dict.items():
+                if info["num_reads"] > max_num_reads:
+                    most_matched_accession = acc
+            accessions.add(acc)
             if len(accessions) >= n:
                 break
         if len(accessions) > n:
             accessions = set(list(accessions)[0:n])
+
+        # Make map of accession to sequence file
         accession2info = dict((acc, {}) for acc in accessions)
         nt_loc_dict = shelve.open(nt_loc_db.replace(".db", ""))
         PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_s3(
