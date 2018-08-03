@@ -30,7 +30,11 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
         for local_file in input_files:
-            command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
+            # Trim Illumina adapters
+            local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
+            command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
+            # Put trimmed file in ksnp3 input directory under same basename as original file (which will be shown on the tree)
+            command.execute(f"ln -s {local_file_trimmed} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
 
         # Retrieve Genbank references (full assembled genomes).
         # For now, we skip this using the option n=0 because
