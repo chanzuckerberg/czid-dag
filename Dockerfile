@@ -98,6 +98,7 @@ RUN gsnapl --version
 # For srst2, install forked srst2 python 3 compatible repo 
 RUN pip install scipy 
 RUN pip install git+https://github.com/chanzuckerberg/srst2
+# TODO: Test both pip installations, consider keeping pip use consistent
 RUN pip3 install pandas
 
 # Cleanup
