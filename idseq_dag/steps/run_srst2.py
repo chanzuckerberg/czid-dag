@@ -41,7 +41,6 @@ class PipelineStepRunSRST2(PipelineStep):
         results_dest = self.output_files_local()[1]
         PipelineStepRunSRST2.mv_to_dest(log, log_dest)
         PipelineStepRunSRST2.mv_to_dest(results, results_dest) 
-        # command.execute(f"mv {results} {self.output_files_local()[1]}")
         if not os.path.exists(os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')): 
             open('empty_file.txt','r').close()
             # TODO: Have more efficient command than cp
@@ -50,7 +49,6 @@ class PipelineStepRunSRST2(PipelineStep):
             command.execute(f"cp empty_file.txt {self.output_files_local()[4]}")
         else:
             # Post processing of amr data
-            # command.execute(f"mv {os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')} {self.output_files_local()[2]}")
             results_full = os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')
             results_full_dest = self.output_files_local()[2]
             PipelineStepRunSRST2.mv_to_dest(results_full, results_full_dest)
@@ -62,7 +60,8 @@ class PipelineStepRunSRST2(PipelineStep):
 
     @staticmethod
     def mv_to_dest(src, dest):
-        """Handles case where src and dest file are named the same and a mv "same file" error is thrown."""
+        """Moves src to dest path. 
+           Handles case where src and dest file are named the same and a mv "same file" error is thrown."""
         if src == dest:
             command.execute(f"mv {src} 'src'")
             command.execute(f"mv 'src' {dest}")   
