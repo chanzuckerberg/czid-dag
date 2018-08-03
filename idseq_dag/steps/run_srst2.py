@@ -35,31 +35,43 @@ class PipelineStepRunSRST2(PipelineStep):
                 '--output', self.output_dir_local+'/output', '--log', '--gene_db', db_file_path
             ]
         command.execute(" ".join(srst2_params))
-        # TODO: Handle case where local output file is named the same as that in dag and mv fails with "same file" error
-        command.execute(f"mv {os.path.join(self.output_dir_local, 'output.log')} {self.output_files_local()[0]}")
-        command.execute(f"mv {os.path.join(self.output_dir_local, 'output__genes__ARGannot_r2__results.txt')} {self.output_files_local()[1]}")
+        log = os.path.join(self.output_dir_local, 'output.log')
+        log_dest = self.output_files_local()[0]
+        results = os.path.join(self.output_dir_local, 'output__genes__ARGannot_r2__results.txt')
+        results_dest = self.output_files_local()[1]
+        PipelineStepRunSRST2.mv_to_dest(log, log_dest)
+        PipelineStepRunSRST2.mv_to_dest(results, results_dest) 
+        # command.execute(f"mv {results} {self.output_files_local()[1]}")
         if not os.path.exists(os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')): 
-            # Cp to aws fails if output file is empty
-            with open('empty_file.txt', 'a') as out:
-                out.write('\n')
+            open('empty_file.txt','r').close()
             # TODO: Have more efficient command than cp
             command.execute(f"cp empty_file.txt {self.output_files_local()[2]}")
             command.execute(f"cp empty_file.txt {self.output_files_local()[3]}")
             command.execute(f"cp empty_file.txt {self.output_files_local()[4]}")
         else:
             # Post processing of amr data
-            # TODO: Handle case where local output file is named the same as that in dag and mv fails with "same file" error
-            command.execute(f"mv {os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')} {self.output_files_local()[2]}")
-            self.process_amr_results(self.output_files_local()[2])
+            # command.execute(f"mv {os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')} {self.output_files_local()[2]}")
+            results_full = os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')
+            results_full_dest = self.output_files_local()[2]
+            PipelineStepRunSRST2.mv_to_dest(results_full, results_full_dest)
+            self.process_amr_results(results_full_dest)
 
     # Inherited method
     def count_reads(self):
         pass
-   
+
+    @staticmethod
+    def mv_to_dest(src, dest):
+        """Handles case where src and dest file are named the same and a mv "same file" error is thrown."""
+        if src == dest:
+            command.execute(f"mv {src} 'src'")
+            command.execute(f"mv 'src' {dest}")   
+        else:
+            command.execute(f"mv {src} {dest}")
+            
     @staticmethod
     def _get_pre_proc_amr_results(amr_raw_path):
-        """ Reads in raw amr results file outputted by srst2, and does initial processing of marking gene family,
-        + adding in blank columns for relevant metrics (total_genes_hit, total_coverage, total_depth)."""
+        """ Reads in raw amr results file outputted by srst2, and does initial processing of marking gene family."""
         amr_results = pd.read_csv(amr_raw_path, delimiter="\t")
         # Parse out gene family as substring after '_', e.g. Aph_AGly's gene family would be AGly
         amr_results['gene_family'] = amr_results.apply(lambda row: row.gene.split('_', 1)[1], axis=1)
@@ -76,8 +88,9 @@ class PipelineStepRunSRST2(PipelineStep):
 
 
     def process_amr_results(self, amr_results_path):
-        """ Returns processed amr result table with total_genes_hit, total_coverage,
-            and total_depth column values filled in for all genes. """
+        """ Writes processed amr result table with total_genes_hit, total_coverage,
+            and total_depth column values filled in for all genes to output files; and likewise with
+            the gene-family level summary of amr results table. """
         amr_summary = PipelineStepRunSRST2._summarize_amr_gene_families(amr_results_path)
         amr_summary.to_csv(
             'amr_summary_results.csv',
