@@ -82,7 +82,7 @@ class PipelineStepRunSRST2(PipelineStep):
         amr_results = PipelineStepRunSRST2._get_pre_proc_amr_results(amr_raw_path)
         amr_summary = amr_results.groupby(['gene_family']).agg({'gene_family': ['size'],'coverage':['sum'], 'depth':['sum']})
         amr_summary.columns = [' '.join(col) for col in amr_summary.columns]
-        amr_summary = amr_summary.rename(columns={'gene_family size': 'total_gene_hits', 'coverage sum': 'total_coverage', 'depth                       sum': 'total_depth'}).reset_index()
+        amr_summary = amr_summary.rename(columns={'gene_family size': 'total_gene_hits', 'coverage sum': 'total_coverage', 'depth sum': 'total_depth'}).reset_index()
         return amr_summary
 
 
