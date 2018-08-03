@@ -124,7 +124,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             most_matched_accession = None
             max_num_reads = 0
             for acc, info in align_viz_dict.items():
-                if info["coverage_summary"]["num_reads"] > max_num_reads:
+                num_reads = info["coverage_summary"]["num_reads"]
+                if num_reads > max_num_reads:
+                    max_num_reads = num_reads
                     most_matched_accession = acc
             accessions.add(most_matched_accession)
             if len(accessions) >= n:
