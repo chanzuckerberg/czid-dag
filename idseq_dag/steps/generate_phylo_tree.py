@@ -7,6 +7,7 @@ from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.steps.generate_alignment_viz import PipelineStepGenerateAlignmentViz
 import idseq_dag.util.command as command
 import idseq_dag.util.s3 as s3
+import idseq_dag.util.log as log
 
 class PipelineStepGeneratePhyloTree(PipelineStep):
     ''' 
@@ -111,10 +112,13 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         align_viz_s3_files = [key for key in list(self.additional_files.keys()) if key != "nt_loc_db"]
         local_align_viz_files = []
         for s3_file in align_viz_s3_files:
-            local_file = s3.fetch_from_s3(
-                self.additional_files[s3_file],
-                self.ref_dir_local)
-            local_align_viz_files.append(local_file)
+            try:
+                local_file = s3.fetch_from_s3(
+                    self.additional_files[s3_file],
+                    self.ref_dir_local)
+                local_align_viz_files.append(local_file)
+            except:
+                log.write(f"{self.additional_files[s3_file]} did not exist.")
 
         # Choose accessions to process
         accessions = set()
