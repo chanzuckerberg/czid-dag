@@ -116,8 +116,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             local_file = s3.fetch_from_s3(
                 self.additional_files[s3_file],
                 self.ref_dir_local)
+            print(f"LOCAL FILE: {local_file}")
             if local_file != None:
                 local_align_viz_files.append(local_file)
+        print(f"local_align_viz_files: {local_align_viz_files}")
 
         # Choose accessions to process
         accessions = set()
