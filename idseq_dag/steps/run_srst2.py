@@ -42,11 +42,20 @@ class PipelineStepRunSRST2(PipelineStep):
         PipelineStepRunSRST2.mv_to_dest(log, log_dest)
         PipelineStepRunSRST2.mv_to_dest(results, results_dest) 
         if not os.path.exists(os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')): 
-            open('empty_file.txt','r').close()
+            # open('empty_file.txt','r').close()
             # TODO: Have more efficient command than cp
-            command.execute(f"cp empty_file.txt {self.output_files_local()[2]}")
-            command.execute(f"cp empty_file.txt {self.output_files_local()[3]}")
-            command.execute(f"cp empty_file.txt {self.output_files_local()[4]}")
+            # command.execute(f"touch {self.output_files_local()[2]}")
+            fd = os.open(self.output_files_local()[2], os.O_RDWR|os.O_CREAT)
+            # command.execute(f"touch {self.output_files_local()[3]}")
+            os.write(fd, b"This is test")
+            os.close(fd)
+            fd1 = os.open(self.output_files_local()[3], os.O_RDWR|os.O_CREAT)
+            os.write(fd1, b"This is test")
+            os.close(fd1)
+            # command.execute(f"touch {self.output_files_local()[4]}")
+            fd2 = os.open(self.output_files_local()[4], os.O_RDWR|os.O_CREAT)
+            os.write(fd2, b"This is test")
+            os.close(fd2)
         else:
             # Post processing of amr data
             results_full = os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')
