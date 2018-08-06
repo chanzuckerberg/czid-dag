@@ -112,10 +112,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         align_viz_s3_files = [key for key in list(self.additional_files.keys()) if key != "nt_loc_db"]
         local_align_viz_files = []
         for s3_file in align_viz_s3_files:
-            local_file = None
+            local_basename = self.additional_files[s3_file].replace("/", "-") # needs to be unique locally
             local_file = s3.fetch_from_s3(
                 self.additional_files[s3_file],
-                self.ref_dir_local)
+                os.path.join(self.ref_dir_local, local_basename))
             print(f"LOCAL FILE: {local_file}")
             if local_file != None:
                 local_align_viz_files.append(local_file)
