@@ -39,8 +39,8 @@ class PipelineStepRunSRST2(PipelineStep):
         log_dest = self.output_files_local()[0]
         results = os.path.join(self.output_dir_local, 'output__genes__ARGannot_r2__results.txt')
         results_dest = self.output_files_local()[1]
-        PipelineStepRunSRST2.mv_to_dest(log, log_dest)
-        PipelineStepRunSRST2.mv_to_dest(results, results_dest) 
+        os.rename(log, log_dest)
+        os.rename(results, results_dest) 
         if not os.path.exists(os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')): 
             PipelineStepRunSRST2.fill_file_path(self.output_files_local()[2])
             PipelineStepRunSRST2.fill_file_path(self.output_files_local()[3])
@@ -65,24 +65,15 @@ class PipelineStepRunSRST2(PipelineStep):
            system. This doesn't seem to be the case on the staging machine, though.
            So the official recommendation to install aws-cli from pip does not seem to apply since
            the Python versions match up.
-           Thus for now, we use os file functions to avoid overhead of using Python's File object
+           I tried many suggestions on the link above + others -- for now, the following
+           seems a reasonable workaround.
+           We use os file functions to avoid overhead of using Python's File object
            functions to open an empty file  and using a cp command to move to destination.
            TODO: See if there are aws CLI installation errors that can be fixed."""
         fd = os.open(file_path, os.O_RDWR|os.O_CREAT)
         os.write(fd, b"\n")
         os.close(fd)
-       
-
-    @staticmethod
-    def mv_to_dest(src, dest):
-        """Moves src to dest path. 
-           Handles case where src and dest file are named the same and a mv "same file" error is thrown."""
-        if src == dest:
-            command.execute(f"mv {src} 'src'")
-            command.execute(f"mv 'src' {dest}")   
-        else:
-            command.execute(f"mv {src} {dest}")
-            
+             
     @staticmethod
     def _get_pre_proc_amr_results(amr_raw_path):
         """ Reads in raw amr results file outputted by srst2, and does initial processing of marking gene family."""
@@ -92,9 +83,8 @@ class PipelineStepRunSRST2(PipelineStep):
         return amr_results
 
     @staticmethod
-    def _summarize_amr_gene_families(amr_raw_path):
+    def _summarize_amr_gene_families(amr_results):
         """Returns a gene family-level summary of total_genes_hit, total_coverage, and total_depth."""
-        amr_results = PipelineStepRunSRST2._get_pre_proc_amr_results(amr_raw_path)
         amr_summary = amr_results.groupby(['gene_family']).agg({'gene_family': ['size'],'coverage':['sum'], 'depth':['sum']})
         amr_summary.columns = [' '.join(col) for col in amr_summary.columns]
         amr_summary = amr_summary.rename(columns={'gene_family size': 'total_gene_hits', 'coverage sum': 'total_coverage', 'depth sum': 'total_depth'}).reset_index()
@@ -105,21 +95,19 @@ class PipelineStepRunSRST2(PipelineStep):
         """ Writes processed amr result table with total_genes_hit, total_coverage,
             and total_depth column values filled in for all genes to output files; and likewise with
             the gene-family level summary of amr results table. """
-        amr_summary = PipelineStepRunSRST2._summarize_amr_gene_families(amr_results_path)
+        amr_results = PipelineStepRunSRST2._get_pre_proc_amr_results(amr_results_path)
+        amr_summary = PipelineStepRunSRST2._summarize_amr_gene_families(amr_results)
         amr_summary.to_csv(
-            'amr_summary_results.csv',
+            self.output_files_local()[4],
             mode='w',
             index=False,
             encoding='utf-8')
-        command.execute(f"mv amr_summary_results.csv {self.output_files_local()[4]}")
-        amr_results = PipelineStepRunSRST2._get_pre_proc_amr_results(amr_results_path)
         sorted_amr = amr_results.sort_values(by=['gene_family'])
         proc_amr = pd.merge_ordered(sorted_amr, amr_summary, fill_method='ffill', left_by=['gene_family'])
         proc_amr.to_csv(
-            'amr_processed_results.csv',
+            self.output_files_local()[3],
             mode='w',
             index=False,
             encoding='utf-8')
-        command.execute(f"mv amr_processed_results.csv {self.output_files_local()[3]}")    
 
 
