@@ -19,7 +19,7 @@ class PipelineStepRunSRST2(PipelineStep):
             fwd_rd = self.input_files_local[0][0]
             rev_rd = self.input_files_local[0][1]
             # Rename to format srst2 expects
-            # TODO: Handle Fasta files
+            # TODO: Handle Fasta files with --read_type f option
             command.execute(f"ln -sf {fwd_rd} _R1_001.fastq.gz")
             command.execute(f"ln -sf {rev_rd} _R2_001.fastq.gz")
             srst2_params = [
