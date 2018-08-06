@@ -42,20 +42,9 @@ class PipelineStepRunSRST2(PipelineStep):
         PipelineStepRunSRST2.mv_to_dest(log, log_dest)
         PipelineStepRunSRST2.mv_to_dest(results, results_dest) 
         if not os.path.exists(os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')): 
-            # open('empty_file.txt','r').close()
-            # TODO: Have more efficient command than cp
-            # command.execute(f"touch {self.output_files_local()[2]}")
-            fd = os.open(self.output_files_local()[2], os.O_RDWR|os.O_CREAT)
-            # command.execute(f"touch {self.output_files_local()[3]}")
-            os.write(fd, b"This is test")
-            os.close(fd)
-            fd1 = os.open(self.output_files_local()[3], os.O_RDWR|os.O_CREAT)
-            os.write(fd1, b"This is test")
-            os.close(fd1)
-            # command.execute(f"touch {self.output_files_local()[4]}")
-            fd2 = os.open(self.output_files_local()[4], os.O_RDWR|os.O_CREAT)
-            os.write(fd2, b"This is test")
-            os.close(fd2)
+            PipelineStepRunSRST2.fill_file_path(self.output_files_local()[2])
+            PipelineStepRunSRST2.fill_file_path(self.output_files_local()[3])
+            PipelineStepRunSRST2.fill_file_path(self.output_files_local()[4])
         else:
             # Post processing of amr data
             results_full = os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')
@@ -66,6 +55,23 @@ class PipelineStepRunSRST2(PipelineStep):
     # Inherited method
     def count_reads(self):
         pass
+
+    @staticmethod
+    def fill_file_path(file_path):
+        """Helper function to open an "empty" file at a given file location.
+           Note that aws s3 cannot upload a 0 byte file from local to s3;
+           see  https://github.com/aws/aws-cli/issues/2403.
+           Possible problems seem to be from python versions mismatching on aws cli and linux
+           system. This doesn't seem to be the case on the staging machine, though.
+           So the official recommendation to install aws-cli from pip does not seem to apply since
+           the Python versions match up.
+           Thus for now, we use os file functions to avoid overhead of using Python's File object
+           functions to open an empty file  and using a cp command to move to destination.
+           TODO: See if there are aws CLI installation errors that can be fixed."""
+        fd = os.open(file_path, os.O_RDWR|os.O_CREAT)
+        os.write(fd, b"\n")
+        os.close(fd)
+       
 
     @staticmethod
     def mv_to_dest(src, dest):
