@@ -23,11 +23,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         output_files = self.output_files_local()
         taxid = self.additional_attributes["taxid"]
 
-        ## Trim Illumina adapters
-        #for local_file in input_files:
-        #    local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
-        #    command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
-        #    command.execute(f"mv {local_file_trimmed} {local_file}")
+        # Trim Illumina adapters
+        # TODO: consider moving this to the beginning of the main pipeline
+        PipelineStepGeneratePhyloTree.trim_adapters_in_place(input_files)
 
         # knsp3 has a command (MakeKSNP3infile) for making a ksnp3-compatible input file from a directory of fasta files.
         # Before we can use the command, we symlink all fasta files to a dedicated directory.
@@ -157,6 +155,13 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
         # Return paths of the new fasta files
         return local_accession_fastas
+
+    @staticmethod
+    def trim_adapters_in_place(local_input_files):
+        for local_file in local_input_files:
+            local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
+            command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
+            command.execute(f"mv {local_file_trimmed} {local_file}")
 
     @staticmethod
     def clean_name_for_ksnp3(name):
