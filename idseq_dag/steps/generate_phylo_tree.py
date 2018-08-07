@@ -31,11 +31,12 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Before we can use the command, we symlink all fasta files to a dedicated directory.
         # The command makes certain unreasonable assumptions we'll need to enforce:
         # - current directory is parent directory of the fasta file directory
-        # - file names do not have dots except before extension (also no spaces).
+        # - file names do not have dots except before extension (also no spaces)
+        # - file names cannot be too long (for kSNP3 tree building).
+        genome_name_map = PipelineStepGeneratePhyloTree.clean_filename_collection(input_files)
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
-        for idx, local_file in enumerate(input_files):
-            genome_name = f"{os.path.basename(local_file)}__{idx}"
+        for local_file, genome_name in genome_name_map.items():
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{genome_name}")
 
         # Retrieve Genbank references (full assembled genomes).
@@ -166,3 +167,14 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     @staticmethod
     def clean_name_for_ksnp3(name):
         return name.replace(' ', '-').replace('.', '')
+
+    @staticmethod
+    def clean_filename_collection(local_input_files, max_length = 50):
+        output_map = {}
+        for idx, local_file in enumerate(local_input_files):
+            original_name = os.path.basename(local_file)
+            cleaned_name = PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(original_name)
+            truncated_name = f"{cleaned_name[:max_length]}---etc"
+            if truncated_name in output_map.values():
+                output_map[local_file] = f"{truncated_name}-{idx}"
+        return output_map
