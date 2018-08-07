@@ -36,8 +36,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # - file names do not have dots except before extension (also no spaces).
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
-        for local_file in input_files:
-            command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
+        for local_file, idx in enumerate(input_files):
+            genome_name = f"{os.path.basename(local_file)[:10]}__{idx}"
+            command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{genome_name}")
 
         # Retrieve Genbank references (full assembled genomes).
         # For now, we skip this using the option n=0 because
