@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import shutil
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.s3 import fetch_from_s3
@@ -10,51 +11,64 @@ class PipelineStepRunSRST2(PipelineStep):
     srst2 is used to detect resistance genes.
     See: https://github.com/katholt/srst2
     '''
+
     def run(self):
         ''' Invoking srst2 '''
-        db_file_path = fetch_from_s3(self.additional_files["resist_gene_db"], self.output_dir_local)
-        min_cov = str(self.additional_attributes['min_cov'])
-        n_threads = str(self.additional_attributes['n_threads'])
-        if len(self.input_files_local[0]) == 2:
-            fwd_rd = self.input_files_local[0][0]
-            rev_rd = self.input_files_local[0][1]
-            # Rename to format srst2 expects
-            # TODO: Handle Fasta files with --read_type f option
-            command.execute(f"ln -sf {fwd_rd} _R1_001.fastq.gz")
-            command.execute(f"ln -sf {rev_rd} _R2_001.fastq.gz")
-            srst2_params = [
-                'srst2', '--input_pe', '_R1_001.fastq.gz', '_R2_001.fastq.gz', '--forward', '_R1_001', '--reverse', '_R2_001',
-                '--min_coverage', min_cov,'--threads', n_threads, '--output', os.path.join(self.output_dir_local, 'output'),
-                '--log', '--gene_db', db_file_path
-            ]
-        else:
-            rd = self.input_files_local[0][0]
-            command.execute(f"ln -sf {rd} rd.fastq.gz")
-            srst2_params = [
-                'srst2', '--input_se', 'rd.fastq.gz', '--min_coverage', min_cov,'--threads', n_threads,
-                '--output', self.output_dir_local+'/output', '--log', '--gene_db', db_file_path
-            ]
-        command.execute(" ".join(srst2_params))
-        log = os.path.join(self.output_dir_local, 'output.log')
+        OUTPUT_LOG = 'output.log'
+        OUTPUT_GENES = 'output__genes__ARGannot_r2__results.txt'
+        OUTPUT_FULL_GENES = 'output__fullgenes__ARGannot_r2__results.txt'
+        isPaired = (len(self.input_files_local[0]) == 2)
+        isFasta = (self.additional_attributes['file_type'] == 'fasta')
+        self.execute_srst2(isPaired, isFasta)
+        log = os.path.join(self.output_dir_local, OUTPUT_LOG)
         log_dest = self.output_files_local()[0]
-        results = os.path.join(self.output_dir_local, 'output__genes__ARGannot_r2__results.txt')
+        results = os.path.join(self.output_dir_local, OUTPUT_GENES)
         results_dest = self.output_files_local()[1]
-        os.rename(log, log_dest)
-        os.rename(results, results_dest) 
-        if not os.path.exists(os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')): 
-            PipelineStepRunSRST2.fill_file_path(self.output_files_local()[2])
-            PipelineStepRunSRST2.fill_file_path(self.output_files_local()[3])
-            PipelineStepRunSRST2.fill_file_path(self.output_files_local()[4])
+        shutil.move(log, log_dest)
+        shutil.move(results, results_dest) 
+        if not os.path.exists(os.path.join(self.output_dir_local, OUTPUT_FULL_GENES)): 
+            for f in self.output_files_local()[2:5]:
+                PipelineStepRunSRST2.fill_file_path(f)
         else:
             # Post processing of amr data
-            results_full = os.path.join(self.output_dir_local, 'output__fullgenes__ARGannot_r2__results.txt')
+            results_full = os.path.join(self.output_dir_local, OUTPUT_FULL_GENES)
             results_full_dest = self.output_files_local()[2]
-            PipelineStepRunSRST2.mv_to_dest(results_full, results_full_dest)
+            shutil.move(results_full, results_full_dest)
             self.process_amr_results(results_full_dest)
 
     # Inherited method
     def count_reads(self):
         pass
+
+    def execute_srst2(self, isPaired, isFasta):
+        """Executes srst2, retrieving the appropriate parameters based on whether input files are paired rds
+           and/or Fasta files."""
+        for i, rd in enumerate(self.input_files_local[0]):
+            command.execute(f"ln -sf {rd} _R{i+1}_001.fastq.gz") if isFasta else command.execute(f"ln -sf {rd} _R{i+1}_001.fasta")
+        srst2_params = self.get_srst2_params(isPaired, isFasta)
+        command.execute(" ".join(srst2_params))
+
+    def get_srst2_params(self, isPaired, isFasta):
+        """Helper function that returns srst2 params based on input files and types."""
+        srst2_params = ['srst2']
+        if isFasta: file_ext = '.fasta'
+        else: file_ext = '.fastq.gz'
+        if isFasta: srst2_params.extend(['--read_type', 'f'])        
+        if isPaired:
+            srst2_params.extend(['--input_pe', '_R1_001'+file_ext, '_R2_001'+file_ext, '--forward', '_R1_001', '--reverse', '_R2_001'])
+        else:
+            srst2_params.extend(['--input_se', '_R1_001'+file_ext])
+        srst2_params.extend(self.get_common_params())
+        return srst2_params
+
+    def get_common_params(self):
+        """Helper that gets srst2 parameters common to both paired and single rds."""
+        db_file_path = fetch_from_s3(self.additional_files["resist_gene_db"], self.output_dir_local)
+        min_cov = str(self.additional_attributes['min_cov'])
+        # srst2 expects this to be a string, in dag could be passed in as a number
+        n_threads = str(self.additional_attributes['n_threads'])
+        return ['--min_coverage', min_cov,'--threads', n_threads,
+                '--output',  os.path.join(self.output_dir_local, 'output'), '--log', '--gene_db', db_file_path]
 
     @staticmethod
     def fill_file_path(file_path):
