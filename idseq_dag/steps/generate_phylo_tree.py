@@ -116,10 +116,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             local_file = s3.fetch_from_s3(
                 self.additional_files[s3_file],
                 os.path.join(self.ref_dir_local, local_basename))
-            print(f"LOCAL FILE: {local_file}")
             if local_file != None:
                 local_align_viz_files.append(local_file)
-        print(f"local_align_viz_files: {local_align_viz_files}")
 
         # Choose accessions to process
         accessions = set()
@@ -130,11 +128,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             max_num_reads = 0
             for acc, info in align_viz_dict.items():
                 num_reads = info["coverage_summary"]["num_reads"]
-                print(f"{acc}: {num_reads}")
                 if num_reads > max_num_reads:
                     max_num_reads = num_reads
                     most_matched_accession = acc
-            print(f"most_matched_accession: {most_matched_accession}")
             accessions.add(most_matched_accession)
             if len(accessions) >= n:
                 break
