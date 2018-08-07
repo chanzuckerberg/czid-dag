@@ -23,19 +23,21 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         output_files = self.output_files_local()
         taxid = self.additional_attributes["taxid"]
 
+        # Trim Illumina adapters
+        for local_file in input_files:
+            local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
+            command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
+            command.execute(f"mv {local_file_trimmed} {local_file}")
+
         # knsp3 has a command (MakeKSNP3infile) for making a ksnp3-compatible input file from a directory of fasta files.
-        # Before we can use the command, we copy/symlink all fasta files to a dedicated directory.
-        # The command makes certain unreasonable assumptions we'll need to enfore:
+        # Before we can use the command, we symlink all fasta files to a dedicated directory.
+        # The command makes certain unreasonable assumptions we'll need to enforce:
         # - current directory is parent directory of the fasta file directory
         # - file names do not have dots except before extension (also no spaces).
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
         for local_file in input_files:
-            # Trim Illumina adapters
-            local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
-            command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
-            # Put trimmed file in ksnp3 input directory under same basename as original file (which will be shown on the tree)
-            command.execute(f"ln -s {local_file_trimmed} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
+            command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
 
         # Retrieve Genbank references (full assembled genomes).
         # For now, we skip this using the option n=0 because
