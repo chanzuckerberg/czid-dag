@@ -40,6 +40,7 @@ class PipelineStepRunSRST2(PipelineStep):
     def count_reads(self):
         pass
 
+    # TODO: Test with sample Fasta file.
     def execute_srst2(self, isPaired, isFasta):
         """Executes srst2, retrieving the appropriate parameters based on whether input files are paired rds
            and/or Fasta files."""
