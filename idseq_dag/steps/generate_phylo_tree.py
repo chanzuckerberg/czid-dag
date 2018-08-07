@@ -37,7 +37,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
         for local_file, idx in enumerate(input_files):
-            genome_name = f"{os.path.basename(local_file)[:10]}__{idx}"
+            genome_name = f"{os.path.basename(local_file)[:10]}__{str(idx)}"
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{genome_name}")
 
         # Retrieve Genbank references (full assembled genomes).
