@@ -177,4 +177,6 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             truncated_name = f"{cleaned_name[:max_length]}---etc"
             if truncated_name in output_map.values():
                 output_map[local_file] = f"{truncated_name}-{idx}"
+            else:
+                output_map[local_file] = truncated_name
         return output_map
