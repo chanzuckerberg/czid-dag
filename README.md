@@ -91,7 +91,7 @@ The following is an example dag for generating alignment output for idseq. The *
         "service": "gsnap",
         "chunks_in_flight": 32,
         "chunk_size": 15000,
-        "max_concurrent": 3,
+        "max_concurrent": 1,
         "environment": "prod"
       }
     },
