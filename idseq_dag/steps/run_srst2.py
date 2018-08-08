@@ -40,27 +40,25 @@ class PipelineStepRunSRST2(PipelineStep):
     def count_reads(self):
         pass
 
-    # TODO: Test with sample Fasta file.
+    # TODO: Test with a sample Fasta file in dag.
     def execute_srst2(self, isPaired, isFasta):
-        """Executes srst2, retrieving the appropriate parameters based on whether input files are paired rds
-           and/or Fasta files."""
+        """Executes srst2 with appropriate parameters based on whether input files are paired reads
+           and on file type."""        
+        srst2_params = ['srst2']
+        srst2_params.extend(self.get_common_params())
+        if isFasta: 
+            file_ext = '.fasta'
+            srst2_params.extend(['--read_type', 'f'])
+        else: 
+            file_ext = '.fastq.gz'
+        if isPaired: srst2_params.extend(['--input_pe']) 
+        else: srst2_params.extend(['--input_se'])
         for i, rd in enumerate(self.input_files_local[0]):
-            command.execute(f"ln -sf {rd} _R{i+1}_001.fastq.gz") if isFasta else command.execute(f"ln -sf {rd} _R{i+1}_001.fasta")
-        srst2_params = self.get_srst2_params(isPaired, isFasta)
+            command.execute(f"ln -sf {rd} _R{i+1}_001"+file_ext)
+            srst2_params.extend(['_R'+ str(i+1) + '_001'+file_ext])
+        if isPaired: srst2_params.extend(['--forward', '_R1_001', '--reverse', '_R2_001'])
         command.execute(" ".join(srst2_params))
 
-    def get_srst2_params(self, isPaired, isFasta):
-        """Helper function that returns srst2 params based on input files and types."""
-        srst2_params = ['srst2']
-        if isFasta: file_ext = '.fasta'
-        else: file_ext = '.fastq.gz'
-        if isFasta: srst2_params.extend(['--read_type', 'f'])        
-        if isPaired:
-            srst2_params.extend(['--input_pe', '_R1_001'+file_ext, '_R2_001'+file_ext, '--forward', '_R1_001', '--reverse', '_R2_001'])
-        else:
-            srst2_params.extend(['--input_se', '_R1_001'+file_ext])
-        srst2_params.extend(self.get_common_params())
-        return srst2_params
 
     def get_common_params(self):
         """Helper that gets srst2 parameters common to both paired and single rds."""
