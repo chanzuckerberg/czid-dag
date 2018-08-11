@@ -19,13 +19,24 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
       (b) Genbank full reference genomes from the same taxid.
     '''
     def run(self):
-        input_files = self.input_files_local[0]
         output_files = self.output_files_local()
         taxid = self.additional_attributes["taxid"]
 
+        # Retrieve IDseq taxon fasta files
+        local_taxon_fasta_files = []
+        for _pipeline_run_id, byterange in self.additional_attributes["taxon_byteranges"]:
+            first_byte = byterange[0]
+            last_byte = byterange[1]
+            s3_file = byterange[2]
+            local_basename = byterange[3]
+            bucket, key = s3.split_identifiers(s3_file)
+            local_file = os.path.join(self.output_dir_local, local_basename)
+            s3.fetch_byterange(first_byte, last_byte, bucket, key, local_file)
+            local_taxon_fasta_files.append(local_file)
+
         # Trim Illumina adapters
         # TODO: consider moving this to the beginning of the main pipeline
-        PipelineStepGeneratePhyloTree.trim_adapters_in_place(input_files)
+        PipelineStepGeneratePhyloTree.trim_adapters_in_place(local_taxon_fasta_files)
 
         # knsp3 has a command (MakeKSNP3infile) for making a ksnp3-compatible input file from a directory of fasta files.
         # Before we can use the command, we symlink all fasta files to a dedicated directory.
@@ -33,7 +44,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # - current directory is parent directory of the fasta file directory
         # - file names do not have dots except before extension (also no spaces)
         # - file names cannot be too long (for kSNP3 tree building).
-        genome_name_map = PipelineStepGeneratePhyloTree.clean_filename_collection(input_files)
+        genome_name_map = PipelineStepGeneratePhyloTree.clean_filename_collection(local_taxon_fasta_files)
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
         for local_file, genome_name in genome_name_map.items():
@@ -111,12 +122,12 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             self.additional_files["nt_loc_db"],
             self.ref_dir_local,
             allow_s3mi=True)
-        align_viz_s3_files = [key for key in list(self.additional_files.keys()) if key != "nt_loc_db"]
+        s3_align_viz_files = self.additional_files["align_viz_files"].values()
         local_align_viz_files = []
-        for s3_file in align_viz_s3_files:
-            local_basename = self.additional_files[s3_file].replace("/", "-").replace(":", "-") # needs to be unique locally
+        for s3_file in s3_align_viz_files:
+            local_basename = s3_file.replace("/", "-").replace(":", "-") # needs to be unique locally
             local_file = s3.fetch_from_s3(
-                self.additional_files[s3_file],
+                s3_file,
                 os.path.join(self.ref_dir_local, local_basename))
             if local_file != None:
                 local_align_viz_files.append(local_file)

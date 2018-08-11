@@ -364,11 +364,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             try:
                 range_file = f'range-{attempt}-accession-{accession_id}'
                 range_end = range_start + name_length + seq_len - 1
-                get_range = f"aws s3api get-object " \
-                            f"--range bytes={range_start}-{range_end} " \
-                            f"--bucket {nt_bucket} " \
-                            f"--key {nt_key} {range_file}"
-                command.execute(get_range)
+                s3.fetch_byterange(range_start, range_end, nt_bucket, nt_key, range_file)
 
                 # (1) Take everything below the first two lines, remove the
                 # newlines chars, and put the sequence into accession_file

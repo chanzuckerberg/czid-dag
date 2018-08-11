@@ -1,12 +1,6 @@
 {
   "output_dir_s3": "s3://idseq-samples-development/phylo_trees/8/test/",
   "targets": {
-    "taxon_fasta_in": [
-      "taxid_573_pipeline_run_1019.fasta",
-      "taxid_573_pipeline_run_1020.fasta",
-      "taxid_573_pipeline_run_1021.fasta",
-      "taxid_573_pipeline_run_1029.fasta"
-    ],
     "phylo_tree_out": ["phylo_tree.newick"]
   },
   "steps": [
@@ -17,20 +11,24 @@
       "module": "idseq_dag.steps.generate_phylo_tree",
       "additional_files": {
         "nt_loc_db": "s3://idseq-database/20170824/blast_db/nt_loc.db",
-        "align_viz_json_pipeline_run_1019": "s3://idseq-samples-development/samples/84/860/postprocess/2.4/align_viz/nt.species.573.align_viz.json",
-        "align_viz_json_pipeline_run_1020": "s3://idseq-samples-development/samples/84/857/postprocess/2.4/align_viz/nt.species.573.align_viz.json",
-        "align_viz_json_pipeline_run_1021": "s3://idseq-samples-development/samples/84/858/postprocess/2.4/align_viz/nt.species.573.align_viz.json",
-        "align_viz_json_pipeline_run_1029": "s3://idseq-samples-development/samples/84/872/postprocess/2.4/align_viz/nt.species.573.align_viz.json"
+        "align_viz_files": {
+          1019: "s3://idseq-samples-development/samples/84/860/postprocess/2.4/align_viz/nt.species.573.align_viz.json",
+          1020: "s3://idseq-samples-development/samples/84/857/postprocess/2.4/align_viz/nt.species.573.align_viz.json",
+          1021: "s3://idseq-samples-development/samples/84/858/postprocess/2.4/align_viz/nt.species.573.align_viz.json",
+          1029: "s3://idseq-samples-development/samples/84/872/postprocess/2.4/align_viz/nt.species.573.align_viz.json"
+        }
       },
       "additional_attributes": {
         "taxid": 573,
-        "nt_db": "s3://idseq-database/20170824/blast_db/nt"
+        "nt_db": "s3://idseq-database/20170824/blast_db/nt",
+        "taxon_byteranges": {
+          1019: [431082985, 431233435, "s3://idseq-samples-development/samples/84/860/postprocess/2.4/taxid_annot_sorted_nt.fasta"],
+          1020: [28835, 89930, "s3://idseq-samples-development/samples/84/857/postprocess/2.4/taxid_annot_sorted_nt.fasta"],
+          1021: [178740111, 178757997, "s3://idseq-samples-development/samples/84/858/postprocess/2.4/taxid_annot_sorted_nt.fasta"],
+          1029: [28835, 89930, "s3://idseq-samples-development/samples/84/872/postprocess/2.4/taxid_annot_sorted_nt.fasta"]
+        }
       }
     }
   ],
-  "given_targets": {
-    "taxon_fasta_in": {
-      "s3_dir": "s3://idseq-samples-development/phylo_trees/8"
-    }
-  }
+  "given_targets": {}
 }
