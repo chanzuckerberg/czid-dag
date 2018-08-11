@@ -122,7 +122,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             self.additional_files["nt_loc_db"],
             self.ref_dir_local,
             allow_s3mi=True)
-        s3_align_viz_files = self.additional_files["align_viz_files"].values()
+        s3_align_viz_files = self.additional_attributes["align_viz_files"].values()
         local_align_viz_files = []
         for s3_file in s3_align_viz_files:
             local_basename = s3_file.replace("/", "-").replace(":", "-") # needs to be unique locally
