@@ -24,7 +24,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
         # Retrieve IDseq taxon fasta files
         local_taxon_fasta_files = []
-        for _pipeline_run_id, byterange in self.additional_attributes["taxon_byteranges"]:
+        for _pipeline_run_id, byterange in self.additional_attributes["taxon_byteranges"].items():
             first_byte = byterange[0]
             last_byte = byterange[1]
             s3_file = byterange[2]
