@@ -54,12 +54,12 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # For now, we skip this using the option n=0 because
         # (a) sequences for the accession IDs actually matched by the sample are likely to be more relevant initially
         # (b) the downloads are slow.
-        _local_genbank_fastas = self.get_genbank_genomes(taxid, input_dir_for_ksnp3, 0)
+        self.get_genbank_genomes(taxid, input_dir_for_ksnp3, 0)
 
         # Retrieve NCBI NT references for the accessions in the alignment viz files.
         # These are the accessions (not necessarily full genomes) that were actually matched
         # by the sample's reads during GSNAP alignment.
-        _local_accession_fastas = self.get_accession_sequences(input_dir_for_ksnp3, 10)
+        self.get_accession_sequences(input_dir_for_ksnp3, 10)
 
         # Run MakeKSNP3infile.
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {self.output_dir_local}/inputs.txt A")
@@ -154,7 +154,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         accession2info = dict((acc, {}) for acc in accessions)
         nt_loc_dict = shelve.open(nt_loc_db.replace(".db", ""))
         PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_s3(
-            accession2info, nt_loc_dict, nt_db, True)
+            accession2info, nt_loc_dict, nt_db)
 
         # Put 1 fasta file per accession into the destination directory
         local_accession_fastas = []
