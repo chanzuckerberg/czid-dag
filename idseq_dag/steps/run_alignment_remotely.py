@@ -39,7 +39,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def run(self):
         ''' Run alignmment remotely '''
-        raise RuntimeError("this is an error in alignment")
         input_fas = self.get_input_fas()
         [output_m8, deduped_output_m8, output_hitsummary, output_counts_json] = self.output_files_local()
         service = self.additional_attributes["service"]
