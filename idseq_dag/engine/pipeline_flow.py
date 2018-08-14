@@ -224,6 +224,5 @@ class PipelineFlow(object):
                 for s in step_instances:
                     # notify the waiting step instances to self destruct
                     s.stop_waiting()
+                raise RuntimeError("An exception was thrown. Stage failed.")
         log.write("all steps are done")
-        # raise RuntimeError("this should throw an exception")
-
