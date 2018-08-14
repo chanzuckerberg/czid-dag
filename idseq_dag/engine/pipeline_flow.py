@@ -225,4 +225,5 @@ class PipelineFlow(object):
                     # notify the waiting step instances to self destruct
                     s.stop_waiting()
         log.write("all steps are done")
+        raise RuntimeError("this should throw an exception")
 
