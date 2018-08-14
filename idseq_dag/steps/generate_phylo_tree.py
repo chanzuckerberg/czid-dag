@@ -65,8 +65,14 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {self.output_dir_local}/inputs.txt A")
 
         # Now run ksnp3.
+        # We can choose among 4 different output files, see http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081760#s2:
+        # (1) tree.parsimony.tre: basic, includes no node labels
+        # (2) tree_AlleleCounts.parsimony.tre: labels the internal nodes with the number of SNPs that are shared exclusively by the descendants of that node
+        # (3) tree_tipAlleleCounts.parsimony.tre: same as (2), but also labels the strain names at the tips with the number of SNPs that are exclusive to that strain.
+        # (4) tree_AlleleCounts.parsimony.NodeLabel.tre: labels the internal nodes with the node number separated by an underscore from the number of SNPs that are
+        #     shared exclusively by the descendants of that node.
         command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
-        command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
+        command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree_tipAlleleCounts.parsimony.tre {output_files[0]}")
 
     def count_reads(self):
         pass
