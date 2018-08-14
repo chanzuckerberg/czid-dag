@@ -191,7 +191,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         for idx, local_file in enumerate(local_input_files):
             original_name = os.path.basename(local_file)
             original_base, original_extension = original_name.rsplit(".", 1)
-            cleaned_name = f"{PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(original_base)}.{original_extension}"
+            cleaned_name = f"{PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(original_base)}_.{original_extension}"
+            # HACK: added underscore before extension, because ksnp3 will add annotations at the end of the name
             truncated_name = f"{cleaned_name[:max_length]}---etc"
             if truncated_name in output_map.values():
                 output_map[local_file] = f"{truncated_name}-{idx}"
