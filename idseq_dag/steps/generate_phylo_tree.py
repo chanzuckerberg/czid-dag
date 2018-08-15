@@ -138,21 +138,25 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             if local_file != None:
                 local_align_viz_files.append(local_file)
 
-        # Choose accessions to process
+        # Choose accessions to process.
+        # align_viz files are a bit brittle, so we just log exceptions rather than failing the job.
         accessions = set()
         for local_file in local_align_viz_files:
-            with open(local_file, 'rb') as f:
-                align_viz_dict = json.load(f)
-            most_matched_accession = None
-            max_num_reads = 0
-            for acc, info in align_viz_dict.items():
-                num_reads = info["coverage_summary"]["num_reads"]
-                if num_reads > max_num_reads:
-                    max_num_reads = num_reads
-                    most_matched_accession = acc
-            accessions.add(most_matched_accession)
-            if len(accessions) >= n:
-                break
+            try:
+                with open(local_file, 'rb') as f:
+                    align_viz_dict = json.load(f)
+                most_matched_accession = None
+                max_num_reads = 0
+                for acc, info in align_viz_dict.items():
+                    num_reads = info["coverage_summary"]["num_reads"]
+                    if num_reads > max_num_reads:
+                        max_num_reads = num_reads
+                        most_matched_accession = acc
+                accessions.add(most_matched_accession)
+                if len(accessions) >= n:
+                    break
+            except:
+                log.write(f"Warning: couldn't get accession from {local_file}!")
         if len(accessions) > n:
             accessions = set(list(accessions)[0:n])
 
