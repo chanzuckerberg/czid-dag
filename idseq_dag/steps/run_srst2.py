@@ -19,7 +19,8 @@ class PipelineStepRunSRST2(PipelineStep):
         OUTPUT_FULL_GENES = 'output__fullgenes__ARGannot_r2__results.txt'
         isPaired = (len(self.input_files_local[0]) == 2)
         isFasta = (self.additional_attributes['file_type'] == 'fasta')
-        self.execute_srst2(isPaired, isFasta)
+        isZipped = (self.input_files_local[0][0][-3:] == '.gz')
+        self.execute_srst2(isPaired, isFasta, isZipped)
         log = os.path.join(self.output_dir_local, OUTPUT_LOG)
         log_dest = self.output_files_local()[0]
         results = os.path.join(self.output_dir_local, OUTPUT_GENES)
@@ -40,17 +41,16 @@ class PipelineStepRunSRST2(PipelineStep):
     def count_reads(self):
         pass
 
-    # TODO: Test with a sample Fasta file in dag.
-    def execute_srst2(self, isPaired, isFasta):
-        """Executes srst2 with appropriate parameters based on whether input files are paired reads
-           and on file type."""        
+    def execute_srst2(self, isPaired, isFasta, isZipped):
+        """Executes srst2 with appropriate parameters based on whether input files are zipped,
+           paired reads and on file type."""        
         srst2_params = ['srst2']
         srst2_params.extend(self.get_common_params())
         if isFasta: 
-            file_ext = '.fasta'
+            file_ext = '.fasta.gz' if isZipped else '.fasta'
             srst2_params.extend(['--read_type', 'f'])
         else: 
-            file_ext = '.fastq.gz'
+            file_ext = '.fastq.gz' if isZipped else '.fastq'
         if isPaired: srst2_params.extend(['--input_pe']) 
         else: srst2_params.extend(['--input_se'])
         for i, rd in enumerate(self.input_files_local[0]):
