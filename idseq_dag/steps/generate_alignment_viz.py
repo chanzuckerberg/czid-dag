@@ -353,7 +353,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         range_start, name_length, seq_len = entry
 
         accession_file = f'accession-{accession_id}'
-        num_retries = 10
+        num_retries = 3
         for attempt in range(num_retries):
             try:
                 range_file = f'range-{attempt}-accession-{accession_id}'
@@ -373,7 +373,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                 break
             except Exception as e:
                 if attempt + 1 < num_retries:  # Exponential backoff
-                    time.sleep(1.0 * (1.5**attempt))
+                    time.sleep(1.0 * (4**attempt))
                 else:
                     msg = f"All retries failed for getting sequence by accession ID {accession_id}: {e}"
                     raise RuntimeError(msg)
