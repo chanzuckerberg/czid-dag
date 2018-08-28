@@ -121,9 +121,10 @@ class ProgressFile(object):
         # TODO: Do something else here. Tail gets confused if the file
         # pre-exists. Also need to rate-limit.
         if self.progress_file:
-            self.tail_subproc = subprocess.Popen(
-                "touch {pf} ; tail -f {pf}".format(pf=self.progress_file),
-                shell=True)
+            with log.print_lock:
+                self.tail_subproc = subprocess.Popen(
+                    "touch {pf} ; tail -f {pf}".format(pf=self.progress_file),
+                    shell=True)
         return self
 
     def __exit__(self, *args):
@@ -168,8 +169,9 @@ def run_in_subprocess(target):
 
     @wraps(target)
     def wrapper(*args, **kwargs):
-        p = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
-        p.start()
+        with print_lock:
+            p = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
+            p.start()
         p.join()
         if p.exitcode != 0:
             raise RuntimeError("Failed {} on {}, {}".format(
@@ -229,17 +231,19 @@ def execute(command,
             if capture_stdout:
                 # Capture only stdout. Child stderr = parent stderr unless
                 # merge_stderr specified. Child input = parent stdin.
-                ct.proc = subprocess.Popen(
-                    command,
-                    shell=True,
-                    stdin=sys.stdin.fileno(),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT
-                    if merge_stderr else sys.stderr.fileno())
+                with log.print_lock:
+                    ct.proc = subprocess.Popen(
+                        command,
+                        shell=True,
+                        stdin=sys.stdin.fileno(),
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT
+                        if merge_stderr else sys.stderr.fileno())
                 stdout, _ = ct.proc.communicate()
             else:
                 # Capture nothing. Child inherits parent stdin/out/err.
-                ct.proc = subprocess.Popen(command, shell=True)
+                with log.print_lock:
+                    ct.proc = subprocess.Popen(command, shell=True)
                 ct.proc.wait()
                 stdout = None
 
