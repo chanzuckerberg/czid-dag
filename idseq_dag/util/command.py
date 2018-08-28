@@ -169,7 +169,7 @@ def run_in_subprocess(target):
 
     @wraps(target)
     def wrapper(*args, **kwargs):
-        with print_lock:
+        with log.print_lock:
             p = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
             p.start()
         p.join()
