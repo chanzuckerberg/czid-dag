@@ -35,6 +35,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 local_file = os.path.join(self.output_dir_local, local_basename)
                 s3.fetch_byterange(first_byte, last_byte, bucket, key, local_file)
                 partial_fasta_files.append(local_file)
+            full_taxon_fasta = f"{self.output_dir_local}/{pipeline_run_id}.fasta"
             PipelineStepGeneratePhyloTree.fasta_union(partial_fasta_files, full_taxon_fasta)
             local_taxon_fasta_files.append(full_taxon_fasta)
 
@@ -51,7 +52,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
         for local_file in local_taxon_fasta_files:
-            command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.baseame(local_file)}")
+            command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
 
         # Retrieve Genbank references (full assembled genomes).
         # For now, we skip this using the option n=0 because
@@ -215,6 +216,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         ''' Takes a list of fasta file paths and writes the union of the fasta records to full_fasta_file. '''
         if len(partial_fasta_files) == 1:
             command.execute(f"mv {partial_fasta_files[0]} full_fasta_file")
+            return
         # For now, just load the files into memory. They are relatively small and
         # the same approach is used in the web app to serve taxon fasta files.
         # TODO: consider changing it to a solution that requires less memory.
