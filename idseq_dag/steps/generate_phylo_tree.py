@@ -24,15 +24,19 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
         # Retrieve IDseq taxon fasta files
         local_taxon_fasta_files = []
-        for _pipeline_run_id, byterange in self.additional_attributes["taxon_byteranges"].items():
-            first_byte = byterange[0]
-            last_byte = byterange[1]
-            s3_file = byterange[2]
-            local_basename = byterange[3]
-            bucket, key = s3.split_identifiers(s3_file)
-            local_file = os.path.join(self.output_dir_local, local_basename)
-            s3.fetch_byterange(first_byte, last_byte, bucket, key, local_file)
-            local_taxon_fasta_files.append(local_file)
+        for pipeline_run_id, byterange_dict in self.additional_attributes["taxon_byteranges"].items():
+            partial_fasta_files = []
+            for hit_type, byterange in byterange_dict.items():
+                first_byte = byterange[0]
+                last_byte = byterange[1]
+                s3_file = byterange[2]
+                local_basename = f"{pipeline_run_id}_{hit_type}.fasta"
+                bucket, key = s3.split_identifiers(s3_file)
+                local_file = os.path.join(self.output_dir_local, local_basename)
+                s3.fetch_byterange(first_byte, last_byte, bucket, key, local_file)
+                partial_fasta_files.append(local_file)
+            PipelineStepGeneratePhyloTree.fasta_union(partial_fasta_files, full_taxon_fasta)
+            local_taxon_fasta_files.append(full_taxon_fasta)
 
         # Trim Illumina adapters
         # TODO: consider moving this to the beginning of the main pipeline
@@ -40,15 +44,14 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
         # knsp3 has a command (MakeKSNP3infile) for making a ksnp3-compatible input file from a directory of fasta files.
         # Before we can use the command, we symlink all fasta files to a dedicated directory.
-        # The command makes certain unreasonable assumptions we'll need to enforce:
+        # The command makes certain unreasonable assumptions:
         # - current directory is parent directory of the fasta file directory
         # - file names do not have dots except before extension (also no spaces)
         # - file names cannot be too long (for kSNP3 tree building).
-        genome_name_map = PipelineStepGeneratePhyloTree.clean_filename_collection(local_taxon_fasta_files)
         input_dir_for_ksnp3 = f"{self.output_dir_local}/inputs_for_ksnp3"
         command.execute(f"mkdir {input_dir_for_ksnp3}")
-        for local_file, genome_name in genome_name_map.items():
-            command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{genome_name}")
+        for local_file in local_taxon_fasta_files:
+            command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.baseame(local_file)}")
 
         # Retrieve Genbank references (full assembled genomes).
         # For now, we skip this using the option n=0 because
@@ -193,15 +196,33 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
     @staticmethod
     def clean_filename_collection(local_input_files, max_length = 50):
+        # No longer used. TODO: remove this method.
         output_map = {}
         for idx, local_file in enumerate(local_input_files):
             original_name = os.path.basename(local_file)
             original_base, original_extension = original_name.rsplit(".", 1)
-            cleaned_name = f"{PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(original_base)}_.{original_extension}"
-            # HACK: added underscore before extension, because ksnp3 will add annotations at the end of the name
-            truncated_name = f"{cleaned_name[:max_length]}---etc"
-            if truncated_name in output_map.values():
-                output_map[local_file] = f"{truncated_name}-{idx}"
+            cleaned_name = f"{PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(original_base)}.{original_extension}"
+            if len(cleaned_name) > max_length:
+                cleaned_name = f"{cleaned_name[:(max_length-6)]}---etc"
+            if cleaned_name in output_map.values():
+                output_map[local_file] = f"{cleaned_name}-{idx}"
             else:
-                output_map[local_file] = truncated_name
+                output_map[local_file] = cleaned_name
         return output_map
+
+    @staticmethod
+    def fasta_union(partial_fasta_files, full_fasta_file):
+        # For now, just load the files into memory. They are relatively small and
+        # the same approach is used in the web app to serve taxon fasta files.
+        # TODO: consider changing it to a solution that requires less memory.
+        full_fasta = set()
+        for fasta_file in partial_fasta_files:
+            with open(fasta_file, 'r') as f:
+                fasta = set(f.read().split(">"))
+            full_fasta.update(fasta)
+        full_fasta.discard('')
+        with open(full_fasta_file, 'w') as f:
+            f.write('>' + '>'.join(full_fasta))
+            
+
+
