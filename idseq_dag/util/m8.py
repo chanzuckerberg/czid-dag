@@ -174,6 +174,7 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
         for level, taxid_at_level in enumerate(lineage_taxids):
             if taxid_at_level in blacklist_taxids:
                 blacklisted = True
+                break
             if int(taxid_at_level) < 0:
                 # Skip if we have a negative taxid. When an accession doesn't
                 # provide species level info, it doesn't contradict any info
@@ -184,6 +185,7 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
         return blacklisted
 
     def call_hit_level(hits, blacklisted = False):
+        ''' Call hit if read not blacklisted and only one taxid at level '''
         if not blacklisted:
             for level, hits_at_level in enumerate(hits):
                 if len(hits_at_level) == 1:
