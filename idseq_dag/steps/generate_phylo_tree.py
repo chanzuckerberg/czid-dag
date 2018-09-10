@@ -220,7 +220,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     def fasta_union(partial_fasta_files, full_fasta_file):
         ''' Takes a list of fasta file paths and writes the union of the fasta records to full_fasta_file. '''
         if len(partial_fasta_files) == 1:
-            command.execute(f"mv {partial_fasta_files[0]} full_fasta_file")
+            command.execute(f"ln -s {partial_fasta_files[0]} {full_fasta_file}")
             return
         # For now, just load the files into memory. They are relatively small and
         # the same approach is used in the web app to serve taxon fasta files.
