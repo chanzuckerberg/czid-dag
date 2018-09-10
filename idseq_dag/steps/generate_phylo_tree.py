@@ -77,8 +77,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # (3) tree_tipAlleleCounts.parsimony.tre: same as (2), but also labels the strain names at the tips with the number of SNPs that are exclusive to that strain.
         # (4) tree_AlleleCounts.parsimony.NodeLabel.tre: labels the internal nodes with the node number separated by an underscore from the number of SNPs that are
         #     shared exclusively by the descendants of that node.
+        # Note: for integration with idseq-web, the node names need to be the pipeline_run_ids. So if we wanted to use outputs (2)/(3)/(4),
+        # we would need to parse the appended information out from the newick node names and put it in a separate data structure.
         command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
-        command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree_tipAlleleCounts.parsimony.tre {output_files[0]}")
+        command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
 
     def count_reads(self):
         pass
