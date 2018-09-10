@@ -8,6 +8,7 @@ from idseq_dag.steps.generate_alignment_viz import PipelineStepGenerateAlignment
 import idseq_dag.util.command as command
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.log as log
+import idseq_dag.util.count as count
 
 class PipelineStepGeneratePhyloTree(PipelineStep):
     ''' 
