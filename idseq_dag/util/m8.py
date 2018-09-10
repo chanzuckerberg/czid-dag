@@ -8,6 +8,7 @@ import threading
 import traceback
 import multiprocessing
 from collections import defaultdict
+from collections import Counter
 
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
@@ -181,16 +182,44 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
                 # provided by other accessions. This occurs a lot and
                 # handling it in this way seems to work well.
                 continue
-            hits[level][taxid_at_level] = accession_id
+            accession_list = hits[level].get(taxid_at_level, []) + [accession_id]
+            hits[level][taxid_at_level] = accession_list
         return blacklisted
+
+    def most_frequent_accession(accession_list):
+        counts = Counter(accession_list)
+        return counts.most_common(1)[0][0]
+
 
     def call_hit_level(hits, blacklisted = False):
         ''' Call hit if read not blacklisted and only one taxid at level '''
         if not blacklisted:
             for level, hits_at_level in enumerate(hits):
                 if len(hits_at_level) == 1:
-                    taxid, accession_id = hits_at_level.popitem()
+                    taxid, accession_list = hits_at_level.popitem()
+                    accession_id = most_frequent_accession(accession_list)
                     return level + 1, taxid, accession_id
+        return -1, "-1", None
+
+    def call_hit_level_v2(hits, blacklisted = False):
+        ''' Always call hit at the species level with the taxid with most matches '''
+        if not blacklisted:
+            species_level_hits = hits[0]
+            max_match = 0
+            taxid_candidates = []
+            for taxid, accession_list in species_level_hits.items():
+                accession_len = len(accession_list)
+                if accession_len > max_match:
+                    taxid_candidates = [taxid]
+                    max_match = accession_len
+                elif accession_len == max_match:
+                    taxid_candidates.append(taxid)
+            if max_match > 0:
+                selected_taxid = taxid_candidates[0]
+                if len(taxid_candidates) > 1:
+                    selected_taxid = random.sample(taxid_candidates, 1)[0]
+                accession_id = most_frequent_accession(species_level_hits[selected_taxid])
+                return 1, selected_taxid, accession_id
         return -1, "-1", None
 
     # Read input_m8 and group hits by read id
@@ -220,7 +249,7 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
                 blacklisted = accumulate(hits, accession_id)
                 if blacklisted:
                     break
-        summary[read_id] = my_best_evalue, call_hit_level(hits, blacklisted)
+        summary[read_id] = my_best_evalue, call_hit_level_v2(hits, blacklisted)
         count += 1
         if count % LOG_INCREMENT == 0:
             msg = "Summarized hits for {} read ids from {}, and counting.".format(
