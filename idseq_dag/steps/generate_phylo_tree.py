@@ -38,6 +38,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             full_taxon_fasta = f"{self.output_dir_local}/{pipeline_run_id}.fasta"
             PipelineStepGeneratePhyloTree.fasta_union(partial_fasta_files, full_taxon_fasta)
             local_taxon_fasta_files.append(full_taxon_fasta)
+            for fasta in partial_fasta_files + [full_taxon_fasta]:
+                print(f"{count.reads(fasta)} reads in {fasta}")
 
         # Trim Illumina adapters
         # TODO: consider moving this to the beginning of the main pipeline
