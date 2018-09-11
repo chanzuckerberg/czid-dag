@@ -63,15 +63,23 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # (b) the downloads are slow
         # (c) the function only supports species-level taxids. If the phylo_tree's taxid in idseq-web is genus-level or higher,
         #     then we will need to decide on a list of species/strains to be included in the tree and pass those to the function.
-        self.get_genbank_genomes(taxid, input_dir_for_ksnp3, 0)
+        local_genbank_fastas = self.get_genbank_genomes(taxid, input_dir_for_ksnp3, 0)
 
         # Retrieve NCBI NT references for the accessions in the alignment viz files.
         # These are the accessions (not necessarily full genomes) that were actually matched
         # by the sample's reads during GSNAP alignment.
-        self.get_accession_sequences(input_dir_for_ksnp3, 10)
+        local_accession_fastas = self.get_accession_sequences(input_dir_for_ksnp3, 10)
 
         # Run MakeKSNP3infile.
-        command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {self.output_dir_local}/inputs.txt A")
+        ksnp3_input_file = f"{self.output_dir_local}/inputs.txt"
+        command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {ksnp3_input_file} A")
+
+        # Specify which genomes should be used for annotation.
+        # Here, we use the accession fasta files.
+        cmd = "grep"
+        for path in local_accession_fastas:
+            cmd += f" -e {path}"
+        cmd += " | cut -f2 > {self.output_dir_local}/annotated_genomes"
 
         # Now run ksnp3.
         # We can choose among 4 different output files, see http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081760#s2:
@@ -82,8 +90,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         #     shared exclusively by the descendants of that node.
         # Note: for integration with idseq-web, the node names need to be the pipeline_run_ids. So if we wanted to use outputs (2)/(3)/(4),
         # we would need to parse the appended information out from the newick node names and put it in a separate data structure.
-        command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
+        command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
+                        f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13 -annotate annotated_genomes")
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
+        command.execute(f"mv  {self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated {output_files[1]}")
 
     def count_reads(self):
         pass
