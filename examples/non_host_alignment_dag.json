@@ -82,7 +82,7 @@
     },
     {
       "in": ["gsnap_out"],
-      "out": ["refined_gsnap_out"],
+      "out": "refined_gsnap_out",
       "class": "PipelineStepReclassifyReads",
       "module": "idseq_dag.steps.reclassify_reads", 
       "additional_files": { 
@@ -96,7 +96,7 @@
     },
     {
       "in": ["rapsearch2_out"],
-      "out": ["refined_rapsearch2_out"],
+      "out": "refined_rapsearch2_out",
       "class": "PipelineStepReclassifyReads",
       "module": "idseq_dag.steps.reclassify_reads", 
       "additional_files": { 
