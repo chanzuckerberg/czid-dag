@@ -73,11 +73,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {ksnp3_input_file} A")
 
         # Specify which genomes should be used for annotation.
+        # Specify the names of the genomes that should be used for annotation.
         # Here, we use the full genomes from genbank.
-        cmd = "grep"
-        for path in local_genbank_fastas:
-            cmd += f" -e {path}"
-        cmd += " | cut -f2 > {self.output_dir_local}/annotated_genomes"
+        grep_options = " ".join([f"-e '{path}'" for path in local_genbank_fastas])
+        command.execute(f"grep {grep_options} {ksnp3_input_file} | cut -f2 > {self.output_dir_local}/annotated_genomes")
 
         # Now run ksnp3.
         # We can choose among 4 different output files, see http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081760#s2:
