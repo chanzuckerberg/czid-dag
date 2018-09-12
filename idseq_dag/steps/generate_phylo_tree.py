@@ -22,6 +22,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     def run(self):
         output_files = self.output_files_local()
         taxid = self.additional_attributes["taxid"]
+        reference_taxids = self.additional_attributes["reference_taxids"] # these must be species-level or below (full genomes to retrieve from genbank)
+        superkingdom_name = self.additional_attributes.get("superkingdom_name") # optional
 
         # Retrieve IDseq taxon fasta files
         local_taxon_fasta_files = []
@@ -58,26 +60,22 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
 
         # Retrieve Genbank references (full assembled genomes).
-        # For now, we skip this using the option n=0 because
-        # (a) sequences for the accession IDs actually matched by the sample are likely to be more relevant initially
-        # (b) the downloads are slow
-        # (c) the function only supports species-level taxids. If the phylo_tree's taxid in idseq-web is genus-level or higher,
-        #     then we will need to decide on a list of species/strains to be included in the tree and pass those to the function.
-        local_genbank_fastas = self.get_genbank_genomes(taxid, input_dir_for_ksnp3, 0)
+        # TODO: see if we can speed this up by mirroring genbank in our s3 ncbi-store
+        local_genbank_fastas = self.get_genbank_genomes(reference_taxids, input_dir_for_ksnp3, superkingdom_name, 1)
 
         # Retrieve NCBI NT references for the accessions in the alignment viz files.
         # These are the accessions (not necessarily full genomes) that were actually matched
         # by the sample's reads during GSNAP alignment.
-        local_accession_fastas = self.get_accession_sequences(input_dir_for_ksnp3, 10)
+        local_accession_fastas = self.get_accession_sequences(input_dir_for_ksnp3, 0)
 
         # Run MakeKSNP3infile.
         ksnp3_input_file = f"{self.output_dir_local}/inputs.txt"
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {ksnp3_input_file} A")
 
         # Specify which genomes should be used for annotation.
-        # Here, we use the accession fasta files.
+        # Here, we use the full genomes from genbank.
         cmd = "grep"
-        for path in local_accession_fastas:
+        for path in local_genbank_fastas:
             cmd += f" -e {path}"
         cmd += " | cut -f2 > {self.output_dir_local}/annotated_genomes"
 
@@ -102,27 +100,39 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     def count_reads(self):
         pass
 
-    def get_genbank_genomes(self, taxid, destination_dir, n=10):
+    def get_genbank_genomes(self, reference_taxids, destination_dir, superkingdom_name=None, n=10):
         '''
-        Retrieve up to n GenBank reference genomes under taxid.
-        Assumes taxid is species-level.
+        Retrieve up to n GenBank reference genomes under the reference_taxids.
+        Assumes reference_taxids are species-level or below.
+        Also assumes they are all in the same superkingdom, which is the only thing we need in our application.
         Saves the references under file names compatible with MakeKSNP3infile.
         '''
         if n == 0:
             return []
-        categories = ["bacteria", "viral", "fungi", "protozoa"]
-        # additional options in genbank that probably don't need right now:
+        n_per_taxid = max(n // len(reference_taxids), 1)
+        genbank_categories_by_superkingdom = {
+            "Viruses": ["viral"],
+            "Bacteria": ["bacteria"],
+            "Eukaryota": ["fungi", "protozoa"],
+            None: ["bacteria", "viral", "fungi", "protozoa"]
+        }
+        # additional options in genbank that we probably don't need right now:
         # ["archaea", "plant", 
         # "vertebrate_mammalian", "vertebrate_other", "invertebrate",
         # "other", "metagenomes"]
+        categories = genbank_categories_by_superkingdom[superkingdom_name]
         for cat in categories:
             genome_list_path = f"ftp://ftp.ncbi.nih.gov/genomes/genbank/{cat}/assembly_summary.txt"
             genome_list_local = f"{destination_dir}/{os.path.basename(genome_list_path)}"
-            cmd = f"wget -O {genome_list_local} {genome_list_path}; "
-            cmd += f"cut -f6,7,8,20 {genome_list_local}" # columns: 6 = taxid; 7 = species_taxid, 8 = organism name, 20 = ftp_path
-            cmd += f" | grep -P '\\t{taxid}\\t'" # try to find taxid in the species_taxids
-            cmd += f" | head -n {n} | cut -f1,3,4" # take only top n results, keep name and ftp_path
-            genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
+            command.execute(f"wget -O {genome_list_local} {genome_list_path}")
+            genomes = []
+            for taxid in reference_taxids:
+                cmd = f"cut -f6,7,8,20 {genome_list_local}" # columns: 6 = taxid; 7 = species_taxid, 8 = organism name, 20 = ftp_path
+                cmd += f" | grep -P '^{taxid}\\t'" # try to find taxid in the taxids (first column of the piped input)
+                cmd += f" | head -n {n_per_taxid} | cut -f1,3,4" # take only top n_per_taxid results, keep name and ftp_path
+                taxid_genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
+                genomes += [entry for entry in taxid_genomes if entry not in genomes]
+            genomes = genomes[:n]
             command.execute_with_output(f"rm {genome_list_local}")
             if genomes:
                 local_genbank_fastas = []
