@@ -36,6 +36,13 @@
       "rapsearch2.hitsummary2.tab",
       "refined_rapsearch2_counts.json"
     ],
+    "refined_rapsearch2_out": [
+      "rapsearch2.blast.m8",
+      "rapsearch2.reassigned.m8",
+      "rapsearch2.hitsummary2.tab",
+      "refined_rapsearch2_counts.json",
+      "rapsearch2_genus_accession_list.tab"
+    ],
     "taxon_count_out": ["taxon_counts.json"],
     "annotated_out": ["annotated_merged.fa", "unidentified.fa"]
   },
@@ -82,7 +89,7 @@
     },
     {
       "in": ["gsnap_out"],
-      "out": ["refined_gsnap_out"],
+      "out": "refined_gsnap_out",
       "class": "PipelineStepReclassifyReads",
       "module": "idseq_dag.steps.reclassify_reads", 
       "additional_files": { 
@@ -96,7 +103,7 @@
     },
     {
       "in": ["rapsearch2_out"],
-      "out": ["refined_rapsearch2_out"],
+      "out": "refined_rapsearch2_out",
       "class": "PipelineStepReclassifyReads",
       "module": "idseq_dag.steps.reclassify_reads", 
       "additional_files": { 
