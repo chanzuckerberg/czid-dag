@@ -93,7 +93,11 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
                         f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13 -annotate annotated_genomes")
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
-        command.execute(f"mv  {self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated {output_files[1]}")
+        try:
+            command.execute(f"mv  {self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated {output_files[1]}")
+        except:
+            # HACK because web still makes the old DAG. Remove after new DAG is deployed.
+            command.execute(f"aws s3 cp {self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated {os.path.join(self.output_dir_s3, 'SNP_annotations.txt')}")
 
     def count_reads(self):
         pass
