@@ -192,7 +192,7 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
 
 
     def call_hit_level(hits, blacklisted = False):
-        ''' Call hit if read not blacklisted and only one taxid at level '''
+        ''' TO BE DEPRECATED: Call hit if read not blacklisted and only one taxid at level '''
         if not blacklisted:
             for level, hits_at_level in enumerate(hits):
                 if len(hits_at_level) == 1:
@@ -291,8 +291,14 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
                     # most specific taxonomy information.
                     emitted.add(read_id)
                     outf.write(line)
-                    msg = "{read_id}\t{hit_level}\t{taxid}\n".format(
-                        read_id=read_id, hit_level=hit_level, taxid=taxid)
+                    species_taxid = -1
+                    genus_taxid = -1
+                    family_taxid = -1
+                    if best_accession_id != None:
+                        (species_taxid, genus_taxid, family_taxid) = get_lineage(best_accession_id)
+
+                    msg = f"{read_id}\t{hit_level}\t{taxid}\t{best_accession_id}"
+                    msg += f"\t{species_taxid}\t{genus_taxid}\t{family_taxid}\n"
                     outf_sum.write(msg)
 
 @command.run_in_subprocess
