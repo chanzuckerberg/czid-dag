@@ -22,8 +22,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     def run(self):
         output_files = self.output_files_local()
         taxid = self.additional_attributes["taxid"]
-        reference_taxids = self.additional_attributes["reference_taxids"] # these must be species-level or below (full genomes to retrieve from genbank)
-        superkingdom_name = self.additional_attributes.get("superkingdom_name") # optional
+        reference_taxids = self.additional_attributes.get("reference_taxids")
+        superkingdom_name = self.additional_attributes.get("superkingdom_name")
 
         # Retrieve IDseq taxon fasta files
         local_taxon_fasta_files = []
@@ -99,14 +99,14 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     def count_reads(self):
         pass
 
-    def get_genbank_genomes(self, reference_taxids, destination_dir, superkingdom_name=None, n=10):
+    def get_genbank_genomes(self, reference_taxids, destination_dir, superkingdom_name, n=10):
         '''
         Retrieve up to n GenBank reference genomes under the reference_taxids.
         Assumes reference_taxids are species-level or below.
         Also assumes they are all in the same superkingdom, which is the only thing we need in our application.
         Saves the references under file names compatible with MakeKSNP3infile.
         '''
-        if n == 0:
+        if n == 0 or not reference_taxids:
             return []
         n_per_taxid = max(n // len(reference_taxids), 1)
         genbank_categories_by_superkingdom = {
