@@ -94,13 +94,19 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                     f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
         if os.path.isfile(annotated_genome_input):
             ksnp_cmd += f" -annotate {os.path.basename(annotated_genome_input)}"
+            # Note: produces SNP annotation file in a human-readable format that's very space inefficient (~100 MB).
+            # May want to do some postprocessing once we know better what exactly we need for the web app.
         command.execute(ksnp_cmd)
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
-        try:
-            command.execute(f"mv  {self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated {output_files[1]}")
-        except:
-            # HACK because web still makes the old DAG. Remove after new DAG is deployed.
-            command.execute(f"aws s3 cp {self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated {os.path.join(self.output_dir_s3, 'SNP_annotations.txt')}")
+        annotation_output = f"{self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated"
+        if os.path.isfile(annotation_output):
+            try:
+                command.execute(f"mv  {self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated {output_files[1]}")
+            except:
+                # HACK because web still makes the old DAG. Remove after new DAG is deployed.
+                command.execute(f"aws s3 cp {self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated {os.path.join(self.output_dir_s3, 'SNP_annotations.txt')}")
+        else:
+            log.write(f"Warning: no SNP annotation file was produced!")
 
     def count_reads(self):
         pass
