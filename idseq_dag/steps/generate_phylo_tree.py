@@ -89,8 +89,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         #     shared exclusively by the descendants of that node.
         # Note: for integration with idseq-web, the node names need to be the pipeline_run_ids. So if we wanted to use outputs (2)/(3)/(4),
         # we would need to parse the appended information out from the newick node names and put it in a separate data structure.
-        ksnp_cmd = f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
-                   f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13"
+        ksnp_cmd = (f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
+                    f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
         if os.path.isfile(annotated_genome_list):
             ksnp_cmd += " -annotate {os.path.basename(annotated_genome_input)}"
         command.execute(ksnp_cmd)
