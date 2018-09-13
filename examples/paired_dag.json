@@ -156,7 +156,7 @@
       "additional_attributes": { "output_sam_file": "gsnap_filter.sam" }
     },
     {
-      "in": ["gsnap_out"],
+      "in": ["gsnap_out", "gsnap_filter_out"],
       "out": "refined_gsnap_out",
       "class": "PipelineStepReclassifyReads",
       "module": "idseq_dag.steps.reclassify_reads", 
@@ -170,7 +170,7 @@
       }
     },
     {
-      "in": ["rapsearch2_out"],
+      "in": ["rapsearch2_out", "gsnap_filter_out"],
       "out": "refined_rapsearch2_out",
       "class": "PipelineStepReclassifyReads",
       "module": "idseq_dag.steps.reclassify_reads", 
