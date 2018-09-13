@@ -75,8 +75,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Specify which genomes should be used for annotation.
         # Specify the names of the genomes that should be used for annotation.
         # Here, we use the full genomes from genbank.
-        grep_options = " ".join([f"-e '{path}'" for path in local_genbank_fastas])
-        command.execute(f"grep {grep_options} {ksnp3_input_file} | cut -f2 > {self.output_dir_local}/annotated_genomes")
+        annotated_genome_input = f"{self.output_dir_local}/annotated_genomes"
+        if local_genbank_fastas:
+            grep_options = " ".join([f"-e '{path}'" for path in local_genbank_fastas])
+            command.execute(f"grep {grep_options} {ksnp3_input_file} | cut -f2 > {annotated_genome_input}")
 
         # Now run ksnp3.
         # We can choose among 4 different output files, see http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081760#s2:
@@ -87,8 +89,11 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         #     shared exclusively by the descendants of that node.
         # Note: for integration with idseq-web, the node names need to be the pipeline_run_ids. So if we wanted to use outputs (2)/(3)/(4),
         # we would need to parse the appended information out from the newick node names and put it in a separate data structure.
-        command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
-                        f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13 -annotate annotated_genomes")
+        ksnp_cmd = f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
+                   f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13"
+        if os.path.isfile(annotated_genome_list):
+            ksnp_cmd += " -annotate {os.path.basename(annotated_genome_input)}"
+        command.execute(ksnp_cmd)
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
         try:
             command.execute(f"mv  {self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated {output_files[1]}")
