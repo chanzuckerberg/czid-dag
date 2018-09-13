@@ -92,7 +92,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         ksnp_cmd = (f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
                     f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
         if os.path.isfile(annotated_genome_input):
-            ksnp_cmd += " -annotate {os.path.basename(annotated_genome_input)}"
+            ksnp_cmd += f" -annotate {os.path.basename(annotated_genome_input)}"
         command.execute(ksnp_cmd)
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
         try:
