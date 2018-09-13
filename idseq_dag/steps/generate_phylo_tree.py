@@ -91,7 +91,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # we would need to parse the appended information out from the newick node names and put it in a separate data structure.
         ksnp_cmd = (f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
                     f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
-        if os.path.isfile(annotated_genome_list):
+        if os.path.isfile(annotated_genome_input):
             ksnp_cmd += " -annotate {os.path.basename(annotated_genome_input)}"
         command.execute(ksnp_cmd)
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
