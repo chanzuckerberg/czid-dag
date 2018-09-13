@@ -2,6 +2,7 @@
 import os
 import json
 import shelve
+import traceback
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.steps.generate_alignment_viz import PipelineStepGenerateAlignmentViz
@@ -196,6 +197,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                     break
             except:
                 log.write(f"Warning: couldn't get accession from {local_file}!")
+                traceback.print_exc()
         if len(accessions) > n:
             accessions = set(list(accessions)[0:n])
 
