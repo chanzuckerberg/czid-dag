@@ -22,7 +22,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     def run(self):
         output_files = self.output_files_local()
         taxid = self.additional_attributes["taxid"]
-        reference_taxids = self.additional_attributes.get("reference_taxids")
+        reference_taxids = self.additional_attributes.get("reference_taxids", [taxid]) # Note: will only produce a result if species-level or below
         superkingdom_name = self.additional_attributes.get("superkingdom_name")
 
         # Retrieve IDseq taxon fasta files
