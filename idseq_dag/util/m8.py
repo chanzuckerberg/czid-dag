@@ -43,6 +43,7 @@ def iterate_m8(m8_file, debug_caller=None, logging_interval=25000000):
             percent_id = float(parts[2])
             alignment_length = int(parts[3])
             e_value = float(parts[10])
+            bitscore = float(parts[11])
 
             # GSNAP outputs bogus alignments (non-positive length /
             # impossible percent identity / NaN e-value) sometimes,
@@ -62,7 +63,7 @@ def iterate_m8(m8_file, debug_caller=None, logging_interval=25000000):
                     line_count, m8_file, debug_caller)
                 log.write(msg)
             yield (read_id, accession_id, percent_id, alignment_length,
-                   e_value, line)
+                   e_value, bitscore, line)
 
     # Warn about any invalid hits outputted by GSNAP
     if invalid_hits:
@@ -224,7 +225,7 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
 
     # Read input_m8 and group hits by read id
     m8 = defaultdict(list)
-    for read_id, accession_id, _percent_id, _alignment_length, e_value, _line in iterate_m8(
+    for read_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, _line in iterate_m8(
             input_m8, "call_hits_m8_initial_scan"):
         m8[read_id].append((accession_id, e_value))
 
@@ -277,7 +278,7 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
             # TODO: Consider all hits within a fixed margin of the best e-value.
             # This change may need to be accompanied by a change to
             # GSNAP/RAPSearch parameters.
-            for read_id, accession_id, _percent_id, _alignment_length, e_value, line in iterate_m8(
+            for read_id, accession_id, _percent_id, _alignment_length, e_value, bitscore, line in iterate_m8(
                     input_m8, "call_hits_m8_emit_deduped_and_summarized_hits"):
                 if read_id in emitted:
                     continue

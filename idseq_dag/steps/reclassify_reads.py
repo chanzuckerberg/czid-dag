@@ -39,6 +39,10 @@ class PipelineStepReclassifyReads(PipelineStep):
             allow_s3mi=True)
         db_s3_path = self.additional_attributes["db"]
         db_type = self.additional_attributes["db_type"]
+        lineage_db = s3.fetch_from_s3(
+            self.additional_files["lineage_db"],
+            self.ref_dir_local,
+            allow_s3mi=True)
 
         # Start a non-blocking function for download ref sequences
         genus_references = {}
@@ -51,7 +55,46 @@ class PipelineStepReclassifyReads(PipelineStep):
         download_thread.join()
 
         genus_blast_m8 = self.blast_all(genus_assembled_contig, genus_references, db_type)
-        consolidated_dict = self.consolidate_all_results(deduped_m8, genus_blast_m8, read_dict)
+        (consolidated_dict, read2blastm8)  = self.consolidate_all_results(genus_assembled_contig,
+                                                                          genus_blast_m8,
+                                                                          read_dict,
+                                                                          accession_dict)
+
+        # output the results
+        self.output_genus_accession_file(selected_genera, genus_to_accession_list)
+        self.output_blast_m8_file(genus_blast_m8, blast_m8)
+        self.generate_m8_and_hit_summary(consolidated_dict, read2blastm8,
+                                         hit_summary, deduped_m8,
+                                         refined_hit_summary, refined_m8)
+        deuterostome_db = None
+        evalue_type = 'log10' if db_type == 'nr' else 'raw'
+        m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
+                                             evalue_type, db_type.upper(),
+                                             lineage_db, deuterostome_db, refined_counts)
+        # additional files to upload
+        # assembled contigs. bowtie2.sam, blast.m8, top_blast.m8 for read to contig mapping
+
+    @staticmethod
+    def consolidate_all_results(genus_assembled_contig, genus_blast_m8, read_dict, accession_dict):
+        consolidated_dict = read_dict
+        read2blastm8 = {}
+        for genus_taxid, assembled in genus_assembled_contig.items():
+            read2contig = assembled[2]
+            blast_top_m8 = genus_blast_m8.get(genus_taxid, (None, None))[1]
+            if read2contig and blast_top_m8:
+                contig2accession = {}
+                for contig_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in iterate_m8(blast_top_m8):
+                    contig2accession[contig_id] = (accession_id, line)
+                for read_id, contig_id in read2contig.items():
+                    (accession, m8_line) = contig2accession.get(contig_id, (None, None))
+                    if accession:
+                        (species_taxid, genus_taxid) = accession_dict[accession]
+                        consolidated_dict[read_id] += [f"{genus_taxid}:{contig_id}", accession, species_taxid, genus_taxid]
+                        consolidated_dict[read_id][2] = species_taxid
+                    if m8_line:
+                        read2blastm8[read_id] = m8_line
+        return (consolidated_dict, read2blastm8)
+
 
     @staticmethod
     def blast_all(genus_assembled_contig, genus_references, db_type):
@@ -73,11 +116,31 @@ class PipelineStepReclassifyReads(PipelineStep):
                 command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path}")
                 # blast the contig to the blast index
                 output_m8 = os.path.join(genus_dir, 'blast.m8')
+                top_entry_m8 = os.path.join(genus_dir, 'blast_top.m8')
                 command.execute(f"{blast_command} -query {contig} -db {blast_index_path} -out {output_m8} -outfmt 6 -num_alignments 5 -num_threads 32")
-                genus_blast_m8[genus_taxid] = output_m8
                 # further processing of getting the top m8 entry for each contig.
-                # infer from read -> contig -> accession
+                PipelineStepReclassifyReads.get_top_m8(output_m8, top_entry_m8)
+                genus_blast_m8[genus_taxid] = (output_m8, top_entry_m8)
         return genus_blast_m8
+
+    @staticmethod get_top_m8(orig_m8, top_entry_m8):
+        with open(top_entry_m8, 'w') as top_m8f:
+            top_line = None
+            top_bitscore = 0
+            current_read_id = None
+            for read_id, _accession_id, _percent_id, _alignment_length, e_value, bitscore, line in iterate_m8(orig_m8):
+                # Get the top entry of each read_id based on the bitscore
+                if read_id != current_read_id:
+                    # Different batch start
+                    if current_read_id: # Not the first line
+                        top_m8f.write(top_line)
+                    current_read_id = read_id
+                    top_line = line
+                    top_bitscore = bitscore
+                elif bitscore > top_bitscore:
+                    top_bitscore = bitscore
+                    top_line = line
+            top_m8f.write(top_line)
 
 
     @staticmethod
