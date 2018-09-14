@@ -61,7 +61,6 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
 
         # Retrieve Genbank references (full assembled genomes).
-        # TODO: see if we can speed this up by mirroring genbank in our s3 ncbi-store
         local_genbank_fastas = self.get_genbank_genomes(reference_taxids, input_dir_for_ksnp3, superkingdom_name, 1)
 
         # Retrieve NCBI NT references for the accessions in the alignment viz files.
@@ -109,6 +108,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         Assumes reference_taxids are species-level or below.
         Also assumes they are all in the same superkingdom, which is the only thing we need in our application.
         Saves the references under file names compatible with MakeKSNP3infile.
+        TODO: Retrieve the genomes from S3 rather than ftp.ncbi.nih.gov (JIRA/IDSEQ-334).
         '''
         if n == 0 or not reference_taxids:
             return []
@@ -125,9 +125,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # "other", "metagenomes"]
         categories = genbank_categories_by_superkingdom[superkingdom_name]
         for cat in categories:
-            genome_list_path = f"ftp://ftp.ncbi.nih.gov/genomes/genbank/{cat}/assembly_summary.txt"
-            genome_list_local = f"{destination_dir}/{os.path.basename(genome_list_path)}"
-            command.execute(f"wget -O {genome_list_local} {genome_list_path}")
+            genome_list_path_s3 = f"s3://idseq-database/genbank/{cat}/assembly_summary.txt" # source: ftp://ftp.ncbi.nih.gov/genomes/genbank/{cat}/assembly_summary.txt
+            genome_list_local = s3.fetch_from_s3(genome_list_path_s3, destination_dir)
             genomes = []
             for taxid in reference_taxids:
                 cmd = f"cut -f6,7,8,20 {genome_list_local}" # columns: 6 = taxid; 7 = species_taxid, 8 = organism name, 20 = ftp_path
