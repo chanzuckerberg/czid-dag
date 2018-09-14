@@ -3,6 +3,7 @@ import os
 import json
 import shelve
 import traceback
+import xml.etree.ElementTree as ET
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.steps.generate_alignment_viz import PipelineStepGenerateAlignmentViz
@@ -66,7 +67,17 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Retrieve NCBI NT references for the accessions in the alignment viz files.
         # These are the accessions (not necessarily full genomes) that were actually matched
         # by the sample's reads during GSNAP alignment.
-        local_accession_fastas = self.get_accession_sequences(input_dir_for_ksnp3, 10)
+        # Also retrieve their associated metadata like name, country, collection date
+        accession_list, local_accession_fastas = self.get_accession_sequences(input_dir_for_ksnp3, 10)
+        metadata_by_accession = {}
+        for acc in accession_list:
+            metadata_by_accession[acc] = self.get_accession_metadata(accession)
+        NCBI_metadata_output = f"{self.output_dir_local}/NCBI_metadata.json"
+        with open(NCBI_metadata_output, 'w') as f:
+            json.dump(metadata_by_accession, f)
+        # TODO: get the result as a dict of tree_node_name:accession_metadata instead
+        # TODO: also add the metadata of the genbank references below
+        self.additional_files_to_upload.append(NCBI_metadata_output)
 
         # Run MakeKSNP3infile.
         ksnp3_input_file = f"{self.output_dir_local}/inputs.txt"
@@ -205,16 +216,47 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             accession2info, nt_loc_dict, nt_db)
 
         # Put 1 fasta file per accession into the destination directory
-        local_accession_fastas = []
+        accession_fastas = {}
         for acc, info in accession2info.items():
             clean_accession = PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(acc)
             local_fasta = f"{dest_dir}/NCBI_NT_accession_{clean_accession}"
             command.execute(f"ln -s {info['seq_file']} {local_fasta}")
             command.execute(f"echo '>{clean_accession}' | cat - {local_fasta} > temp_file && mv temp_file {local_fasta}")
-            local_accession_fastas += local_fasta
+            accession_fastas[acc] = local_fasta
 
-        # Return paths of the new fasta files
-        return local_accession_fastas
+        # Return kept accessions and paths of their fasta files
+        accessions = list(accession_fastas.keys())
+        fastas = list(accession_fastas.values())
+        return accessions, fastas
+
+    @staticmethod
+    def get_accession_metadata(accession):
+        '''
+        Retrieve metadata of an NCBI accession (e.g. name, country, collection date)
+        TODO: Mirror the database in S3 for robustness and availability.
+        '''
+        efetch_command = ";".join([
+            f"QUERY={accession}",
+            "BASE=https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+            "SEARCH_URL=${BASE}/esearch.fcgi?db=nuccore\&term=${QUERY}\&usehistory=y",
+            "OUTPUT=$(curl $SEARCH_URL)",
+            "WEB=$(echo $OUTPUT | sed -e 's/.*<WebEnv>\(.*\)<\/WebEnv>.*/\1/')",
+            "KEY=$(echo $OUTPUT | sed -e 's/.*<QueryKey>\(.*\)<\/QueryKey>.*/\1/')",
+            "FETCH_URL=${BASE}/efetch.fcgi?db=nuccore\&query_key=${KEY}\&WebEnv=${WEB}\&rettype=gb\&retmode=xml",
+            f"curl $FETCH_URL"
+        ])
+        genbank_xml = command.execute_with_output(efetch_command)
+        root = ET.fromstring(genbank_xml).find('GBSeq')
+        accession_metadata = {}
+        accession_metadata['name'] = root.find('GBSeq_definition').text
+        qualifiers_needed = {'country', 'collection_date'}
+        for entry in root.find('GBSeq_feature-table')[0].find('GBFeature_quals'):
+            if all(key in accession_metadata for key in qualifiers_needed):
+                break
+            for key in qualifiers_needed - accession_metadata.keys():
+                if entry.find('GBQualifier_name').text == key:
+                    accession_metadata[key] = entry.find('GBQualifier_value').text
+    return accession_metadata
 
     @staticmethod
     def trim_adapters_in_place(local_input_files):
