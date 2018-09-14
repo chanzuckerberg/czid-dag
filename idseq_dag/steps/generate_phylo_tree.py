@@ -98,11 +98,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             # May want to do some postprocessing once we know better what exactly we need for the web app.
         command.execute(ksnp_cmd)
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
-        annotation_output = f"{self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated"
-        if os.path.isfile(annotation_output):
-            command.execute(f"mv  {self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated {output_files[1]}")
-        else:
-            log.write(f"Warning: no SNP annotation file was produced!")
+        self.additional_files_to_upload.append(f"{self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated")
 
     def count_reads(self):
         pass
