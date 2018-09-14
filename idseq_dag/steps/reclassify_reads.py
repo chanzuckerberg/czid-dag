@@ -6,7 +6,6 @@ import idseq_dag.util.count as count
 
 
 MIN_READS_PER_GENUS = 100
-MIN_PCT_PER_GENUS = 1.
 
 class PipelineStepReclassifyReads(PipelineStep):
     '''
@@ -33,28 +32,188 @@ class PipelineStepReclassifyReads(PipelineStep):
         (blast_m8, refined_m8, refined_hit_summary, refined_counts, genus_to_accession_list) =
         self.output_files_local()
         (read_dict, accession_dict, selected_genera) = self.summarize_hits(hit_summary)
-        genus_fasta = self.group_reads_by_genus(input_fasta, read_dict, selected_genera)
-        genus_references = self.download_ref_sequences(selected_genera)
+        output_basedir = os.path.join(self.output_dir_local, "reclassify")
+        loc_db = s3.fetch_from_s3(
+            self.additional_files["loc_db"],
+            self.ref_dir_local,
+            allow_s3mi=True)
+        db_s3_path = self.additional_attributes["db"]
+        db_type = self.additional_attributes["db_type"]
 
-        genus_assembled_contig = self.assemble_all(genus_fasta)
-        genus_blast_m8 = self.blast_all(genus_assembled_contig, genus_references)
-        genus_bowtie_index = self.bowtie_build_all(genus_assembled_contig)
-        genus_bowtie_align_sam = self.bowtie_align_all(genus_bowtie_index, genus_fasta)
-        consolidated_dict = self.consolidate_all_results(genus_bowtie_align_sam, genus_blast_m8, read_dict)
+        # Start a non-blocking function for download ref sequences
+        genus_references = {}
+        download_thread = threading.Thread(
+                target = self.download_ref_sequences,
+                args = [selected_genera, output_basedir, loc_db, db_s3_path, genus_references])
+        download_thread.start()
+        genus_fasta_files = self.group_reads_by_genus(input_fasta, read_dict, selected_genera, output_basedir)
+        genus_assembled = self.assemble_all(genus_fasta_files)
+        download_thread.join()
 
+        genus_blast_m8 = self.blast_all(genus_assembled_contig, genus_references, db_type)
+        consolidated_dict = self.consolidate_all_results(deduped_m8, genus_blast_m8, read_dict)
 
-
-    def group_reads_by_genus(input_fasta, read_dict, selected_genera):
-        genus_fasta = {}
-
-        return genus_fasta
-
-
-    def download_ref_sequences(self, accession_dict):
+    @staticmethod
+    def blast_all(genus_assembled_contig, genus_references, db_type):
+        genus_blast_m8 = {}
+        for genus_taxid, output in genus_assembled_contig.items():
+            if output[0]:
+                (contig, scaffold, read2contig) = output
+                genus_dir = os.path.dirname(contig)
+                # Make blast index
+                accession_dir = genus_references[genus_taxid]
+                reference_fasta = os.path.join(genus_dir, "refseq.fasta")
+                blast_index_path = os.path.join(genus_dir, "blastindex")
+                command.execute(f"cat {accession_dir}/* > {reference_fasta}")
+                blast_type = 'nucl'
+                blast_command = 'blastn'
+                if db_type == 'nr':
+                    blast_type = 'prot'
+                    blast_command = 'blastx'
+                command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path}")
+                # blast the contig to the blast index
+                output_m8 = os.path.join(genus_dir, 'blast.m8')
+                command.execute(f"{blast_command} -query {contig} -db {blast_index_path} -out {output_m8} -outfmt 6 -num_alignments 5 -num_threads 32")
+                genus_blast_m8[genus_taxid] = output_m8
+                # further processing of getting the top m8 entry for each contig.
+                # infer from read -> contig -> accession
+        return genus_blast_m8
 
 
     @staticmethod
-    def summarize_hits(hit_summary_file):
+    def download_ref_sequences(selected_genera, output_basedir, loc_db, db_s3_path, genus_references):
+        threads = []
+        error_flags = {}
+        semaphore = threading.Semaphore(64)
+        mutex = threading.RLock()
+
+        bucket, key = db_s3_path[5:].split("/", 1)
+        loc_dict = shelve.open(loc_db.replace('.db', ''), 'r')
+        for genus_taxid, accession_list in selected_genera.items():
+            accession_dir = os.path.join(output_basedir, genus_taxid, 'accessions')
+            command.execute(f"mkdir -p {accession_dir}")
+            genus_references[genus_taxid] = accession_dir
+            for accession in accession_list:
+                accession_out_file=os.path.join(accession_dir, accession)
+                semaphore.acquire()
+                t = threading.Thread(
+                    target=self.fetch_sequence_for_thread,
+                    args=[
+                        error_flags, accession, accession_out_file, loc_dict,
+                        bucket, key, semaphore, mutex
+                    ])
+                t.start()
+                threads.append(t)
+        for t in threads:
+            t.join()
+        if error_flags:
+            raise RuntimeError("Error in getting sequences by accession list.")
+
+    @staticmethod
+    def fetch_sequence_for_thread(error_flags, accession, accession_out_file,
+                                  loc_dict, bucket, key,
+                                  semaphore, mutex):
+        try:
+            entry = loc_dict.get(accession)
+            if entry:
+                range_start, name_length, seq_len = entry
+                range_end = range_start + name_length + seq_len - 1
+                num_retries = 3
+                for attempt in range(num_retries):
+                    try:
+                        s3.fetch_byterange(range_start, range_end, bucket, key, accession_out_file)
+                        break
+                    except Exception as e:
+                        if attempt + 1 < num_retries:  # Exponential backoff
+                            time.sleep(1.0 * (4**attempt))
+                        else:
+                            msg = f"All retries failed for getting sequence by accession ID {accession}: {e}"
+                        raise RuntimeError(msg)
+
+        except:
+            with mutex:
+                if not error_flags:
+                    traceback.print_exc()
+                error_flags["error"] = 1
+        finally:
+            semaphore.release()
+
+
+    @staticmethod
+    def assemble_all(genus_fasta_files):
+        genus_assembled = {}
+        for genus_taxid, fasta_file in genus_fasta_files:
+            genus_dir = os.path.dirname(fasta_file)
+            assembled_dir = os.path.join(genus_dir, 'spades')
+            output = (None, None, None) # (contigs.fasta path, scaffolds.fasta path, readid -> contig mapping)
+            command.execute(f"mkdir -p {assembled_dir}")
+
+            try:
+                command.execute(f"spades.py -s {fasta_file} -o {assembled_dir} -m 60 -t 32 --only-assembler")
+                assembled_contig = os.path.join(assembled_dir, 'contigs.fasta')
+                assembled_scaffold = os.path.join(assembled_dir, 'scaffolds.fasta')
+
+                for i, assembled in enumerate([assembled_contig, assembled_scaffold]):
+                    if os.path.exists(assembled) and os.path.getsize(assembled) > MIN_CONTIG_SIZE:
+                        # move the file up to the main dir
+                        final_path = assembled.replace('spades/', '')
+                        command.execute(f"mv {assembled} {final_path}")
+                        output[i] = final_path
+                # build the bowtie index based on the contigs
+                if output[0]:
+                    output[2] = self.generate_read_to_contig_mapping(output[0], fasta_file)
+            except:
+                pass
+            genus_assembled[genus_taxid] = output
+            command.execute(f"rm -rf {assembled_dir}")
+
+        return genus_assembled
+
+    @staticmethod
+    def generate_read_to_contig_mapping(assembled_contig, fasta_file):
+        genus_dir = os.path.dirname(fasta_file)
+        # build bowtie index based on assembled_contig
+        bowtie_index_path = os.path.join(genus_dir, 'bowtie-contig')
+        bowtie_sam = os.path.join(genus_dir, "read-output.sam")
+        command.execute(f"bowtie2-build {assembled_contig} {bowtie_index_path}")
+        command.execute(f"bowtie2 -x {bowtie_index_path} -f -U {fasta_file} --very-sensitive -p 32 > {bowtie_sam}")
+        read2contig = {}
+        with open(bowtie_sam, "r", encoding='utf-8') as samf:
+            for line in samf:
+                if line[0] == '@':
+                    continue
+                fields = line.split("\t")
+                read = fields[0]
+                contig = fields[2]
+                if contig != '*':
+                    read2contig[read] = contig
+        return read2contig
+
+
+    @staticmethod
+    def group_reads_by_genus(input_fasta, read_dict, selected_genera, output_basedir):
+        ''' returns genus_id => fasta file which includes sequences from the genus from alignment '''
+        genus_fasta_data = defaultdict("")
+        genera_list = set(selected_genera.keys())
+        with open(input_fasta, 'r', encoding='utf-8') as input_fasta_f:
+                sequence_name = input_fasta_f.readline()
+                sequence_data = input_fasta_f.readline()
+                while sequence_name and sequence_data:
+                    read_id = sequence_name.rstrip().lstrip('>')
+                    genus_taxid = read_dict[read_id][5]
+                    if genus_taxid in genera_list:
+                        genus_fasta_data[genus_taxid] += sequence_name + sequence_data
+        # output the fasta files and create work dir
+        genus_fasta_files = {}
+        for genus_taxid, fasta_content in genus_fasta_data.items():
+            output_dir = os.path.join(output_basedir, genus_taxid)
+            command.execute(f"mkdir -p {output_dir}")
+            output_file = os.path.join(output_dir, 'input.fa')
+            with open(output_file, 'w') as outf:
+                outf.write(fasta_content)
+            genus_fasta_files[genus_taxid] = output_file
+
+        return genus_fasta_files
 
     @staticmethod
     def summarize_hits(hit_summary_file):
@@ -72,16 +231,15 @@ class PipelineStepReclassifyReads(PipelineStep):
                 genus_taxid = read[5]
                 read_dict[read[0]] = read
                 total_reads += 1
-                if accession_id == 'None' or genus_taxid < 0:
+                if accession_id == 'None' or int(genus_taxid) < 0:
                     continue
                 accession_dict[accession_id] = (species_taxid, genus_taxid)
                 genus_read_counts[genus_taxid] += 1
                 genus_species[genus_taxid].add(species_taxid)
                 genus_accessions[genus_taxid].add(accession_id)
-        min_reads_per_genus = min(MIN_READS_PER_GENUS, total_reads/100*MIN_PCT_PER_GENUS)
         selected_genera = {}
         for genus_taxid, reads in genus_read_counts.items():
-            if reads >= min_reads_per_genus and len(genus_species[genus_taxid]) > 1:
+            if reads >= MIN_READS_PER_GENUS and len(genus_species[genus_taxid]) > 1:
                 selected_genera[genus_taxid] = list(genus_accessions[genus_taxid])
 
         return (read_dict, accession_dict, selected_genera)
