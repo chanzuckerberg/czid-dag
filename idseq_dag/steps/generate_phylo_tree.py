@@ -62,7 +62,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
 
         # Retrieve Genbank references (full assembled genomes).
-        local_genbank_fastas = self.get_genbank_genomes(reference_taxids, input_dir_for_ksnp3, superkingdom_name, 1)
+        genbank_accessions, local_genbank_fastas = self.get_genbank_genomes(reference_taxids, input_dir_for_ksnp3, superkingdom_name, 1)
 
         # Retrieve NCBI NT references for the accessions in the alignment viz files.
         # These are the accessions (not necessarily full genomes) that were actually matched
@@ -122,7 +122,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         TODO: Retrieve the genomes from S3 rather than ftp.ncbi.nih.gov (JIRA/IDSEQ-334).
         '''
         if n == 0 or not reference_taxids:
-            return []
+            return [], []
         n_per_taxid = max(n // len(reference_taxids), 1)
         genbank_categories_by_superkingdom = {
             "Viruses": ["viral"],
@@ -140,27 +140,27 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             genome_list_local = s3.fetch_from_s3(genome_list_path_s3, destination_dir)
             genomes = []
             for taxid in reference_taxids:
-                cmd = f"cut -f6,7,8,20 {genome_list_local}" # columns: 6 = taxid; 7 = species_taxid, 8 = organism name, 20 = ftp_path
-                cmd += f" | grep -P '^{taxid}\\t'" # try to find taxid in the taxids (first column of the piped input)
-                cmd += f" | head -n {n_per_taxid} | cut -f1,3,4" # take only top n_per_taxid results, keep name and ftp_path
+                cmd = f"cut -f1,6,7,8,20 {genome_list_local}" # columns: 1 = assembly_accession; 6 = taxid; 7 = species_taxid, 8 = organism_name, 20 = ftp_path
+                cmd += f" | awk -F $'\t' '$2 == {taxid}'" # try to find taxid in the taxid column (2nd column of the piped input)
+                cmd += f" | head -n {n_per_taxid}" # take only top n_per_taxid results
                 taxid_genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
                 genomes += [entry for entry in taxid_genomes if entry not in genomes]
             genomes = genomes[:n]
             command.execute_with_output(f"rm {genome_list_local}")
             if genomes:
-                local_genbank_fastas = []
+                genbank_fastas = {}
                 for line in genomes:
-                    taxid, organism_name, ftp_path = line.split("\t")
-                    clean_organism_name = PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(organism_name)
+                    assembly_accession, taxid, species_taxid, organism_name, ftp_path = line.split("\t")
                     ftp_fasta_gz = f"{ftp_path}/{os.path.basename(ftp_path)}_genomic.fna.gz"
-                    local_fasta = f"{destination_dir}/genbank__{clean_organism_name}__taxid-{taxid}.fasta"
+                    tree_node_name = f"genbank_{PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(assembly_accession)}"
+                    local_fasta = f"{destination_dir}/{tree_node_name}.fasta"
                     if os.path.isfile(local_fasta):
                         local_fasta = f"{local_fasta.split('.')[0]}__I.fasta"
                     command.execute(f"wget -O {local_fasta}.gz {ftp_fasta_gz}")
                     command.execute(f"gunzip {local_fasta}.gz")
-                    local_genbank_fastas.append(local_fasta)
-                return local_genbank_fastas
-        return []
+                    genbank_fastas[assembly_accession] = local_fasta
+                return list(genbank_fastas.keys()), list(genbank_fastas.values())
+        return [], []
 
     def get_accession_sequences(self, dest_dir, n=10):
         '''
@@ -168,7 +168,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         Write each reference to a separate fasta file.
         '''
         if n == 0:
-            return []
+            return [], []
 
         # Retrieve files
         nt_db = self.additional_attributes["nt_db"]
