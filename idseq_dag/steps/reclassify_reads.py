@@ -31,8 +31,6 @@ class PipelineStepReclassifyReads(PipelineStep):
         input_fasta = self.input_files_local[1][-1]
         (blast_m8, refined_m8, refined_hit_summary, refined_counts, genus_to_accession_list) =
         self.output_files_local()
-        (read_dict, accession_dict, selected_genera) = self.summarize_hits(hit_summary)
-        output_basedir = os.path.join(self.output_dir_local, "reclassify")
         loc_db = s3.fetch_from_s3(
             self.additional_files["loc_db"],
             self.ref_dir_local,
@@ -44,6 +42,9 @@ class PipelineStepReclassifyReads(PipelineStep):
             self.ref_dir_local,
             allow_s3mi=True)
 
+        (read_dict, accession_dict, selected_genera) = self.summarize_hits(hit_summary)
+        output_basedir = os.path.join(self.output_dir_local, f"assembled_{db_type}")
+
         # Start a non-blocking function for download ref sequences
         genus_references = {}
         download_thread = threading.Thread(
@@ -54,8 +55,8 @@ class PipelineStepReclassifyReads(PipelineStep):
         genus_assembled = self.assemble_all(genus_fasta_files)
         download_thread.join()
 
-        genus_blast_m8 = self.blast_all(genus_assembled_contig, genus_references, db_type)
-        (consolidated_dict, read2blastm8)  = self.consolidate_all_results(genus_assembled_contig,
+        genus_blast_m8 = self.blast_all(genus_assembled, genus_references, db_type)
+        (consolidated_dict, read2blastm8)  = self.consolidate_all_results(genus_assembled,
                                                                           genus_blast_m8,
                                                                           read_dict,
                                                                           accession_dict)
@@ -73,6 +74,34 @@ class PipelineStepReclassifyReads(PipelineStep):
                                              lineage_db, deuterostome_db, refined_counts)
         # additional files to upload
         # assembled contigs. bowtie2.sam, blast.m8, top_blast.m8 for read to contig mapping
+        for genus_taxid, assembled in genus_assembled.items():
+            (contig_file, scaffold_file, read2contig, bowtie_sam) = assembled
+            if contig_file:
+                self.additional_files_to_upload.append(contig_file)
+                self.additional_files_to_upload.append(scaffold_file)
+                self.additional_files_to_upload.append(bowtie_sam)
+        for genus_taxid, m8s in genus_blast_m8.items():
+            (m8_raw, m8_top) = m8s
+            self.additional_files_to_upload.append(m8_raw)
+            self.additional_files_to_upload.append(m8_top)
+
+
+
+    @staticmethod
+    def output_genus_accession_file(selected_genera, genus_to_accession_list):
+        with open(genus_to_accession_list, 'w') as gaf:
+            for genus_taxid, accession_list in selected_genera.items():
+                outstr = [genus_taxid, accession_list.join(",")].join("\t") + "\n"
+                gaf.write(outstr)
+
+    @staticmethod
+    def output_blast_m8_file(genus_blast_m8, blast_m8):
+        with open(genus_blast_m8, 'w') as gbmf:
+            for genus_taxid, m8s in genus_blast_m8.items():
+                raw_m8 = m8s[0]
+                for _contig_id, _accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in iterate_m8(raw_m8):
+                    # add the genus taxid to each line
+                    gbmf.write(f"{genus_taxid}:{line}")
 
     @staticmethod
     def generate_m8_and_hit_summary(consolidated_dict, read2blastm8,
@@ -123,11 +152,11 @@ class PipelineStepReclassifyReads(PipelineStep):
 
 
     @staticmethod
-    def blast_all(genus_assembled_contig, genus_references, db_type):
+    def blast_all(genus_assembled, genus_references, db_type):
         genus_blast_m8 = {}
-        for genus_taxid, output in genus_assembled_contig.items():
+        for genus_taxid, output in genus_assembled.items():
             if output[0]:
-                (contig, scaffold, read2contig) = output
+                (contig, scaffold, read2contig, bowtie_sam) = output
                 genus_dir = os.path.dirname(contig)
                 # Make blast index
                 accession_dir = genus_references[genus_taxid]
@@ -234,7 +263,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         for genus_taxid, fasta_file in genus_fasta_files:
             genus_dir = os.path.dirname(fasta_file)
             assembled_dir = os.path.join(genus_dir, 'spades')
-            output = (None, None, None) # (contigs.fasta path, scaffolds.fasta path, readid -> contig mapping)
+            output = (None, None, None, None) # (contigs.fasta path, scaffolds.fasta path, readid -> contig mapping, bowtie_sam)
             command.execute(f"mkdir -p {assembled_dir}")
 
             try:
@@ -250,7 +279,7 @@ class PipelineStepReclassifyReads(PipelineStep):
                         output[i] = final_path
                 # build the bowtie index based on the contigs
                 if output[0]:
-                    output[2] = self.generate_read_to_contig_mapping(output[0], fasta_file)
+                    (output[2], output[3]) = self.generate_read_to_contig_mapping(output[0], fasta_file)
             except:
                 pass
             genus_assembled[genus_taxid] = output
@@ -263,7 +292,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         genus_dir = os.path.dirname(fasta_file)
         # build bowtie index based on assembled_contig
         bowtie_index_path = os.path.join(genus_dir, 'bowtie-contig')
-        bowtie_sam = os.path.join(genus_dir, "read-output.sam")
+        bowtie_sam = os.path.join(genus_dir, "read-contig.sam")
         command.execute(f"bowtie2-build {assembled_contig} {bowtie_index_path}")
         command.execute(f"bowtie2 -x {bowtie_index_path} -f -U {fasta_file} --very-sensitive -p 32 > {bowtie_sam}")
         read2contig = {}
@@ -276,7 +305,7 @@ class PipelineStepReclassifyReads(PipelineStep):
                 contig = fields[2]
                 if contig != '*':
                     read2contig[read] = contig
-        return read2contig
+        return (read2contig, bowtie_sam)
 
 
     @staticmethod
