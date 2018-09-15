@@ -67,12 +67,38 @@ class PipelineStepReclassifyReads(PipelineStep):
                                          hit_summary, deduped_m8,
                                          refined_hit_summary, refined_m8)
         deuterostome_db = None
-        evalue_type = 'log10' if db_type == 'nr' else 'raw'
+        evalue_type = 'raw'
         m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
                                              evalue_type, db_type.upper(),
                                              lineage_db, deuterostome_db, refined_counts)
         # additional files to upload
         # assembled contigs. bowtie2.sam, blast.m8, top_blast.m8 for read to contig mapping
+
+    @staticmethod
+    def generate_m8_and_hit_summary(consolidated_dict, read2blastm8,
+                                    hit_summary, deduped_m8,
+                                    refined_hit_summary, refined_m8):
+        # Generate new hit summary
+        with open(refined_hit_summary, 'w') as rhsf:
+            with open(hit_summary, 'r', encoding='utf-8') as hsf:
+                for line in hsf:
+                    read_id = line.rstrip().split("\t")
+                    read = consolidated_dict[read_id]
+                    output_str = read.join("\t")
+                    rhsf.write(output_str + "\n")
+        # Generate new M8
+        with open(refined_m8, 'w') as rmf:
+            with open(deduped_m8, 'r', encoding='utf-8') as mf:
+                for line in hsf:
+                    read_id = line.rstrip().split("\t")
+                    m8_line = read2blastm8.get(read_id)
+                    if m8_line:
+                        m8_fields = m8_line.split("\t")
+                        m8_fields[0] = read_id
+                        rmf.write(m8_fields.join("\t"))
+                    else:
+                        rmf.write(line + "\n")
+
 
     @staticmethod
     def consolidate_all_results(genus_assembled_contig, genus_blast_m8, read_dict, accession_dict):
