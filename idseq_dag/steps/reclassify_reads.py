@@ -1,11 +1,19 @@
 import json
+import os
+import shelve
+import threading
+import time
+import traceback
 from collections import defaultdict
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.count as count
+import idseq_dag.util.s3 as s3
+import idseq_dag.util.m8 as m8
 
 
 MIN_READS_PER_GENUS = 100
+MIN_CONTIG_SIZE = 50
 
 class PipelineStepReclassifyReads(PipelineStep):
     '''
@@ -29,8 +37,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         '''
         (align_m8, deduped_m8, hit_summary, _orig_counts) = self.input_files_local[0]
         input_fasta = self.input_files_local[1][-1]
-        (blast_m8, refined_m8, refined_hit_summary, refined_counts, genus_to_accession_list) =
-        self.output_files_local()
+        (blast_m8, refined_m8, refined_hit_summary, refined_counts, genus_to_accession_list) = self.output_files_local()
         loc_db = s3.fetch_from_s3(
             self.additional_files["loc_db"],
             self.ref_dir_local,
@@ -48,8 +55,8 @@ class PipelineStepReclassifyReads(PipelineStep):
         # Start a non-blocking function for download ref sequences
         genus_references = {} # genus -> accession list dir
         download_thread = threading.Thread(
-                target = PipelineStepReclassifyReads.download_ref_sequences,
-                args = [selected_genera, output_basedir, loc_db, db_s3_path, genus_references])
+            target = PipelineStepReclassifyReads.download_ref_sequences,
+            args = [selected_genera, output_basedir, loc_db, db_s3_path, genus_references])
         download_thread.start()
 
         genus_fasta_files = self.group_reads_by_genus(input_fasta, read_dict,
@@ -58,7 +65,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         download_thread.join()
 
         genus_blast_m8 = self.blast_all(genus_assembled, genus_references, db_type)
-        (consolidated_dict, read2blastm8)  = self.consolidate_all_results(genus_assembled,
+        (consolidated_dict, read2blastm8) = self.consolidate_all_results(genus_assembled,
                                                                           genus_blast_m8,
                                                                           read_dict,
                                                                           accession_dict)
@@ -93,7 +100,7 @@ class PipelineStepReclassifyReads(PipelineStep):
     def output_genus_accession_file(selected_genera, genus_to_accession_list):
         with open(genus_to_accession_list, 'w') as gaf:
             for genus_taxid, accession_list in selected_genera.items():
-                outstr = [genus_taxid, accession_list.join(",")].join("\t") + "\n"
+                outstr = "\t".join([genus_taxid, ",".join(accession_list)]) + "\n"
                 gaf.write(outstr)
 
     @staticmethod
@@ -102,7 +109,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         with open(genus_blast_m8, 'w') as gbmf:
             for genus_taxid, m8s in genus_blast_m8.items():
                 raw_m8 = m8s[0]
-                for _contig_id, _accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in iterate_m8(raw_m8):
+                for _contig_id, _accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in m8.iterate_m8(raw_m8):
                     # add the genus taxid to each line
                     gbmf.write(f"{genus_taxid}:{line}")
 
@@ -143,7 +150,7 @@ class PipelineStepReclassifyReads(PipelineStep):
             blast_top_m8 = genus_blast_m8.get(genus_taxid, (None, None))[1]
             if read2contig and blast_top_m8:
                 contig2accession = {}
-                for contig_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in iterate_m8(blast_top_m8):
+                for contig_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in m8.iterate_m8(blast_top_m8):
                     contig2accession[contig_id] = (accession_id, line)
                 for read_id, contig_id in read2contig.items():
                     (accession, m8_line) = contig2accession.get(contig_id, (None, None))
@@ -191,7 +198,7 @@ class PipelineStepReclassifyReads(PipelineStep):
             top_line = None
             top_bitscore = 0
             current_read_id = None
-            for read_id, _accession_id, _percent_id, _alignment_length, e_value, bitscore, line in iterate_m8(orig_m8):
+            for read_id, _accession_id, _percent_id, _alignment_length, e_value, bitscore, line in m8.iterate_m8(orig_m8):
                 # Get the top entry of each read_id based on the bitscore
                 if read_id != current_read_id:
                     # Different batch start
@@ -223,7 +230,7 @@ class PipelineStepReclassifyReads(PipelineStep):
             command.execute(f"mkdir -p {accession_dir}")
             genus_references[genus_taxid] = accession_dir
             for accession in accession_list:
-                accession_out_file=os.path.join(accession_dir, accession)
+                accession_out_file = os.path.join(accession_dir, accession)
                 semaphore.acquire()
                 t = threading.Thread(
                     target=PipelineStepReclassifyReads.fetch_sequence_for_thread,
@@ -276,7 +283,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         for genus_taxid, fasta_file in genus_fasta_files:
             genus_dir = os.path.dirname(fasta_file)
             assembled_dir = os.path.join(genus_dir, 'spades')
-            output = (None, None, None, None)
+            output = [None, None, None, None]
             command.execute(f"mkdir -p {assembled_dir}")
 
             try:
@@ -329,13 +336,13 @@ class PipelineStepReclassifyReads(PipelineStep):
         genus_fasta_data = defaultdict("")
         genera_list = set(selected_genera.keys())
         with open(input_fasta, 'r', encoding='utf-8') as input_fasta_f:
-                sequence_name = input_fasta_f.readline()
-                sequence_data = input_fasta_f.readline()
-                while sequence_name and sequence_data:
-                    read_id = sequence_name.rstrip().lstrip('>')
-                    genus_taxid = read_dict[read_id][5]
-                    if genus_taxid in genera_list:
-                        genus_fasta_data[genus_taxid] += sequence_name + sequence_data
+            sequence_name = input_fasta_f.readline()
+            sequence_data = input_fasta_f.readline()
+            while sequence_name and sequence_data:
+                read_id = sequence_name.rstrip().lstrip('>')
+                genus_taxid = read_dict[read_id][5]
+                if genus_taxid in genera_list:
+                    genus_fasta_data[genus_taxid] += sequence_name + sequence_data
         # output the fasta files and create work dir
         genus_fasta_files = {}
         for genus_taxid, fasta_content in genus_fasta_data.items():
