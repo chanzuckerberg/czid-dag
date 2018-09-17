@@ -267,7 +267,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         metadata_by_node = {}
         for acc, fasta in accession2fasta_map.items():
             node = os.path.basename(os.path.splitext(fasta)[0]) # that's what kSNP3 chooses as the tree node name
-            metadata_by_node[node] = PipelineStepGeneratePhyloTree.get_accession_metadata(acc)
+            metadata = PipelineStepGeneratePhyloTree.get_accession_metadata(acc)
+            metadata["accession"] = acc
+            metadata_by_node[node] = metadata
         return metadata_by_node
 
     @staticmethod
