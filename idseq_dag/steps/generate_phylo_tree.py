@@ -144,7 +144,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             genomes = []
             for taxid in reference_taxids:
                 cmd = f"cut -f1,6,7,8,20 {genome_list_local}" # columns: 1 = assembly_accession; 6 = taxid; 7 = species_taxid, 8 = organism_name, 20 = ftp_path
-                cmd += f" | awk -F $'\t' '$2 == {taxid}'" # try to find taxid in the taxid column (2nd column of the piped input)
+                cmd += f" | awk -F '\t' '$2 == {taxid}'" # try to find taxid in the taxid column (2nd column of the piped input)
                 cmd += f" | head -n {n_per_taxid}" # take only top n_per_taxid results
                 taxid_genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
                 genomes += [entry for entry in taxid_genomes if entry not in genomes]
@@ -262,9 +262,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     @staticmethod
     def get_metadata_by_tree_node(accession2fasta_map):
         metadata_by_node = {}
-        for acc, fasta in accession2fasta_map:
+        for acc, fasta in accession2fasta_map.items():
             node = os.path.basename(os.path.splitext(fasta)[0]) # that's what kSNP3 chooses as the tree node name
-            metadata_by_node[node] = self.get_accession_metadata(acc)
+            metadata_by_node[node] = PipelineStepGeneratePhyloTree.get_accession_metadata(acc)
         return metadata_by_node
 
     @staticmethod
