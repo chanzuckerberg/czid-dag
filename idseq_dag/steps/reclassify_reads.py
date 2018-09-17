@@ -333,7 +333,7 @@ class PipelineStepReclassifyReads(PipelineStep):
     @staticmethod
     def group_reads_by_genus(input_fasta, read_dict, selected_genera, output_basedir):
         ''' returns genus_id => fasta file which includes sequences from the genus from alignment '''
-        genus_fasta_data = defaultdict("")
+        genus_fasta_data = defaultdict(str)
         genera_list = set(selected_genera.keys())
         with open(input_fasta, 'r', encoding='utf-8') as input_fasta_f:
             sequence_name = input_fasta_f.readline()
@@ -360,7 +360,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         ''' Parse the hit summary file and get the relevant into'''
         read_dict = {} # read_id => line
         accession_dict = {} # accession => (species, genus)
-        genus_read_counts = defaultdict(0) # genus => read_counts
+        genus_read_counts = defaultdict(int) # genus => read_counts
         genus_species = defaultdict(set) # genus => list of species
         genus_accessions = defaultdict(set) # genus => list of accessions
         total_reads = 0
