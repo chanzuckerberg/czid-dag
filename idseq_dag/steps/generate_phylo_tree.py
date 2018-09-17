@@ -106,7 +106,12 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             # May want to do some postprocessing once we know better what exactly we need for the web app.
         command.execute(ksnp_cmd)
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
-        self.additional_files_to_upload.append(f"{self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated")
+        snp_annotation_output = f"{self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated"
+        if os.path.isfile(snp_annotation_output):
+            self.additional_files_to_upload.append(snp_annotation_output)
+        else:
+            log.write(f"Warning: {snp_annotation_output} was not generated!")
+
 
     def count_reads(self):
         pass
@@ -252,7 +257,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             for key in qualifiers_needed - accession_metadata.keys():
                 if entry.find('GBQualifier_name').text == key:
                     accession_metadata[key] = entry.find('GBQualifier_value').text
-    return accession_metadata
+        return accession_metadata
 
     @staticmethod
     def get_metadata_by_tree_node(accession2fasta_map):
