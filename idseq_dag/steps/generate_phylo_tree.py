@@ -236,19 +236,22 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         Retrieve metadata of an NCBI accession (e.g. name, country, collection date)
         TODO: Mirror the database in S3 for robustness and availability.
         '''
+        accession_metadata = {}
         efetch_command = ";".join([
             f"QUERY={accession}",
             "BASE=https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
             "SEARCH_URL=${BASE}/esearch.fcgi?db=nuccore\&term=${QUERY}\&usehistory=y",
             "OUTPUT=$(curl $SEARCH_URL)",
-            "WEB=$(echo $OUTPUT | sed -e 's/.*<WebEnv>\(.*\)<\/WebEnv>.*/\1/')",
-            "KEY=$(echo $OUTPUT | sed -e 's/.*<QueryKey>\(.*\)<\/QueryKey>.*/\1/')",
+            "WEB=$(echo $OUTPUT | sed -e 's/.*<WebEnv>\(.*\)<\/WebEnv>.*/\\1/')",
+            "KEY=$(echo $OUTPUT | sed -e 's/.*<QueryKey>\(.*\)<\/QueryKey>.*/\\1/')",
             "FETCH_URL=${BASE}/efetch.fcgi?db=nuccore\&query_key=${KEY}\&WebEnv=${WEB}\&rettype=gb\&retmode=xml",
             f"curl $FETCH_URL"
         ])
         genbank_xml = command.execute_with_output(efetch_command)
         root = ET.fromstring(genbank_xml).find('GBSeq')
-        accession_metadata = {}
+        if not root:
+            log.write(f"WARNING: {efetch_command} did not give a result")
+            return accession_metadata
         accession_metadata['name'] = root.find('GBSeq_definition').text
         qualifiers_needed = {'country', 'collection_date'}
         for entry in root.find('GBSeq_feature-table')[0].find('GBFeature_quals'):
