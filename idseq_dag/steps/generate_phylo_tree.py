@@ -234,7 +234,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     def get_accession_metadata(accession):
         '''
         Retrieve metadata of an NCBI accession (e.g. name, country, collection date)
-        TODO: Mirror the database in S3 for robustness and availability.
+        TODO: Put this data in S3 instead and get it from there.
         '''
         accession_metadata = {}
         efetch_command = ";".join([
@@ -280,22 +280,6 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     @staticmethod
     def clean_name_for_ksnp3(name):
         return name.replace(' ', '-').replace('.', '')
-
-    @staticmethod
-    def clean_filename_collection(local_input_files, max_length = 50):
-        # No longer used. TODO: remove this method.
-        output_map = {}
-        for idx, local_file in enumerate(local_input_files):
-            original_name = os.path.basename(local_file)
-            original_base, original_extension = original_name.rsplit(".", 1)
-            cleaned_name = f"{self.clean_name_for_ksnp3(original_base)}.{original_extension}"
-            if len(cleaned_name) > max_length:
-                cleaned_name = f"{cleaned_name[:(max_length-6)]}---etc"
-            if cleaned_name in output_map.values():
-                output_map[local_file] = f"{cleaned_name}-{idx}"
-            else:
-                output_map[local_file] = cleaned_name
-        return output_map
 
     @staticmethod
     def fasta_union(partial_fasta_files, full_fasta_file):
