@@ -124,7 +124,7 @@ class PipelineStepReclassifyReads(PipelineStep):
                 for line in hsf:
                     read_id = line.rstrip().split("\t")
                     read = consolidated_dict[read_id]
-                    output_str = read.join("\t")
+                    output_str = "\t".join(read)
                     rhsf.write(output_str + "\n")
         # Generate new M8
         with open(refined_m8, 'w') as rmf:
@@ -135,7 +135,7 @@ class PipelineStepReclassifyReads(PipelineStep):
                     if m8_line:
                         m8_fields = m8_line.split("\t")
                         m8_fields[0] = read_id
-                        rmf.write(m8_fields.join("\t"))
+                        rmf.write("\t".join(m8_fields))
                     else:
                         rmf.write(line)
 
