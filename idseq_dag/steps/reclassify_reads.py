@@ -280,7 +280,7 @@ class PipelineStepReclassifyReads(PipelineStep):
     def assemble_all(genus_fasta_files):
         ''' assemble the individual fasta files by genus '''
         genus_assembled = {} # output genus => (contigs.fasta scaffolds.fasta, readid -> contig, bowtie_sam)
-        for genus_taxid, fasta_file in genus_fasta_files:
+        for genus_taxid, fasta_file in genus_fasta_files.items():
             genus_dir = os.path.dirname(fasta_file)
             assembled_dir = os.path.join(genus_dir, 'spades')
             output = [None, None, None, None]
