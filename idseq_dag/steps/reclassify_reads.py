@@ -106,7 +106,7 @@ class PipelineStepReclassifyReads(PipelineStep):
     @staticmethod
     def output_blast_m8_file(genus_blast_m8, blast_m8):
         ''' output one file that include all the m8 content. append genus_taxid at front '''
-        with open(genus_blast_m8, 'w') as gbmf:
+        with open(blast_m8, 'w') as gbmf:
             for genus_taxid, m8s in genus_blast_m8.items():
                 raw_m8 = m8s[0]
                 for _contig_id, _accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in m8.iterate_m8(raw_m8):
