@@ -129,7 +129,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         # Generate new M8
         with open(refined_m8, 'w') as rmf:
             with open(deduped_m8, 'r', encoding='utf-8') as mf:
-                for line in hsf:
+                for line in mf:
                     read_id = line.rstrip().split("\t")[0]
                     m8_line = read2blastm8.get(read_id)
                     if m8_line:
