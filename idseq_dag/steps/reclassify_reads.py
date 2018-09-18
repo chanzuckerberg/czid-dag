@@ -122,7 +122,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         with open(refined_hit_summary, 'w') as rhsf:
             with open(hit_summary, 'r', encoding='utf-8') as hsf:
                 for line in hsf:
-                    read_id = line.rstrip().split("\t")
+                    read_id = line.rstrip().split("\t")[0]
                     read = consolidated_dict[read_id]
                     output_str = "\t".join(read)
                     rhsf.write(output_str + "\n")
@@ -130,7 +130,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         with open(refined_m8, 'w') as rmf:
             with open(deduped_m8, 'r', encoding='utf-8') as mf:
                 for line in hsf:
-                    read_id = line.rstrip().split("\t")
+                    read_id = line.rstrip().split("\t")[0]
                     m8_line = read2blastm8.get(read_id)
                     if m8_line:
                         m8_fields = m8_line.split("\t")
