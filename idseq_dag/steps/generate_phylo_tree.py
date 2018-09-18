@@ -71,10 +71,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
         # Retrieve NCBI metadata for the accessions
         metadata_by_node = self.get_metadata_by_tree_node({**accession_fastas, **genbank_fastas})
-        metadata_output = f"{self.output_dir_local}/ncbi_metadata.json"
+        metadata_output = output_files[1]
         with open(metadata_output, 'w') as f:
             json.dump(metadata_by_node, f)
-        self.additional_files_to_upload.append(metadata_output)
 
         # Run MakeKSNP3infile.
         ksnp3_input_file = f"{self.output_dir_local}/inputs.txt"
