@@ -340,9 +340,11 @@ class PipelineStepReclassifyReads(PipelineStep):
             sequence_data = input_fasta_f.readline()
             while sequence_name and sequence_data:
                 read_id = sequence_name.rstrip().lstrip('>')
-                genus_taxid = read_dict[read_id][5]
-                if genus_taxid in genera_list:
-                    genus_fasta_data[genus_taxid] += sequence_name + sequence_data
+                entry = read_dict.get(read_id)
+                if entry and len(entry) > 5:
+                    genus_taxid = entry[5]
+                    if genus_taxid in genera_list:
+                        genus_fasta_data[genus_taxid] += sequence_name + sequence_data
         # output the fasta files and create work dir
         genus_fasta_files = {}
         for genus_taxid, fasta_content in genus_fasta_data.items():
