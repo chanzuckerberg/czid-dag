@@ -175,7 +175,7 @@ class PipelineStepReclassifyReads(PipelineStep):
                 accession_dir = genus_references[genus_taxid]
                 reference_fasta = os.path.join(genus_dir, "refseq.fasta")
                 blast_index_path = os.path.join(genus_dir, "blastindex")
-                command.execute(f"cat {accession_dir}/* > {reference_fasta}")
+                command.execute(f"find {accession_dir}/ -type f | xargs -n 32 -P 1 cat >> {reference_fasta}")
                 blast_type = 'nucl'
                 blast_command = 'blastn'
                 if db_type == 'nr':
