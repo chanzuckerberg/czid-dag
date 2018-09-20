@@ -173,6 +173,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 return genbank_fastas
         return {}
 
+    @staticmethod
     def parse_tree(current_dict, results, key = None):
         """
         Produce a dictionary like:
@@ -199,7 +200,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             results[key] = current_dict
         else:
             for key2, sub_dict in current_dict.items():
-                parse_tree(sub_dict, results, key2)
+                self.parse_tree(sub_dict, results, key2)
 
     def get_accession_sequences(self, dest_dir, n=10):
         '''
@@ -235,7 +236,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 most_matched_accession = None
                 max_num_reads = 0
                 flat_align_viz_dict = {}
-                parse_tree(align_viz_dict, flat_align_viz_dict)
+                self.parse_tree(align_viz_dict, flat_align_viz_dict)
                 for acc, info in flat_align_viz_dict.items():
                     num_reads = info["coverage_summary"]["num_reads"]
                     if num_reads > max_num_reads:
