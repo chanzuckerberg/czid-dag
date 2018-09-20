@@ -200,7 +200,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             results[key] = current_dict
         else:
             for key2, sub_dict in current_dict.items():
-                self.parse_tree(sub_dict, results, key2)
+                PipelineStepGeneratePhyloTree.parse_tree(sub_dict, results, key2)
 
     def get_accession_sequences(self, dest_dir, n=10):
         '''
