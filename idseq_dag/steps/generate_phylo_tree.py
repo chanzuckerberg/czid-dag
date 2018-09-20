@@ -175,33 +175,32 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
     @staticmethod
     def parse_tree(current_dict, results, key = None):
-    """
-    Produce a dictionary like:
-      { "accession 1": { "coverage_summary": ... },
-        "accession 2": { "coverage_summary": ... },
-        ...
-      }
-    from a dictionary like:
-      { "family taxid 1": {
-          "genus taxid 1": {
-            "species taxid 1": {
-              "accession 1": { "coverage_summary": ... },
-            }
-          },
-          "genus taxid 2": {
-            "species taxid 2": {
-              "accession 2": { "coverage_summary": ... },
+        """
+        Produce a dictionary like:
+          { "accession 1": { "coverage_summary": ... },
+            "accession 2": { "coverage_summary": ... },
+            ...
+          }
+        from a dictionary like:
+          { "family taxid 1": {
+              "genus taxid 1": {
+                "species taxid 1": {
+                  "accession 1": { "coverage_summary": ... },
+                }
+              },
+              "genus taxid 2": {
+                "species taxid 2": {
+                  "accession 2": { "coverage_summary": ... },
+                }
+              }
             }
           }
-        }
-      }
-    """
-    if "coverage_summary" in current_dict:
-        results[key] = current_dict
-    else:
-        for key2, sub_dict in current_dict.items():
-            parse_tree(sub_dict, results, key2)
-
+        """
+        if "coverage_summary" in current_dict:
+            results[key] = current_dict
+        else:
+            for key2, sub_dict in current_dict.items():
+                parse_tree(sub_dict, results, key2)
 
     def get_accession_sequences(self, dest_dir, n=10):
         '''
