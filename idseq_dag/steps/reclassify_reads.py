@@ -78,6 +78,9 @@ class PipelineStepReclassifyReads(PipelineStep):
                                          refined_hit_summary, refined_m8)
         deuterostome_db = None
         evalue_type = 'raw'
+        if self.additional_files.get("deuterostome_db"):
+            deuterostome_db = fetch_from_s3(self.additional_files["deuterostome_db"],
+                                            self.ref_dir_local, allow_s3mi=True)
         m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
                                              evalue_type, db_type.upper(),
                                              lineage_db, deuterostome_db, refined_counts)
