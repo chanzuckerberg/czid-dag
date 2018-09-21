@@ -55,7 +55,7 @@ class PipelineStepReclassifyReads(PipelineStep):
         # Start a non-blocking function for download ref sequences
         genus_references = {} # genus -> accession list dir
         download_thread = threading.Thread(
-            target = PipelineStepReclassifyReads.download_ref_sequences,
+            target = self.download_ref_sequences,
             args = [selected_genera, output_basedir, loc_db, db_s3_path, genus_references])
         download_thread.start()
 
@@ -166,9 +166,11 @@ class PipelineStepReclassifyReads(PipelineStep):
                         read2blastm8[read_id] = m8_line
         return (consolidated_dict, read2blastm8)
 
-
     @staticmethod
-    def blast_all(genus_assembled, genus_references, db_type):
+    def reference_fasta(genus_dir):
+        return os.path.join(genus_dir, "refseq.fasta")
+
+    def blast_all(self, genus_assembled, genus_references, db_type):
         ''' blast the assembled contigs to downloaded accession list '''
         genus_blast_m8 = {} # genus => (raw_m8, top_entry_m8, reference_fasta)
         for genus_taxid, output in genus_assembled.items():
@@ -176,10 +178,13 @@ class PipelineStepReclassifyReads(PipelineStep):
                 (contig, scaffold, read2contig, bowtie_sam) = output
                 genus_dir = os.path.dirname(contig)
                 # Make blast index
-                accession_dir = genus_references[genus_taxid]
-                reference_fasta = os.path.join(genus_dir, "refseq.fasta")
+                reference_fasta = self.reference_fasta(genus_dir)
                 blast_index_path = os.path.join(genus_dir, "blastindex")
-                command.execute(f"find {accession_dir}/ -type f | xargs -n 32 -P 1 cat >> {reference_fasta}")
+                if s3.check_s3_presence(self.s3_path(reference_fasta)):
+                    reference_fasta = s3.fetch_from_s3(self.s3_path(reference_fasta), genus_dir)
+                else:
+                    accession_dir = genus_references[genus_taxid]
+                    command.execute(f"find {accession_dir}/ -type f | xargs -n 32 -P 1 cat >> {reference_fasta}")
                 blast_type = 'nucl'
                 blast_command = 'blastn'
                 if db_type == 'nr':
@@ -217,8 +222,7 @@ class PipelineStepReclassifyReads(PipelineStep):
             top_m8f.write(top_line)
 
 
-    @staticmethod
-    def download_ref_sequences(selected_genera, output_basedir,
+    def download_ref_sequences(self, selected_genera, output_basedir,
                                loc_db, db_s3_path,
                                genus_references):
         ''' Download accessions specified in the selected_genera '''
@@ -230,7 +234,12 @@ class PipelineStepReclassifyReads(PipelineStep):
         bucket, key = db_s3_path[5:].split("/", 1)
         loc_dict = shelve.open(loc_db.replace('.db', ''), 'r')
         for genus_taxid, accession_list in selected_genera.items():
-            accession_dir = os.path.join(output_basedir, genus_taxid, 'accessions')
+            genus_dir = os.path.join(output_basedir, genus_taxid)
+            reference_fasta = self.reference_fasta(genus_dir)
+            if s3.check_s3_presence(self.s3_path(reference_fasta)):
+                # ref seq data already exists. skip downloading
+                continue
+            accession_dir = os.path.join(genus_dir, 'accessions')
             command.execute(f"mkdir -p {accession_dir}")
             genus_references[genus_taxid] = accession_dir
             for accession in accession_list:
@@ -280,8 +289,7 @@ class PipelineStepReclassifyReads(PipelineStep):
             semaphore.release()
 
 
-    @staticmethod
-    def assemble_all(genus_fasta_files):
+    def assemble_all(self, genus_fasta_files):
         ''' assemble the individual fasta files by genus '''
         genus_assembled = {} # output genus => (contigs.fasta scaffolds.fasta, readid -> contig, bowtie_sam)
         for genus_taxid, fasta_file in genus_fasta_files.items():
@@ -289,21 +297,28 @@ class PipelineStepReclassifyReads(PipelineStep):
             assembled_dir = os.path.join(genus_dir, 'spades')
             output = [None, None, None, None]
             command.execute(f"mkdir -p {assembled_dir}")
+            assembled_contig_tmp = os.path.join(assembled_dir, 'contigs.fasta')
+            assembled_scaffold_tmp = os.path.join(assembled_dir, 'scaffolds.fasta')
+            assembled_contig = os.path.join(genus_dir, 'contigs.fasta')
+            assembled_scaffold = os.path.join(genus_dir, 'scaffolds.fasta')
 
             try:
-                command.execute(f"spades.py -s {fasta_file} -o {assembled_dir} -m 60 -t 32 --only-assembler")
-                assembled_contig = os.path.join(assembled_dir, 'contigs.fasta')
-                assembled_scaffold = os.path.join(assembled_dir, 'scaffolds.fasta')
+                if s3.check_s3_presence(self.s3_path(assembled_contig)) and \
+                    s3.check_s3_presence(self.s3_path(assembled_scaffold)):
+                    # check if file already assembled before, if so, reuse.
+                    assembled_contig = s3.fetch_from_s3(self.s3_path(assembled_contig),
+                                                        genus_dir)
+                    assembled_scaffold = s3.fetch_from_s3(self.s3_path(assembled_scaffold),
+                                                          genus_dir)
+                else:
+                    command.execute(f"spades.py -s {fasta_file} -o {assembled_dir} -m 60 -t 32 --only-assembler")
+                    command.execute(f"mv {assembled_contig_tmp} {assembled_contig}")
+                    command.execute(f"mv {assembled_scaffold_tmp} {assembled_scaffold}")
 
-                for i, assembled in enumerate([assembled_contig, assembled_scaffold]):
-                    if os.path.exists(assembled) and os.path.getsize(assembled) > MIN_CONTIG_SIZE:
-                        # move the file up to the main dir
-                        final_path = assembled.replace('spades/', '')
-                        command.execute(f"mv {assembled} {final_path}")
-                        output[i] = final_path
                 # build the bowtie index based on the contigs
-                if output[0]:
-                    (output[2], output[3]) = PipelineStepReclassifyReads.generate_read_to_contig_mapping(output[0], fasta_file)
+                (read2contig, bowtie_sam) = self.generate_read_to_contig_mapping(assembled_contig, fasta_file)
+                output = [assembled_contig, assembled_scaffold, read2contig, bowtie_sam]
+
             except:
                 # Common Assembly Error
                 traceback.print_exc()
@@ -312,15 +327,18 @@ class PipelineStepReclassifyReads(PipelineStep):
 
         return genus_assembled
 
-    @staticmethod
-    def generate_read_to_contig_mapping(assembled_contig, fasta_file):
+    def generate_read_to_contig_mapping(self, assembled_contig, fasta_file):
         ''' read -> contig mapping through bowtie2 alignment '''
         genus_dir = os.path.dirname(fasta_file)
         # build bowtie index based on assembled_contig
         bowtie_index_path = os.path.join(genus_dir, 'bowtie-contig')
         bowtie_sam = os.path.join(genus_dir, "read-contig.sam")
-        command.execute(f"mkdir -p {bowtie_index_path}; bowtie2-build {assembled_contig} {bowtie_index_path}")
-        command.execute(f"bowtie2 -x {bowtie_index_path} -f -U {fasta_file} --very-sensitive -p 32 > {bowtie_sam}")
+        if s3.check_s3_presence(self.s3_path(bowtie_sam)):
+            # reuse the generated data
+            bowtie_sam = s3.fetch_from_s3(self.s3_path(bowtie_sam), genus_dir)
+        else:
+            command.execute(f"mkdir -p {bowtie_index_path}; bowtie2-build {assembled_contig} {bowtie_index_path}")
+            command.execute(f"bowtie2 -x {bowtie_index_path} -f -U {fasta_file} --very-sensitive -p 32 > {bowtie_sam}")
         read2contig = {}
         with open(bowtie_sam, "r", encoding='utf-8') as samf:
             for line in samf:
