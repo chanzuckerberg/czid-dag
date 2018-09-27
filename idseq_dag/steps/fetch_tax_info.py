@@ -61,7 +61,7 @@ class PipelineStepFetchTaxInfo(PipelineStep):
                 semaphore.acquire()
                 t = threading.Thread(
                     target=PipelineStepFetchTaxInfo.
-                    get_wiki_content,
+                    get_wiki_content_for_page,
                     args=[taxid, pageid, taxid2wikicontent, mutex, semaphore]
                     )
                 t.start()
@@ -69,12 +69,17 @@ class PipelineStepFetchTaxInfo(PipelineStep):
         for t in threads:
             t.join()
     @staticmethod
-    def get_wiki_content(taxid, pageid, taxid2wikicontent, mutex, semaphore, max_attempt=3):
+    def get_wiki_content_for_page(taxid, pageid, taxid2wikicontent, mutex, semaphore, max_attempt=3):
         for attempt in range(max_attempt):
             try:
                 log.write(f"fetching wiki {pageid} for {taxid}")
                 page = wikipedia.page(pageid=pageid)
-                output = {"pageid" : page.pageid, "description": page.content[:1000]}
+                output = {
+                    "pageid" : page.pageid,
+                    "description": page.content[:1000],
+                    "title": page.title,
+                    "summary": page.summary
+                }
                 with mutex:
                     taxid2wikicontent[taxid] = output
                 break
