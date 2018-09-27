@@ -16,7 +16,7 @@ class PipelineStepFetchTaxInfo(PipelineStep):
     '''
     def run(self):
         '''
-            1. fetch the taxid -> wikipedia link mappin
+            1. fetch the taxid -> wikipedia link mapping
             2. fetch wikipedia content
             3. store everything
         '''
@@ -25,6 +25,8 @@ class PipelineStepFetchTaxInfo(PipelineStep):
 
         taxid2wikidict = {}
         Entrez.email = self.additional_attributes.get("entrez_email", "yunfang@chanzuckerberg.com")
+        num_threads = self.additional_attributes.get("threads", 16)
+        batch_size = self.additional_attributes.get("batch_size", 100)
 
         if s3.check_s3_presence(self.s3_path(taxid2wiki)):
             # generated
@@ -34,8 +36,6 @@ class PipelineStepFetchTaxInfo(PipelineStep):
                     (key, val) = line.rstrip("\n").split("\t")
                     taxid2wikidict[key] = val
         else:
-            num_threads = self.additional_attributes.get("threads", 16)
-            batch_size = self.additional_attributes.get("batch_size", 100)
             self.fetch_ncbi_wiki_map(num_threads, batch_size, taxid_list, taxid2wikidict)
             # output the data
             with open(taxid2wiki, 'w') as taxidoutf:
@@ -44,15 +44,16 @@ class PipelineStepFetchTaxInfo(PipelineStep):
 
         # output dummay for actual wiki content for now
         taxid2wikicontent = {}
-        self.fetching_wiki_content(taxid2wikidict, taxid2wikicontent)
+        self.fetch_wiki_content(num_threads*4, taxid2wikidict, taxid2wikicontent)
 
         with open(taxid2desc, 'w') as desc_outputf:
             json.dump(taxid2wikicontent, desc_outputf)
 
     @staticmethod
-    def fetching_wiki_content(taxid2wikidict, taxid2wikicontent):
+    def fetch_wiki_content(num_threads, taxid2wikidict, taxid2wikicontent):
+        ''' Fetch wikipedia content based on taxid2wikidict '''
         threads = []
-        semaphore = threading.Semaphore(64) # 4x the threads
+        semaphore = threading.Semaphore(num_threads)
         mutex = threading.RLock()
         for taxid, url in taxid2wikidict.items():
             m = re.search("curid=(\d+)", url)
@@ -68,8 +69,10 @@ class PipelineStepFetchTaxInfo(PipelineStep):
                 threads.append(t)
         for t in threads:
             t.join()
+
     @staticmethod
     def get_wiki_content_for_page(taxid, pageid, taxid2wikicontent, mutex, semaphore, max_attempt=3):
+        ''' Fetch wiki content for pageid '''
         for attempt in range(max_attempt):
             try:
                 log.write(f"fetching wiki {pageid} for {taxid}")
@@ -89,6 +92,7 @@ class PipelineStepFetchTaxInfo(PipelineStep):
 
     @staticmethod
     def fetch_ncbi_wiki_map(num_threads, batch_size, taxid_list, taxid2wikidict):
+        ''' Use Entrez API to fetch taxonid -> wikipedia page mapping '''
         threads = []
         semaphore = threading.Semaphore(num_threads)
         mutex = threading.RLock()
@@ -124,6 +128,7 @@ class PipelineStepFetchTaxInfo(PipelineStep):
 
     @staticmethod
     def get_taxid_mapping_for_batch(taxids, taxid2wikidict, mutex, semaphore, max_attempt=3):
+        ''' Get wiki mapping for a list of taxids '''
         taxid_str = ",".join(taxids)
         log.write(f"fetching batch {taxid_str}")
         for attempt in range(max_attempt):
