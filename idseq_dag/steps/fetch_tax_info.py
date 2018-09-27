@@ -63,24 +63,29 @@ class PipelineStepFetchTaxInfo(PipelineStep):
 
 
     @staticmethod
-    def get_taxid_mapping_for_batch(taxids, taxid2wikidict, mutex, semaphore):
+    def get_taxid_mapping_for_batch(taxids, taxid2wikidict, mutex, semaphore, max_attempt=3):
         taxid_str = ",".join(taxids)
         log.write(f"fetching batch {taxid_str}")
-        handle = Entrez.elink(dbfrom="taxonomy", id=taxid_str, cmd="llinks")
-        record = Entrez.read(handle)
-        handle.close()
+        for attempt in range(max_attempt):
+            try:
+                handle = Entrez.elink(dbfrom="taxonomy", id=taxid_str, cmd="llinks")
+                record = Entrez.read(handle)
+                handle.close()
 
-        parsed = {}
-        results = record[0]['IdUrlList']['IdUrlSet']
-        for result in results:
-            taxid = result['Id']
-            wikiurl = ""
-            for link in result['ObjUrl']:
-                url = str(link['Url'])
-                if re.search('wikipedia.org', url):
-                    wikiurl = url
-                    break
-            parsed[taxid] = wikiurl
+                parsed = {}
+                results = record[0]['IdUrlList']['IdUrlSet']
+                for result in results:
+                    taxid = result['Id']
+                    wikiurl = ""
+                    for link in result['ObjUrl']:
+                        url = str(link['Url'])
+                        if re.search('wikipedia.org', url):
+                            wikiurl = url
+                            break
+                    parsed[taxid] = wikiurl
+                break
+            except:
+                log.write(f"failed batch attempt {attempt}")
         semaphore.release()
         with mutex:
             taxid2wikidict.update(parsed)
