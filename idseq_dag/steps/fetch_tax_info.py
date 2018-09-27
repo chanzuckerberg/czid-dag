@@ -2,11 +2,13 @@ import json
 import threading
 import re
 import time
-from idseq_dag.engine.pipeline_step import PipelineStep
+import wikipedia
+from Bio import Entrez
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
+import idseq_dag.util.s3 as s3
+from idseq_dag.engine.pipeline_step import PipelineStep
 
-from Bio import Entrez
 
 class PipelineStepFetchTaxInfo(PipelineStep):
     '''
@@ -20,10 +22,68 @@ class PipelineStepFetchTaxInfo(PipelineStep):
         '''
         taxid_list = self.input_files_local[0][0]
         (taxid2wiki, taxid2desc) = self.output_files_local()
-        Entrez.email = self.additional_attributes.get("entrez_email", "yunfang@chanzuckerberg.com")
-        num_threads = self.additional_attributes.get("threads", 16)
-        batch_size = self.additional_attributes.get("batch_size", 100)
+
         taxid2wikidict = {}
+        Entrez.email = self.additional_attributes.get("entrez_email", "yunfang@chanzuckerberg.com")
+
+        if s3.check_s3_presence(self.s3_path(taxid2wiki)):
+            # generated
+            taxid2wiki = s3.fetch_from_s3(self.s3_path(taxid2wiki), taxid2wiki)
+            with open(taxid2wiki, "r") as taf:
+                for line in taf:
+                    (key, val) = line.rstrip("\n").split("\t")
+                    taxid2wikidict[key] = val
+        else:
+            num_threads = self.additional_attributes.get("threads", 16)
+            batch_size = self.additional_attributes.get("batch_size", 100)
+            self.fetch_ncbi_wiki_map(num_threads, batch_size, taxid_list, taxid2wikidict)
+            # output the data
+            with open(taxid2wiki, 'w') as taxidoutf:
+                for taxid, wikiurl in taxid2wikidict.items():
+                    taxidoutf.write(f"{taxid}\t{wikiurl}\n")
+
+        # output dummay for actual wiki content for now
+        taxid2wikicontent = {}
+        self.fetching_wiki_content(taxid2wikidict, taxid2wikicontent)
+
+        with open(taxid2desc, 'w') as desc_outputf:
+            json.dump(taxid2wikicontent, desc_outputf)
+
+    @staticmethod
+    def fetching_wiki_content(taxid2wikidict, taxid2wikicontent):
+        threads = []
+        semaphore = threading.Semaphore(64) # 4x the threads
+        mutex = threading.RLock()
+        for taxid, url in taxid2wikidict.items():
+            m = re.search("curid=(\d+)", url)
+            if m:
+                pageid = m[1]
+                semaphore.acquire()
+                t = threading.Thread(
+                    target=PipelineStepFetchTaxInfo.
+                    get_wiki_content,
+                    args=[taxid, pageid, taxid2wikicontent, mutex, semaphore]
+                    )
+                t.start()
+                threads.append(t)
+        for t in threads:
+            t.join()
+    @staticmethod
+    def get_wiki_content(taxid, pageid, taxid2wikicontent, mutex, semaphore, max_attempt=3):
+        for attempt in range(max_attempt):
+            try:
+                log.write(f"fetching wiki {pageid} for {taxid}")
+                page = wikipedia.page(pageid=pageid)
+                output = {"pageid" : page.pageid, "description": page.content[:1000]}
+                with mutex:
+                    taxid2wikicontent[taxid] = output
+                break
+            except:
+                log.write(f"having trouble fetching {taxid} wiki {pageid} attempt {attempt}")
+        semaphore.release()
+
+    @staticmethod
+    def fetch_ncbi_wiki_map(num_threads, batch_size, taxid_list, taxid2wikidict):
         threads = []
         semaphore = threading.Semaphore(num_threads)
         mutex = threading.RLock()
@@ -55,12 +115,6 @@ class PipelineStepFetchTaxInfo(PipelineStep):
             threads.append(t)
         for t in threads:
             t.join()
-        # output the data
-        with open(taxid2wiki, 'w') as taxidoutf:
-            for taxid, wikiurl in taxid2wikidict.items():
-                taxidoutf.write(f"{taxid}\t{wikiurl}\n")
-        # output dummay for actual wiki content for now
-        command.execute(f"echo 1234 > {taxid2desc}")
 
 
     @staticmethod

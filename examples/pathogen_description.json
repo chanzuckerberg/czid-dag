@@ -1,7 +1,7 @@
 {
-  "output_dir_s3": "s3://idseq-database/taxonomy/2018-04-01-utc-1522569777-unixtime__2018-04-04-utc-1522862260-unixtime/",
+  "output_dir_s3": "s3://idseq-database/taxonomy/2018-04-01-utc-1522569777-unixtime__2018-04-04-utc-1522862260-unixtime/test/",
   "targets": {
-    "taxid_list": ["taxid_list.txt"],
+    "taxid_list": ["taxid_list.test.txt"],
     "taxid_info": ["taxid2wikipedia.csv", "taxid2description.json"]
   },
   "steps": [
