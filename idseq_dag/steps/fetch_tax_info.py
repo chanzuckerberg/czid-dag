@@ -1,6 +1,7 @@
 import json
 import threading
 import re
+import time
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
@@ -86,6 +87,7 @@ class PipelineStepFetchTaxInfo(PipelineStep):
                 break
             except:
                 log.write(f"failed batch attempt {attempt}")
+                time.sleep(5)
         semaphore.release()
         with mutex:
             taxid2wikidict.update(parsed)
