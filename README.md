@@ -1,4 +1,17 @@
-# IDSEQ-DAG
+# IDseq
+#### Infectious Disease Sequencing Platform
+IDseq is an unbiased global software platform that helps scientists identify pathogens in metagenomic sequencing data.
+
+- **Discover** - Identify the pathogen landscape
+- **Detect** - Monitor and review potential outbreaks
+- **Decipher** - Find potential infecting organisms in large datasets
+
+A collaborative open project of [Chan Zuckerberg Initiative](https://www.chanzuckerberg.com/) and [Chan Zuckerberg Biohub](https://czbiohub.org).
+
+This repository contains the pipeline engine code. You can find the frontend portal at [chanzuckerberg/idseq-web](https://github.com/chanzuckerberg/idseq-web). Our command line interface is at [chanzuckerberg/idseq-cli](https://github.com/chanzuckerberg/idseq-cli).
+
+
+## IDSEQ-DAG
 
 idseq_dag is the pipeline execution engine for idseq (see idseq.net). It is a pipelining system that implements a directed acyclic graph (DAG) where the nodes (steps) correspond to individual python classes. The graph is defined using JSON.
 
@@ -206,6 +219,14 @@ IDseq DAGs require the use of several indices prepared from files in NCBI. If yo
 TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
+
+- 2.9.0
+   - Change how blacklist filter works so that if a read maps both to
+     blacklisted and non-blacklisted entries, it isn't dropped, and
+     only the non-blacklisted entries are used.  This improves recall
+     for organisms whose DNA is used in cloning vectors, such
+     as Chikunguya virus.
+
 - 2.8.0
    - Add taxon blacklist filtering at hit calling
 

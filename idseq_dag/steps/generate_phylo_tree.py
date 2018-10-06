@@ -2,6 +2,8 @@
 import os
 import json
 import shelve
+import traceback
+import xml.etree.ElementTree as ET
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.steps.generate_alignment_viz import PipelineStepGenerateAlignmentViz
@@ -22,6 +24,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     def run(self):
         output_files = self.output_files_local()
         taxid = self.additional_attributes["taxid"]
+        reference_taxids = self.additional_attributes.get("reference_taxids", [taxid]) # Note: will only produce a result if species-level or below
+        superkingdom_name = self.additional_attributes.get("superkingdom_name")
 
         # Retrieve IDseq taxon fasta files
         local_taxon_fasta_files = []
@@ -37,14 +41,14 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 s3.fetch_byterange(first_byte, last_byte, bucket, key, local_file)
                 partial_fasta_files.append(local_file)
             full_taxon_fasta = f"{self.output_dir_local}/{pipeline_run_id}.fasta"
-            PipelineStepGeneratePhyloTree.fasta_union(partial_fasta_files, full_taxon_fasta)
+            self.fasta_union(partial_fasta_files, full_taxon_fasta)
             local_taxon_fasta_files.append(full_taxon_fasta)
             for fasta in partial_fasta_files + [full_taxon_fasta]:
                 print(f"{count.reads(fasta)} reads in {fasta}")
 
         # Trim Illumina adapters
         # TODO: consider moving this to the beginning of the main pipeline
-        PipelineStepGeneratePhyloTree.trim_adapters_in_place(local_taxon_fasta_files)
+        self.trim_adapters_in_place(local_taxon_fasta_files)
 
         # knsp3 has a command (MakeKSNP3infile) for making a ksnp3-compatible input file from a directory of fasta files.
         # Before we can use the command, we symlink all fasta files to a dedicated directory.
@@ -58,20 +62,31 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
 
         # Retrieve Genbank references (full assembled genomes).
-        # For now, we skip this using the option n=0 because
-        # (a) sequences for the accession IDs actually matched by the sample are likely to be more relevant initially
-        # (b) the downloads are slow
-        # (c) the function only supports species-level taxids. If the phylo_tree's taxid in idseq-web is genus-level or higher,
-        #     then we will need to decide on a list of species/strains to be included in the tree and pass those to the function.
-        self.get_genbank_genomes(taxid, input_dir_for_ksnp3, 0)
+        genbank_fastas = self.get_genbank_genomes(reference_taxids, input_dir_for_ksnp3, superkingdom_name, 3)
 
         # Retrieve NCBI NT references for the accessions in the alignment viz files.
         # These are the accessions (not necessarily full genomes) that were actually matched
         # by the sample's reads during GSNAP alignment.
-        self.get_accession_sequences(input_dir_for_ksnp3, 10)
+        accession_fastas = self.get_accession_sequences(input_dir_for_ksnp3, 10)
+
+        # Retrieve NCBI metadata for the accessions
+        metadata_by_node = self.get_metadata_by_tree_node({**accession_fastas, **genbank_fastas})
+        metadata_output = output_files[1]
+        with open(metadata_output, 'w') as f:
+            json.dump(metadata_by_node, f)
 
         # Run MakeKSNP3infile.
-        command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {self.output_dir_local}/inputs.txt A")
+        ksnp3_input_file = f"{self.output_dir_local}/inputs.txt"
+        command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {ksnp3_input_file} A")
+
+        # Specify which genomes should be used for annotation.
+        # Specify the names of the genomes that should be used for annotation.
+        # Here, we use the full genomes from genbank.
+        annotated_genome_input = f"{self.output_dir_local}/annotated_genomes"
+        genbanbk_fasta_files = list(genbank_fastas.values())
+        if genbanbk_fasta_files:
+            grep_options = " ".join([f"-e '{path}'" for path in genbanbk_fasta_files])
+            command.execute(f"grep {grep_options} {ksnp3_input_file} | cut -f2 > {annotated_genome_input}")
 
         # Now run ksnp3.
         # We can choose among 4 different output files, see http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081760#s2:
@@ -82,48 +97,110 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         #     shared exclusively by the descendants of that node.
         # Note: for integration with idseq-web, the node names need to be the pipeline_run_ids. So if we wanted to use outputs (2)/(3)/(4),
         # we would need to parse the appended information out from the newick node names and put it in a separate data structure.
-        command.execute(f"cd {self.output_dir_local}; mkdir ksnp3_outputs; kSNP3 -in inputs.txt -outdir ksnp3_outputs -k 13")
+        k_config = {
+            # All entries to be revisited and benchmarked.
+            # Values for viruses and bacteria come from kSNP3 recommendations (13-15 / 19-21).
+            "Viruses": 14,
+            "Bacteria": 20,
+            "Eukaryota": 20,
+            None: 14
+        }
+        k = k_config[superkingdom_name]
+        ksnp_cmd = (f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
+                    f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k {k}")
+        if os.path.isfile(annotated_genome_input):
+            ksnp_cmd += f" -annotate {os.path.basename(annotated_genome_input)}"
+            # Note: produces SNP annotation file in a human-readable format that's very space inefficient (~100 MB).
+            # May want to do some postprocessing once we know better what exactly we need for the web app.
+        command.execute(ksnp_cmd)
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
+        snp_annotation_output = f"{self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated"
+        if os.path.isfile(snp_annotation_output):
+            self.additional_files_to_upload.append(snp_annotation_output)
+        else:
+            log.write(f"Warning: {snp_annotation_output} was not generated!")
+
 
     def count_reads(self):
         pass
 
-    def get_genbank_genomes(self, taxid, destination_dir, n=10):
+    def get_genbank_genomes(self, reference_taxids, destination_dir, superkingdom_name, n=10):
         '''
-        Retrieve up to n GenBank reference genomes under taxid.
-        Assumes taxid is species-level.
+        Retrieve up to n GenBank reference genomes under the reference_taxids.
+        Assumes reference_taxids are species-level or below.
+        Also assumes they are all in the same superkingdom, which is the only thing we need in our application.
         Saves the references under file names compatible with MakeKSNP3infile.
+        TODO: Retrieve the genomes from S3 rather than ftp.ncbi.nih.gov (JIRA/IDSEQ-334).
         '''
-        if n == 0:
-            return []
-        categories = ["bacteria", "viral", "fungi", "protozoa"]
-        # additional options in genbank that probably don't need right now:
+        if n == 0 or not reference_taxids:
+            return {}
+        n_per_taxid = max(n // len(reference_taxids), 1)
+        genbank_categories_by_superkingdom = {
+            "Viruses": ["viral"],
+            "Bacteria": ["bacteria"],
+            "Eukaryota": ["fungi", "protozoa"],
+            None: ["bacteria", "viral", "fungi", "protozoa"]
+        }
+        # additional options in genbank that we probably don't need right now:
         # ["archaea", "plant", 
         # "vertebrate_mammalian", "vertebrate_other", "invertebrate",
         # "other", "metagenomes"]
+        categories = genbank_categories_by_superkingdom[superkingdom_name]
         for cat in categories:
-            genome_list_path = f"ftp://ftp.ncbi.nih.gov/genomes/genbank/{cat}/assembly_summary.txt"
-            genome_list_local = f"{destination_dir}/{os.path.basename(genome_list_path)}"
-            cmd = f"wget -O {genome_list_local} {genome_list_path}; "
-            cmd += f"cut -f6,7,8,20 {genome_list_local}" # columns: 6 = taxid; 7 = species_taxid, 8 = organism name, 20 = ftp_path
-            cmd += f" | grep -P '\\t{taxid}\\t'" # try to find taxid in the species_taxids
-            cmd += f" | head -n {n} | cut -f1,3,4" # take only top n results, keep name and ftp_path
-            genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
+            genome_list_path_s3 = f"s3://idseq-database/genbank/{cat}/assembly_summary.txt" # source: ftp://ftp.ncbi.nih.gov/genomes/genbank/{cat}/assembly_summary.txt
+            genome_list_local = s3.fetch_from_s3(genome_list_path_s3, destination_dir)
+            genomes = []
+            for taxid in reference_taxids:
+                cmd = f"cut -f1,6,7,8,20 {genome_list_local}" # columns: 1 = assembly_accession; 6 = taxid; 7 = species_taxid, 8 = organism_name, 20 = ftp_path
+                cmd += f" | awk -F '\t' '$2 == {taxid}'" # try to find taxid in the taxid column (2nd column of the piped input)
+                cmd += f" | head -n {n_per_taxid}" # take only top n_per_taxid results
+                taxid_genomes = list(filter(None, command.execute_with_output(cmd).split("\n")))
+                genomes += [entry for entry in taxid_genomes if entry not in genomes]
+            genomes = genomes[:n]
             command.execute_with_output(f"rm {genome_list_local}")
             if genomes:
-                local_genbank_fastas = []
+                genbank_fastas = {}
                 for line in genomes:
-                    taxid, organism_name, ftp_path = line.split("\t")
-                    clean_organism_name = PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(organism_name)
+                    assembly_accession, taxid, species_taxid, organism_name, ftp_path = line.split("\t")
                     ftp_fasta_gz = f"{ftp_path}/{os.path.basename(ftp_path)}_genomic.fna.gz"
-                    local_fasta = f"{destination_dir}/genbank__{clean_organism_name}__taxid-{taxid}.fasta"
+                    tree_node_name = f"genbank_{self.clean_name_for_ksnp3(assembly_accession)}"
+                    local_fasta = f"{destination_dir}/{tree_node_name}.fasta"
                     if os.path.isfile(local_fasta):
                         local_fasta = f"{local_fasta.split('.')[0]}__I.fasta"
                     command.execute(f"wget -O {local_fasta}.gz {ftp_fasta_gz}")
                     command.execute(f"gunzip {local_fasta}.gz")
-                    local_genbank_fastas.append(local_fasta)
-                return local_genbank_fastas
-        return []
+                    genbank_fastas[assembly_accession] = local_fasta
+                return genbank_fastas
+        return {}
+
+    @staticmethod
+    def parse_tree(current_dict, results, key = None):
+        """
+        Produce a dictionary like:
+          { "accession 1": { "coverage_summary": ... },
+            "accession 2": { "coverage_summary": ... },
+            ...
+          }
+        from a dictionary like:
+          { "family taxid 1": {
+              "genus taxid 1": {
+                "species taxid 1": {
+                  "accession 1": { "coverage_summary": ... },
+                }
+              },
+              "genus taxid 2": {
+                "species taxid 2": {
+                  "accession 2": { "coverage_summary": ... },
+                }
+              }
+            }
+          }
+        """
+        if "coverage_summary" in current_dict:
+            results[key] = current_dict
+        else:
+            for key2, sub_dict in current_dict.items():
+                PipelineStepGeneratePhyloTree.parse_tree(sub_dict, results, key2)
 
     def get_accession_sequences(self, dest_dir, n=10):
         '''
@@ -131,7 +208,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         Write each reference to a separate fasta file.
         '''
         if n == 0:
-            return []
+            return {}
 
         # Retrieve files
         nt_db = self.additional_attributes["nt_db"]
@@ -158,7 +235,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                     align_viz_dict = json.load(f)
                 most_matched_accession = None
                 max_num_reads = 0
-                for acc, info in align_viz_dict.items():
+                flat_align_viz_dict = {}
+                self.parse_tree(align_viz_dict, flat_align_viz_dict)
+                for acc, info in flat_align_viz_dict.items():
                     num_reads = info["coverage_summary"]["num_reads"]
                     if num_reads > max_num_reads:
                         max_num_reads = num_reads
@@ -168,6 +247,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                     break
             except:
                 log.write(f"Warning: couldn't get accession from {local_file}!")
+                traceback.print_exc()
         if len(accessions) > n:
             accessions = set(list(accessions)[0:n])
 
@@ -178,16 +258,58 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             accession2info, nt_loc_dict, nt_db)
 
         # Put 1 fasta file per accession into the destination directory
-        local_accession_fastas = []
+        accession_fastas = {}
         for acc, info in accession2info.items():
-            clean_accession = PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(acc)
+            clean_accession = self.clean_name_for_ksnp3(acc)
             local_fasta = f"{dest_dir}/NCBI_NT_accession_{clean_accession}"
             command.execute(f"ln -s {info['seq_file']} {local_fasta}")
             command.execute(f"echo '>{clean_accession}' | cat - {local_fasta} > temp_file && mv temp_file {local_fasta}")
-            local_accession_fastas += local_fasta
+            accession_fastas[acc] = local_fasta
 
-        # Return paths of the new fasta files
-        return local_accession_fastas
+        # Return kept accessions and paths of their fasta files
+        return accession_fastas
+
+    @staticmethod
+    def get_accession_metadata(accession):
+        '''
+        Retrieve metadata of an NCBI accession (e.g. name, country, collection date)
+        TODO: Put this data in S3 instead and get it from there.
+        '''
+        accession_metadata = {}
+        efetch_command = ";".join([
+            f"QUERY={accession}",
+            "BASE=https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+            "SEARCH_URL=${BASE}/esearch.fcgi?db=nuccore\&term=${QUERY}\&usehistory=y",
+            "OUTPUT=$(curl $SEARCH_URL)",
+            "WEB=$(echo $OUTPUT | sed -e 's/.*<WebEnv>\(.*\)<\/WebEnv>.*/\\1/')",
+            "KEY=$(echo $OUTPUT | sed -e 's/.*<QueryKey>\(.*\)<\/QueryKey>.*/\\1/')",
+            "FETCH_URL=${BASE}/efetch.fcgi?db=nuccore\&query_key=${KEY}\&WebEnv=${WEB}\&rettype=gb\&retmode=xml",
+            f"curl $FETCH_URL"
+        ])
+        genbank_xml = command.execute_with_output(efetch_command)
+        root = ET.fromstring(genbank_xml).find('GBSeq')
+        if not root:
+            log.write(f"WARNING: {efetch_command} did not give a result")
+            return accession_metadata
+        accession_metadata['name'] = root.find('GBSeq_definition').text
+        qualifiers_needed = {'country', 'collection_date'}
+        for entry in root.find('GBSeq_feature-table')[0].find('GBFeature_quals'):
+            if all(key in accession_metadata for key in qualifiers_needed):
+                break
+            for key in qualifiers_needed - accession_metadata.keys():
+                if entry.find('GBQualifier_name').text == key:
+                    accession_metadata[key] = entry.find('GBQualifier_value').text
+        return accession_metadata
+
+    @staticmethod
+    def get_metadata_by_tree_node(accession2fasta_map):
+        metadata_by_node = {}
+        for acc, fasta in accession2fasta_map.items():
+            node = os.path.basename(os.path.splitext(fasta)[0]) # that's what kSNP3 chooses as the tree node name
+            metadata = PipelineStepGeneratePhyloTree.get_accession_metadata(acc)
+            metadata["accession"] = acc
+            metadata_by_node[node] = metadata
+        return metadata_by_node
 
     @staticmethod
     def trim_adapters_in_place(local_input_files):
@@ -199,22 +321,6 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     @staticmethod
     def clean_name_for_ksnp3(name):
         return name.replace(' ', '-').replace('.', '')
-
-    @staticmethod
-    def clean_filename_collection(local_input_files, max_length = 50):
-        # No longer used. TODO: remove this method.
-        output_map = {}
-        for idx, local_file in enumerate(local_input_files):
-            original_name = os.path.basename(local_file)
-            original_base, original_extension = original_name.rsplit(".", 1)
-            cleaned_name = f"{PipelineStepGeneratePhyloTree.clean_name_for_ksnp3(original_base)}.{original_extension}"
-            if len(cleaned_name) > max_length:
-                cleaned_name = f"{cleaned_name[:(max_length-6)]}---etc"
-            if cleaned_name in output_map.values():
-                output_map[local_file] = f"{cleaned_name}-{idx}"
-            else:
-                output_map[local_file] = cleaned_name
-        return output_map
 
     @staticmethod
     def fasta_union(partial_fasta_files, full_fasta_file):
