@@ -251,7 +251,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         if len(accessions) > n:
             accessions = set(list(accessions)[0:n])
 
-        ### HACK: JUST GET ALL THE ACCESSIONS JOE REQUESTED INSTEAD:
+        ### HACK: JUST GET ALL THE CHIKV ACCESSIONS JOE REQUESTED INSTEAD:
         accessions = set([
             'FR717336.1', 'FJ959103.1', 'KP003809.1', 'KP003808.1', 'KP003807.1', 'KP702297.1', 'KF283987.1', 'JN558835.1', 'KC149888.1', 'GU199351.1',
             'KY575570.1', 'FJ513673.1', 'FJ513645.1', 'KJ796846.1', 'KJ796845.1', 'GQ428215.1', 'FJ807898.1', 'EU372006.1', 'KY575568.1', 'FJ000065.1', 'EU564335.1',
