@@ -113,12 +113,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             # Note: produces SNP annotation file in a human-readable format that's very space inefficient (~100 MB).
             # May want to do some postprocessing once we know better what exactly we need for the web app.
         command.execute(ksnp_cmd)
-        for method in ["parsimony", "ML", "NJ", "majority"]:
-            try:
-                command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
-                break # first wins
-            except:
-                pass
+        command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
         snp_annotation_output = f"{self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated"
         if os.path.isfile(snp_annotation_output):
             self.additional_files_to_upload.append(snp_annotation_output)
