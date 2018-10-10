@@ -58,7 +58,8 @@ class PipelineStepFetchTaxInfo(PipelineStep):
 
         # output the taxid 2 wikiurl data
         with open(taxid2wiki, 'w') as taxidoutf:
-            for taxid, wikiurl in taxid2wikidict.items():
+            for taxid, val in taxid2wikidict.items():
+                wikiurl = taxid2wikicontent.get(taxid, {}).get('pageid', "")
                 taxidoutf.write(f"{taxid}\t{wikiurl}\n")
 
     @staticmethod
