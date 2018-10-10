@@ -60,8 +60,9 @@ class PipelineStepFetchTaxInfo(PipelineStep):
         with open(taxid2wiki, 'w') as taxidoutf:
             for taxid, wikiurl in taxid2wikidict.items():
                 if wikiurl == "":
-                    pageid = taxid2wikicontent.get(taxid, {}).get('pageid', "")
-                    wikiurl = f"http://en.wikipedia.org/wiki/index.html?curid={pageid}"
+                    pageid = taxid2wikicontent.get(taxid, {}).get('pageid', None)
+                    if pageid:
+                        wikiurl = f"http://en.wikipedia.org/wiki/index.html?curid={pageid}"
                 taxidoutf.write(f"{taxid}\t{wikiurl}\n")
 
     @staticmethod
