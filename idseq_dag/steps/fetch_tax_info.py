@@ -104,6 +104,13 @@ class PipelineStepFetchTaxInfo(PipelineStep):
                         wikiname = str(search_results[0])
                         if taxname.lower() == wikiname.lower():
                             page = wikipedia.page(wikiname)
+                    if not page:
+                        # query the page directly
+                        try:
+                            page = wikipedia.page(taxname.replace(" ", "_"))
+                        except:
+                            page = None
+
                 if page:
                     output = {
                         "pageid" : page.pageid,
