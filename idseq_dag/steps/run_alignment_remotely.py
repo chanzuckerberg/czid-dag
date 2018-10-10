@@ -165,7 +165,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             # Split large file into smaller named pieces
             command.execute("split -a %d --numeric-suffixes -l %d %s %s" %
                             (ndigits, chunk_nlines, input_file, out_prefix))
-            command.execute_with_retries(f"aws s3 sync --only-show-errors {self.chunks_result_dir_local}/ {self.chunks_result_dir_s3}/ --exclude '*' --include '{out_prefix_base}*'")
+            command.execute_with_retries(f"aws s3 cp --only-show-errors {self.chunks_result_dir_local}/ {self.chunks_result_dir_s3}/ --recursive --exclude '*' --include '{out_prefix_base}*'")
 
             # Get the partial file names
             partial_files = []
