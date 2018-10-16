@@ -2,11 +2,11 @@
 import json
 import os
 import traceback
+from collections import defaultdict
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
-from collections import defaultdict
 
 class PipelineStepRunAssembly(PipelineStep):
     ''' PriceSeq PipelineStep implementation '''
@@ -39,7 +39,7 @@ class PipelineStepRunAssembly(PipelineStep):
 
             # build the bowtie index based on the contigs
             PipelineStepRunAssembly.generate_read_to_contig_mapping(assembled_contig, input_fasta,
-                read2contig, bowtie_sam, contig_stats)
+                                                                    read2contig, bowtie_sam, contig_stats)
         except:
             # Assembly failed. create dummy output files
             command.execute(f"echo ';ASSEMBLY FAILED' > {assembled_contig}")
@@ -68,7 +68,7 @@ class PipelineStepRunAssembly(PipelineStep):
             json.dump(contig_stats, ocf)
 
     @staticmethod
-    def generate_info_from_sam(bowtie_sam_file, read2config, contig_stats):
+    def generate_info_from_sam(bowtie_sam_file, read2contig, contig_stats):
         with open(bowtie_sam_file, "r", encoding='utf-8') as samf:
             for line in samf:
                 if line[0] == '@':

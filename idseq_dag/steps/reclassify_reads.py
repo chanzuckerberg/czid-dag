@@ -300,7 +300,7 @@ class PipelineStepReclassifyReads(PipelineStep):
             output = [None, None, None, None]
             assembled_contig = os.path.join(genus_dir, 'contigs.fasta')
             assembled_scaffold = os.path.join(genus_dir, 'scaffolds.fasta')
-            read2config = {}
+            read2contig = {}
             contig_stats_json = os.path.join(genus_dir, 'contig_stats.json')
             bowtie_sam = os.path.join(genus_dir, 'read-contig.sam')
 
@@ -316,10 +316,10 @@ class PipelineStepReclassifyReads(PipelineStep):
                                                                read2contig, _contig_stats)
             else:
                 PipelineStepRunAssembly.assemble(fasta_file, assembled_contig, assembled_scaffold,
-                                                 bowtie_sam, contig_stats_json, read2config)
+                                                 bowtie_sam, contig_stats_json, read2contig)
 
 
-            if len(read2config) > 0: # assemble success
+            if len(read2contig) > 0: # assemble success
                 output = [assembled_contig, assembled_scaffold, read2contig, bowtie_sam]
 
             genus_assembled[genus_taxid] = output
