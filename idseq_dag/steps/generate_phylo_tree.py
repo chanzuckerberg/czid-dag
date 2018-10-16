@@ -333,8 +333,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
             command.execute(f"mv {local_file_trimmed} {local_file}")
 
-    @staticmethod
-    def trim_low_abundance_in_place(local_input_files):
+    def trim_low_abundance_in_place(self, local_input_files):
         command.execute(
             "pip3 install khmer; "
             "chmod u+x /usr/local/bin/trim-low-abund.py"
