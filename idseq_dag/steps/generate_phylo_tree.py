@@ -81,6 +81,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
         # Run MakeKSNP3infile.
         ksnp3_input_file = f"{self.output_dir_local}/inputs.txt"
+        log.write(f"INPUTS: {command.execute_with_output(f'ls {input_dir_for_ksnp3}')}")
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {ksnp3_input_file} A")
 
         # Specify which genomes should be used for annotation.
@@ -257,7 +258,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 if len(accessions) >= n:
                     break
             except:
-                log.write(f"Warning: couldn't get accession from {local_file}!")
+                log.write(f"WARNING: couldn't get accession from {local_file}!")
                 traceback.print_exc()
         if len(accessions) > n:
             accessions = set(list(accessions)[0:n])
