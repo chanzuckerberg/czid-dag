@@ -21,12 +21,23 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     and/or
       (b) Genbank full reference genomes from the same taxid.
     '''
+
+    k_config = {
+        # Chosen kmer-size as a function of kingdom.
+        # All entries to be revisited and benchmarked.
+        # Values for viruses and bacteria come from kSNP3 recommendations (13-15 / 19-21).
+        "Viruses": 14,
+        "Bacteria": 20,
+        "Eukaryota": 20,
+        None: 14
+    }
+
     def run(self):
         output_files = self.output_files_local()
         taxid = self.additional_attributes["taxid"]
         reference_taxids = self.additional_attributes.get("reference_taxids", [taxid]) # Note: will only produce a result if species-level or below
         superkingdom_name = self.additional_attributes.get("superkingdom_name")
-        k = k_config[superkingdom_name]
+        self.k = PipelineStepGeneratePhyloTree.k_config[superkingdom_name]
 
         # Retrieve IDseq taxon fasta files
         local_taxon_fasta_files = []
@@ -102,16 +113,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         #     shared exclusively by the descendants of that node.
         # Note: for integration with idseq-web, the node names need to be the pipeline_run_ids. So if we wanted to use outputs (2)/(3)/(4),
         # we would need to parse the appended information out from the newick node names and put it in a separate data structure.
-        k_config = {
-            # All entries to be revisited and benchmarked.
-            # Values for viruses and bacteria come from kSNP3 recommendations (13-15 / 19-21).
-            "Viruses": 14,
-            "Bacteria": 20,
-            "Eukaryota": 20,
-            None: 14
-        }
         ksnp_cmd = (f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
-                    f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k {k}")
+                    f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k {self.k}")
         if os.path.isfile(annotated_genome_input):
             ksnp_cmd += f" -annotate {os.path.basename(annotated_genome_input)}"
             # Note: produces SNP annotation file in a human-readable format that's very space inefficient (~100 MB).
@@ -332,27 +335,19 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
     @staticmethod
     def trim_low_abundance_in_place(local_input_files):
-        command.execute("pip3 install khmer") # TODO: move this to Dockerfile
+        command.execute(
+            "pip3 install khmer; "
+            "chmod u+x /usr/local/bin/trim-low-abund.py"
+        ) # TODO: move this to Dockerfile
         for local_file in local_input_files:
             local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
             command.execute(" ".join([
                 "trim-low-abund.py",
-                f"--cutoff 4 --trim-at-coverage 20 --max-memory-usage 100e9 --ksize {k}",
+                f"--cutoff 4 --trim-at-coverage 20 --max-memory-usage 100e9 --ksize {self.k}",
                 f"{local_file}",
                 f"--output {local_file_trimmed}"
             ]))
             command.execute(f"mv {local_file_trimmed} {local_file}")
-
-       # Trim low-abundance kmers to reduce noise
-        command.execute("pip3 install khmer") # TODO: move this to Dockerfile
-        for input_fasta in local_taxon_fasta_files:
-            command.execute(" ".join([
-                "trim-low-abund.py",
-                f"--cutoff 4 --trim-at-coverage 20 --max-memory-usage 100e9 --ksize {k}",
-                f"{input_fasta}",
-                f"--output {input_fasta}.kmer-trimmed"
-            ]))
-
 
     @staticmethod
     def clean_name_for_ksnp3(name):
