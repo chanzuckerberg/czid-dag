@@ -6,6 +6,7 @@ from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
+from collections import defaultdict
 
 class PipelineStepRunAssembly(PipelineStep):
     ''' PriceSeq PipelineStep implementation '''
@@ -47,6 +48,8 @@ class PipelineStepRunAssembly(PipelineStep):
             command.execute("echo '{}' > " +  contig_stats)
             traceback.print_exc()
 
+        command.execute(f"rm -rf {assembled_dir}")
+
     @staticmethod
     def generate_read_to_contig_mapping(assembled_contig,
                                         fasta_file,
@@ -59,8 +62,14 @@ class PipelineStepRunAssembly(PipelineStep):
         bowtie_index_path = os.path.join(base_output_dir, 'bowtie-contig')
         command.execute(f"mkdir -p {bowtie_index_path}; bowtie2-build {assembled_contig} {bowtie_index_path}")
         command.execute(f"bowtie2 -x {bowtie_index_path} -f -U {fasta_file} --very-sensitive -p 32 > {output_bowtie_sam}")
-        contig_stats = {}
-        with open(output_bowtie_sam, "r", encoding='utf-8') as samf:
+        contig_stats = defaultdict(0)
+        PipelineStepRunAssembly.generate_info_from_sam(output_bowtie_sam, read2contig, contig_stats)
+        with open(output_contig_stats, 'w') as ocf:
+            json.dump(contig_stats, ocf)
+
+    @staticmethod
+    def generate_info_from_sam(bowtie_sam_file, read2config, contig_stats):
+        with open(bowtie_sam_file, "r", encoding='utf-8') as samf:
             for line in samf:
                 if line[0] == '@':
                     continue
@@ -71,8 +80,6 @@ class PipelineStepRunAssembly(PipelineStep):
                 if contig != '*':
                     read2contig[read] = contig
 
-        with open(output_contig_stats, 'w') as ocf:
-            json.dump(contig_stats, ocf)
 
 
     def count_reads(self):
