@@ -26,6 +26,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         taxid = self.additional_attributes["taxid"]
         reference_taxids = self.additional_attributes.get("reference_taxids", [taxid]) # Note: will only produce a result if species-level or below
         superkingdom_name = self.additional_attributes.get("superkingdom_name")
+        k = k_config[superkingdom_name]
 
         # Retrieve IDseq taxon fasta files
         local_taxon_fasta_files = []
@@ -49,6 +50,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Trim Illumina adapters
         # TODO: consider moving this to the beginning of the main pipeline
         self.trim_adapters_in_place(local_taxon_fasta_files)
+
+        # Trim low-abundance kmers to reduce noise
+        self.trim_low_abundance_in_place(local_taxon_fasta_files)
 
         # knsp3 has a command (MakeKSNP3infile) for making a ksnp3-compatible input file from a directory of fasta files.
         # Before we can use the command, we symlink all fasta files to a dedicated directory.
@@ -105,7 +109,6 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             "Eukaryota": 20,
             None: 14
         }
-        k = k_config[superkingdom_name]
         ksnp_cmd = (f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
                     f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k {k}")
         if os.path.isfile(annotated_genome_input):
@@ -325,6 +328,30 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
             command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
             command.execute(f"mv {local_file_trimmed} {local_file}")
+
+    @staticmethod
+    def trim_low_abundance_in_place(local_input_files):
+        command.execute("pip3 install khmer") # TODO: move this to Dockerfile
+        for local_file in local_input_files:
+            local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
+            command.execute(" ".join([
+                "trim-low-abund.py",
+                f"--cutoff 4 --trim-at-coverage 20 --max-memory-usage 100e9 --ksize {k}",
+                f"{local_file}",
+                f"--output {local_file_trimmed}"
+            ]))
+            command.execute(f"mv {local_file_trimmed} {local_file}")
+
+       # Trim low-abundance kmers to reduce noise
+        command.execute("pip3 install khmer") # TODO: move this to Dockerfile
+        for input_fasta in local_taxon_fasta_files:
+            command.execute(" ".join([
+                "trim-low-abund.py",
+                f"--cutoff 4 --trim-at-coverage 20 --max-memory-usage 100e9 --ksize {k}",
+                f"{input_fasta}",
+                f"--output {input_fasta}.kmer-trimmed"
+            ]))
+
 
     @staticmethod
     def clean_name_for_ksnp3(name):
