@@ -106,7 +106,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 # so let's see if adding it under a new name fixes that
                 ref_path, ref_name = ref.split("\t")
                 duplicate_name = f"{ref_name}_bis"
-                command.execute(f"echo -e '{ref_path}\t{duplicate_name}' >> {ksnp3_input_file}")
+                command.execute(f"echo '{ref_path}\t{duplicate_name}' >> {ksnp3_input_file}")
                 command.execute(f"echo {duplicate_name} >> {annotated_genome_input}")
 
         # Now run ksnp3.
