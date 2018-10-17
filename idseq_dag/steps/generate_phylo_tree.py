@@ -96,13 +96,18 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {ksnp3_input_file} A")
 
         # Specify which genomes should be used for annotation.
-        # Specify the names of the genomes that should be used for annotation.
-        # Here, we use the full genomes from genbank.
         annotated_genome_input = f"{self.output_dir_local}/annotated_genomes"
-        reference_fasta_files = list(genbank_fastas.values())
+        reference_fasta_files = list(accession_fastas.values())
         if reference_fasta_files:
             grep_options = " ".join([f"-e '{path}'" for path in reference_fasta_files])
-            command.execute(f"grep {grep_options} {ksnp3_input_file} | cut -f2 > {annotated_genome_input}")
+            reference_lines = command.execute_with_output(f"grep {grep_options} {ksnp3_input_file}").splitlines()
+            for ref in reference_lines:
+                # Adding a genome to the annotate list seems to remove it from the tree,
+                # so let's see if adding it under a new name fixes that
+                ref_path, ref_name = ref.split("\t")
+                duplicate_name = f"{ref_name}_bis"
+                command.execute(f"echo -e '{ref_path}\t{duplicate_name}' >> {ksnp3_input_file}")
+                command.execute(f"echo {duplicate_name} >> {annotated_genome_input}")
 
         # Now run ksnp3.
         # We can choose among 4 different output files, see http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081760#s2:
