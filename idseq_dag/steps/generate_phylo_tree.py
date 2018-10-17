@@ -133,7 +133,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             "SNPs_all_annotated",
             "SNPs_all", "core_SNPs", "nonCore_SNPs",
             "SNP_annotations",
-            "SNPs_all_matrix.fasta", "core_SNPs_matrix.fasta"
+            "SNPs_all_matrix.fasta", "core_SNPs_matrix.fasta",
+            "COUNT_SNPs", "COUNT_coreSNPs", "Protein_Annotation_counts"
         ]]
         for snp_output in snp_annotation_outputs:
             if os.path.isfile(snp_output):
