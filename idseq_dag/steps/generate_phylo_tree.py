@@ -349,10 +349,13 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
             command.execute(" ".join([
                 "trim-low-abund.py",
-                f"--cutoff 4 --trim-at-coverage 20 --max-memory-usage 100e9 --ksize {self.k}",
+                f"--cutoff 10 --trim-at-coverage 20 --max-memory-usage 100e9 --ksize {self.k}",
                 f"{local_file}",
                 f"--output {local_file_trimmed}"
             ]))
+            
+            log.write(f"{local_file} BEFORE KHMER: {count.reads(local_file)}")
+            log.write(f"{local_file_trimmed} AFTER KHMER: {count.reads(local_file_trimmed)}")
             command.execute(f"mv {local_file_trimmed} {local_file}")
 
     @staticmethod
