@@ -99,7 +99,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Specify the names of the genomes that should be used for annotation.
         # Here, we use the full genomes from genbank.
         annotated_genome_input = f"{self.output_dir_local}/annotated_genomes"
-        reference_fasta_files = list(genbank_fastas.values()) + list(accession_fastas.values())
+        reference_fasta_files = list(genbank_fastas.values())
         if reference_fasta_files:
             grep_options = " ".join([f"-e '{path}'" for path in reference_fasta_files])
             command.execute(f"grep {grep_options} {ksnp3_input_file} | cut -f2 > {annotated_genome_input}")
