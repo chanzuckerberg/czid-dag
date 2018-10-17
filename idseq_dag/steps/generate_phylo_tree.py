@@ -77,7 +77,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             command.execute(f"ln -s {local_file} {input_dir_for_ksnp3}/{os.path.basename(local_file)}")
 
         # Retrieve Genbank references (full assembled genomes).
-        genbank_fastas = self.get_genbank_genomes(reference_taxids, input_dir_for_ksnp3, superkingdom_name, 0)
+        genbank_fastas = self.get_genbank_genomes(reference_taxids, input_dir_for_ksnp3, superkingdom_name, 1)
 
         # Retrieve NCBI NT references for the accessions in the alignment viz files.
         # These are the accessions (not necessarily full genomes) that were actually matched
@@ -96,8 +96,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {ksnp3_input_file} A")
 
         # Specify which genomes should be used for annotation.
+        # Note: the annotation functionality in ksnp is based on gi numbers and gbk files which are both deprecated.
+        #       If we want annotation to work for newer reference genomes, we'll need to find a workaround or implement annotation ourselves.
         annotated_genome_input = f"{self.output_dir_local}/annotated_genomes"
-        reference_fasta_files = list(accession_fastas.values())
+        reference_fasta_files = list(genbank_fastas.values())
         if reference_fasta_files:
             grep_options = " ".join([f"-e '{path}'" for path in reference_fasta_files])
             reference_lines = command.execute_with_output(f"grep {grep_options} {ksnp3_input_file}").splitlines()
