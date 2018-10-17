@@ -351,7 +351,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
             command.execute(" ".join([
                 "trim-low-abund.py",
-                f"--cutoff 20 --trim-at-coverage 20 --max-memory-usage 100e9 --ksize {self.k}",
+                f"--cutoff 2 --trim-at-coverage 1 --max-memory-usage 100e9 --ksize {self.k}",
                 f"{local_file}",
                 f"--output {local_file_trimmed}"
             ]))
