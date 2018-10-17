@@ -24,12 +24,13 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
     k_config = {
         # Chosen kmer-size as a function of kingdom.
+        # Must be an odd number.
         # All entries to be revisited and benchmarked.
         # Values for viruses and bacteria come from kSNP3 recommendations (13-15 / 19-21).
-        "Viruses": 14,
-        "Bacteria": 20,
-        "Eukaryota": 20,
-        None: 14
+        "Viruses": 13,
+        "Bacteria": 19,
+        "Eukaryota": 19,
+        None: 13
     }
 
     def run(self):
@@ -353,9 +354,6 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 f"{local_file}",
                 f"--output {local_file_trimmed}"
             ]))
-            
-            log.write(f"{local_file} BEFORE KHMER: {count.reads(local_file)}")
-            log.write(f"{local_file_trimmed} AFTER KHMER: {count.reads(local_file_trimmed)}")
             command.execute(f"mv {local_file_trimmed} {local_file}")
 
     @staticmethod
