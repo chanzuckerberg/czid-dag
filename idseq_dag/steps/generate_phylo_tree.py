@@ -1,5 +1,6 @@
 ''' Generate Phylogenetic tree '''
 import os
+import glob
 import json
 import shelve
 import traceback
@@ -79,24 +80,15 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         ksnp3_input_file = f"{self.output_dir_local}/inputs.txt"
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {ksnp3_input_file} A")
 
-        # Specify which genomes should be used for annotation.
-        # Specify the names of the genomes that should be used for annotation.
-        # Here, we use the full genomes from genbank.
+        # Specify the names of finished reference genomes.
+        # Used for annotation & variant-calling.
         annotated_genome_input = f"{self.output_dir_local}/annotated_genomes"
-        genbanbk_fasta_files = list(genbank_fastas.values())
+        genbanbk_fasta_files = list(genbank_fastas.values()) + list(accession_fastas.values())
         if genbanbk_fasta_files:
             grep_options = " ".join([f"-e '{path}'" for path in genbanbk_fasta_files])
             command.execute(f"grep {grep_options} {ksnp3_input_file} | cut -f2 > {annotated_genome_input}")
 
-        # Now run ksnp3.
-        # We can choose among 4 different output files, see http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081760#s2:
-        # (1) tree.parsimony.tre: basic, includes no node labels
-        # (2) tree_AlleleCounts.parsimony.tre: labels the internal nodes with the number of SNPs that are shared exclusively by the descendants of that node
-        # (3) tree_tipAlleleCounts.parsimony.tre: same as (2), but also labels the strain names at the tips with the number of SNPs that are exclusive to that strain.
-        # (4) tree_AlleleCounts.parsimony.NodeLabel.tre: labels the internal nodes with the node number separated by an underscore from the number of SNPs that are
-        #     shared exclusively by the descendants of that node.
-        # Note: for integration with idseq-web, the node names need to be the pipeline_run_ids. So if we wanted to use outputs (2)/(3)/(4),
-        # we would need to parse the appended information out from the newick node names and put it in a separate data structure.
+        # Now build ksnp3 command:
         k_config = {
             # All entries to be revisited and benchmarked.
             # Values for viruses and bacteria come from kSNP3 recommendations (13-15 / 19-21).
@@ -106,20 +98,28 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             None: 14
         }
         k = k_config[superkingdom_name]
-        ksnp_cmd = (f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
-                    f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k {k}")
+        ksnp_output_dir = f"{self.output_dir_local}/ksnp3_outputs"
+        ksnp_cmd = (f"mkdir {ksnp_output_dir}; cd {os.path.dirname(ksnp_output_dir)}; "
+                    f"kSNP3 -in inputs.txt -outdir {os.path.basename(ksnp_output_dir)} -k {k}")
+
+        # Annotate SNPs using reference genomes:
         if os.path.isfile(annotated_genome_input):
             ksnp_cmd += f" -annotate {os.path.basename(annotated_genome_input)}"
-            # Note: produces SNP annotation file in a human-readable format that's very space inefficient (~100 MB).
-            # May want to do some postprocessing once we know better what exactly we need for the web app.
-        command.execute(ksnp_cmd)
-        command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
-        snp_annotation_output = f"{self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated"
-        if os.path.isfile(snp_annotation_output):
-            self.additional_files_to_upload.append(snp_annotation_output)
-        else:
-            log.write(f"Warning: {snp_annotation_output} was not generated!")
+            self.optional_files_to_upload.append(f"{ksnp_output_dir}/SNPs_all_annotated")
 
+        # Produce VCF file with respect to first reference genome in annotated_genome_input:
+        if os.path.isfile(annotated_genome_input):
+            ksnp_cmd += " -vcf"
+
+        # Run ksnp3 command:
+        command.execute(ksnp_cmd)
+
+        # Postprocess output names in preparation for upload:
+        command.execute(f"mv {ksnp_output_dir}/tree.parsimony.tre {output_files[0]}")
+        ksnp_vcf_file = glob.glob(f"{ksnp_output_dir}/*.vcf")[:1]
+        target_vcf_file = f"{ksnp_output_dir}/variants_reference1.vcf"
+        command.execute(f"mv {ksnp_vcf_file} {target_vcf_file}")
+        self.optional_files_to_upload.append(target_vcf_file)
 
     def count_reads(self):
         pass
