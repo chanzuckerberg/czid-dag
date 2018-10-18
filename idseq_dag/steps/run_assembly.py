@@ -17,15 +17,17 @@ class PipelineStepRunAssembly(PipelineStep):
         input_fasta = self.input_files_local[0][-1]
         assembled_contig, assembled_scaffold, bowtie_sam, contig_stats = self.output_files_local()
         read2contig = {}
+        memory = self.additional_attributes.get('memory', 100)
         self.assemble(input_fasta, assembled_contig, assembled_scaffold,
-                      bowtie_sam, contig_stats, read2contig)
+                      bowtie_sam, contig_stats, read2contig, int(memory))
     @staticmethod
     def assemble(input_fasta,
                  assembled_contig,
                  assembled_scaffold,
                  bowtie_sam,
                  contig_stats,
-                 read2contig):
+                 read2contig,
+                 memory=100):
         basedir = os.path.dirname(assembled_contig)
         assembled_dir = os.path.join(basedir, 'spades')
         command.execute(f"mkdir -p {assembled_dir}")

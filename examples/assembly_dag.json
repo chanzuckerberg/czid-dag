@@ -20,7 +20,7 @@
       "class": "PipelineStepRunAssembly",
       "module": "idseq_dag.steps.run_assembly",
       "additional_files": {},
-      "additional_attributes": { }
+      "additional_attributes": {"memory": 200}
     }
   ],
   "given_targets": {
