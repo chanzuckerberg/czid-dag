@@ -103,6 +103,10 @@ RUN pip3 install pandas
 # For adapter trimming (for phylogenetic trees)
 RUN apt install python-cutadapt
 
+# for low-abundance kmer trimming (khmer, used for phylo trees)
+RUN pip3 install khmer
+RUN chmod u+x /usr/local/bin/trim-low-abund.py
+
 # For phylogenetic trees
 WORKDIR /tmp
 RUN wget https://sourceforge.net/projects/ksnp/files/kSNP3.1_Linux_package.zip
