@@ -62,7 +62,7 @@ class PipelineStepRunAssembly(PipelineStep):
         bowtie_index_path = os.path.join(base_output_dir, 'bowtie-contig')
         command.execute(f"mkdir -p {bowtie_index_path}; bowtie2-build {assembled_contig} {bowtie_index_path}")
         command.execute(f"bowtie2 -x {bowtie_index_path} -f -U {fasta_file} --very-sensitive -p 32 > {output_bowtie_sam}")
-        contig_stats = defaultdict(0)
+        contig_stats = defaultdict(int)
         PipelineStepRunAssembly.generate_info_from_sam(output_bowtie_sam, read2contig, contig_stats)
         with open(output_contig_stats, 'w') as ocf:
             json.dump(contig_stats, ocf)

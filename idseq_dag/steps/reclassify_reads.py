@@ -311,7 +311,7 @@ class PipelineStepReclassifyReads(PipelineStep):
                 assembled_contig = s3.fetch_from_s3(self.s3_path(assembled_contig), genus_dir)
                 assembled_scaffold = s3.fetch_from_s3(self.s3_path(assembled_scaffold), genus_dir)
                 bowtie_sam = s3.fetch_from_s3(self.s3_path(bowtie_sam), genus_dir)
-                _contig_stats = defaultdict(0)
+                _contig_stats = defaultdict(int)
                 PipelineStepRunAssembly.generate_info_from_sam(bowtie_sam,
                                                                read2contig, _contig_stats)
             else:
