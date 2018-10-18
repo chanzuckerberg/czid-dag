@@ -100,7 +100,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Note: the annotation functionality in ksnp is based on gi numbers and gbk files which are both deprecated.
         #       If we want annotation to work for newer reference genomes, we'll need to find a workaround or implement annotation ourselves.
         annotated_genome_input = f"{self.output_dir_local}/annotated_genomes"
-        reference_fasta_files = list(genbank_fastas.values())
+        reference_fasta_files = list(genbank_fastas.values()) + list(accession_fastas.values())
         if reference_fasta_files:
             grep_options = " ".join([f"-e '{path}'" for path in reference_fasta_files])
             reference_lines = command.execute_with_output(f"grep {grep_options} {ksnp3_input_file}").splitlines()
@@ -125,8 +125,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                     f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k {self.k}")
         if os.path.isfile(annotated_genome_input):
             ksnp_cmd += f" -annotate {os.path.basename(annotated_genome_input)}"
-            # Note: produces SNP annotation file in a human-readable format that's very space inefficient (~100 MB).
-            # May want to do some postprocessing once we know better what exactly we need for the web app.
+            ksnp_cmd += " -vcf" # produce VCF file with respect to first genome in annotated_genome_input
         command.execute(ksnp_cmd)
         command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
         snp_annotation_outputs = [f"{self.output_dir_local}/ksnp3_outputs/{filename}" for filename in [
@@ -141,6 +140,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 self.additional_files_to_upload.append(snp_output)
             else:
                 log.write(f"Warning: {snp_output} was not generated!")
+        vcf_outputs = glob.glob(f"{self.output_dir_local}/ksnp3_outputs/*.vcf")
+        self.additional_files_to_upload.extend(vcf_outputs)
 
         # Get ksnp3-generated list of genomes used in annotation, for debugging purposes
         self.additional_files_to_upload.append(f"{self.output_dir_local}/ksnp3_outputs/genbank_from_NCBI.gbk")
