@@ -83,9 +83,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Specify the names of finished reference genomes.
         # Used for annotation & variant-calling.
         annotated_genome_input = f"{self.output_dir_local}/annotated_genomes"
-        genbanbk_fasta_files = list(genbank_fastas.values()) + list(accession_fastas.values())
-        if genbanbk_fasta_files:
-            grep_options = " ".join([f"-e '{path}'" for path in genbanbk_fasta_files])
+        reference_fasta_files = list(genbank_fastas.values()) + list(accession_fastas.values())
+        if reference_fasta_files:
+            grep_options = " ".join([f"-e '{path}'" for path in reference_fasta_files])
             command.execute(f"grep {grep_options} {ksnp3_input_file} | cut -f2 > {annotated_genome_input}")
 
         # Now build ksnp3 command:
@@ -103,11 +103,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                     f"kSNP3 -in inputs.txt -outdir {os.path.basename(ksnp_output_dir)} -k {k}")
 
         # Annotate SNPs using reference genomes:
-        ''' Commented out until we fix its problems (gi vs accession)
+        # TODO: fix gi vs accession problem
         if os.path.isfile(annotated_genome_input):
             ksnp_cmd += f" -annotate {os.path.basename(annotated_genome_input)}"
             self.optional_files_to_upload.append(f"{ksnp_output_dir}/SNPs_all_annotated")
-        '''
 
         # Produce VCF file with respect to first reference genome in annotated_genome_input:
         if os.path.isfile(annotated_genome_input):
@@ -123,6 +122,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             target_vcf_file = f"{ksnp_output_dir}/variants_reference1.vcf"
             command.execute(f"mv {ksnp_vcf_file[0]} {target_vcf_file}")
             self.additional_files_to_upload.append(target_vcf_file)
+
+        # Upload all kSNP3 output files for potential future reference
+        supplementary_files = [f for f in glob.glob(f"{ksnp_output_dir}/*") if f not in self.additional_files_to_upload + self.optional_files_to_upload]
+        self.additional_files_to_upload.extend(supplementary_files)
 
     def count_reads(self):
         pass
