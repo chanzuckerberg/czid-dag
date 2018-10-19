@@ -38,7 +38,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         taxid = self.additional_attributes["taxid"]
         reference_taxids = self.additional_attributes.get("reference_taxids", [taxid]) # Note: will only produce a result if species-level or below
         superkingdom_name = self.additional_attributes.get("superkingdom_name")
-        self.k = PipelineStepGeneratePhyloTree.k_config[superkingdom_name]
+        self.k = self.k_config[superkingdom_name]
 
         # Retrieve IDseq taxon fasta files
         local_taxon_fasta_files = []
