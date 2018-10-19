@@ -2,6 +2,7 @@
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.count as count
+import idseq_dag.util.s3 as s3
 
 class PipelineStepRunTrimmomatic(PipelineStep):
     ''' Trimmomatic PipelineStep implementation '''
@@ -18,7 +19,9 @@ class PipelineStepRunTrimmomatic(PipelineStep):
         input_files = self.input_files_local[0][0:2]
         output_files = self.output_files_local()
         is_paired = (len(input_files) == 2)
-        adapter_fasta = self.additional_files["adapter_fasta"]
+        adapter_fasta = s3.fetch_from_s3(
+            self.additional_files["adapter_fasta"],
+            self.ref_dir_local)
 
         if is_paired:
             paired_arg = "PE"
