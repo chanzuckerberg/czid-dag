@@ -4,7 +4,7 @@ import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
 
-class PipelineStepRunPriceSeq(PipelineStep):
+class PipelineStepRunTrimmomatic(PipelineStep):
     ''' Trimmomatic PipelineStep implementation '''
     def run(self):
         """
@@ -14,61 +14,34 @@ class PipelineStepRunPriceSeq(PipelineStep):
         Discard any reads that become too short.
         Also trim any residual Illumina adapters.
 
-        java -jar trimmomatic-0.38.jar PE -phred33
-          input_R1.fq.gz input_R2.fq.gz
-          output_R1_paired.fq.gz output_R1_unpaired.fq.gz
-          output_R2_paired.fq.gz output_R2_unpaired.fq.gz
-          ILLUMINACLIP:TruSeq3-PE.fa:2:30:10
-          LEADING:25 TRAILING:25 SLIDINGWINDOW:4:25 MINLEN:35
-
         See: http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
         """
         input_files = self.input_files_local[0][0:2]
         output_files = self.output_files_local()
         is_paired = (len(input_files) == 2)
+        adapter_fasta = self.additional_files["adapter_fasta"]
 
-        # PriceSeqFilter determines input type based on extension. It will
-        # throw an exception if output extension doesn't match input
-        # extension.
-        file_type = self.additional_attributes.get("file_type", "fastq")
-        price_out = [
-            f"{f}_priceseqfilter_output.{file_type}" for f in input_files
-        ]
-
-        params = ["PriceSeqFilter", '-a', '12', '-rnf', '90', '-log', 'c']
         if is_paired:
-            params.extend([
-                '-fp', input_files[0], input_files[1], '-op', price_out[0],
-                price_out[1]
-            ])
+            paired_arg = "PE"
+            output_args = [output_files[0],                  # R1, paired, to be kept
+                           f"{output_files[0]}__unpaired",   # R1, no longer paired, to be discarded
+                           output_files[1],                  # R2, paired, to be kept
+                           f"{output_files[1]}__unpaired"]   # R2, no longer paired, to be discarded
         else:
-            params.extend(['-f', input_files[0], '-o', price_out[0]])
-        if "fasta" not in file_type:  # Default fastq. Explicitly specify fasta.
-            params.extend(['-rqf', '85', '0.98'])
-        cmd = " ".join(params)
-        command.execute(cmd)
+            paired_arg = "SE"
+            output_args = output_files
 
-        # Run FASTQ to FASTA if needed
-        if file_type != 'fasta' and file_type != 'fa':
-            # Fastq
-            self.fq2fa(price_out[0], output_files[0])
-            if is_paired:
-                self.fq2fa(price_out[1], output_files[1])
-        else:
-            command.execute(f"mv {price_out[0]} {output_files[0]}")
-            if is_paired:
-                command.execute(f"mv {price_out[1]} {output_files[1]}")
+        cmd = " ".join([
+            "java -jar trimmomatic-0.38.jar",
+            paired_arg,
+            "-phred33",
+            *input_files,
+            *output_args,
+            f"ILLUMINACLIP:{adapter_fasta}:2:30:10",
+            "LEADING:25 TRAILING:25 SLIDINGWINDOW:4:25 MINLEN:35"
+        ])
 
     def count_reads(self):
         ''' Count reads '''
         self.should_count_reads = True
         self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
-
-    @staticmethod
-    def fq2fa(input_fastq, output_fasta):
-        ''' FASTQ to FASTA conversion '''
-        step = "FASTQ to FASTA conversion"
-        log.write(f"Starting {step}...")
-        cmd = f"sed -n '1~4s/^@/>/p;2~4p' <{input_fastq} >{output_fasta}"
-        command.execute(cmd)
-        log.write(f"Finished {step}.")
