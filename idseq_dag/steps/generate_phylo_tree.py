@@ -267,9 +267,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         accession_fastas = {}
         for acc, info in accession2info.items():
             clean_accession = self.clean_name_for_ksnp3(acc)
-            local_fasta = f"{dest_dir}/NCBI_NT_accession_{clean_accession}"
+            local_fasta = f"{dest_dir}/NCBI_NT_accession_{clean_accession}.fasta"
             command.execute(f"ln -s {info['seq_file']} {local_fasta}")
-            command.execute(f"echo '>{clean_accession}' | cat - {local_fasta} > temp_file && mv temp_file {local_fasta}")
+            command.execute(f"echo '>{acc}' | cat - {local_fasta} > temp_file && mv temp_file {local_fasta}")
             accession_fastas[acc] = local_fasta
 
         # Return kept accessions and paths of their fasta files
