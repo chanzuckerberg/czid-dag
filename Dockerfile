@@ -106,7 +106,7 @@ WORKDIR /tmp
 RUN wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.38.zip
 RUN unzip Trimmomatic-0.38.zip
 RUN mv Trimmomatic-0.38/trimmomatic-0.38.jar /usr/local/bin/
-RUN apt install default-jre
+RUN apt-get install -y default-jre
 
 # For phylogenetic trees
 WORKDIR /tmp
