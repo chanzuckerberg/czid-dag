@@ -86,17 +86,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         reference_fasta_files = list(accession_fastas.values()) + list(genbank_fastas.values())
         if reference_fasta_files:
             grep_options = " ".join([f"-e '{path}'" for path in reference_fasta_files])
-            reference_lines = command.execute_with_output(f"grep {grep_options} {ksnp3_input_file}").splitlines()
-            for ref in reference_lines:
-                # Adding a genome to the annotate list removes it from the tree,
-                # so we need to add it under a new name
-                ref_path, ref_name = ref.split("\t")
-                print(f"ACCESSION NUMBER OF READS: {count.reads(fasta)} in {ref_path}")
-                duplicate_name = f"_{ref_name}"
-                duplicate_path = f"{os.path.dirname(ref_path)}/_{os.path.basename(ref_path)}"
-                command.execute(f"ln -s {ref_path} {duplicate_path}")
-                command.execute(f"echo '{duplicate_path}\t{duplicate_name}' >> {ksnp3_input_file}")
-                command.execute(f"echo {duplicate_name} >> {annotated_genome_input}")
+            command.execute(f"grep {grep_options} {ksnp3_input_file} | cut -f2 > {annotated_genome_input}")
 
         # Now build ksnp3 command:
         k_config = {
