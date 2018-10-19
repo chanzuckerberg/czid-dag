@@ -93,7 +93,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 ref_path, ref_name = ref.split("\t")
                 print(f"ACCESSION NUMBER OF READS: {count.reads(fasta)} in {ref_path}")
                 duplicate_name = f"_{ref_name}"
-                duplicate_path = f"{os.path.dirname(ref_path)/_{os.path.basename(ref_path)}"
+                duplicate_path = f"{os.path.dirname(ref_path)}/_{os.path.basename(ref_path)}"
                 command.execute(f"ln -s {ref_path} {duplicate_path}")
                 command.execute(f"echo '{duplicate_path}\t{duplicate_name}' >> {ksnp3_input_file}")
                 command.execute(f"echo {duplicate_name} >> {annotated_genome_input}")
