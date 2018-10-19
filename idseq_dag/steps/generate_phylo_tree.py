@@ -91,6 +91,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 # Adding a genome to the annotate list removes it from the tree,
                 # so we need to add it under a new name
                 ref_path, ref_name = ref.split("\t")
+                print(f"ACCESSION NUMBER OF READS: {count.reads(fasta)} in {ref_path}")
                 duplicate_name = f"_{ref_name}"
                 duplicate_path = f"{os.path.dirname(ref_path)/_{os.path.basename(ref_path)}"
                 command.execute(f"ln -s {ref_path} {duplicate_path}")
