@@ -83,7 +83,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Specify the names of finished reference genomes.
         # Used for annotation & variant-calling.
         annotated_genome_input = f"{self.output_dir_local}/annotated_genomes"
-        reference_fasta_files = list(genbank_fastas.values()) + list(accession_fastas.values())
+        reference_fasta_files = list(accession_fastas.values()) + list(genbank_fastas.values())
         if reference_fasta_files:
             grep_options = " ".join([f"-e '{path}'" for path in reference_fasta_files])
             reference_lines = command.execute_with_output(f"grep {grep_options} {ksnp3_input_file}").splitlines()
