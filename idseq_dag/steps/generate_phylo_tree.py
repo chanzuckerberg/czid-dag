@@ -103,9 +103,11 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                     f"kSNP3 -in inputs.txt -outdir {os.path.basename(ksnp_output_dir)} -k {k}")
 
         # Annotate SNPs using reference genomes:
+        ''' Commented out until we fix its problems (gi vs accession)
         if os.path.isfile(annotated_genome_input):
             ksnp_cmd += f" -annotate {os.path.basename(annotated_genome_input)}"
             self.optional_files_to_upload.append(f"{ksnp_output_dir}/SNPs_all_annotated")
+        '''
 
         # Produce VCF file with respect to first reference genome in annotated_genome_input:
         if os.path.isfile(annotated_genome_input):
@@ -116,10 +118,11 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
         # Postprocess output names in preparation for upload:
         command.execute(f"mv {ksnp_output_dir}/tree.parsimony.tre {output_files[0]}")
-        ksnp_vcf_file = glob.glob(f"{ksnp_output_dir}/*.vcf")[:1]
-        target_vcf_file = f"{ksnp_output_dir}/variants_reference1.vcf"
-        command.execute(f"mv {ksnp_vcf_file} {target_vcf_file}")
-        self.optional_files_to_upload.append(target_vcf_file)
+        ksnp_vcf_file = glob.glob(f"{ksnp_output_dir}/*.vcf")
+        if ksnp_vcf_file:
+            target_vcf_file = f"{ksnp_output_dir}/variants_reference1.vcf"
+            command.execute(f"mv {ksnp_vcf_file[0]} {target_vcf_file}")
+            self.additional_files_to_upload.append(target_vcf_file)
 
     def count_reads(self):
         pass
