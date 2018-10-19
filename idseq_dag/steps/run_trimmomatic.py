@@ -1,7 +1,6 @@
 ''' Run Trimmomatic '''
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
-import idseq_dag.util.log as log
 import idseq_dag.util.count as count
 
 class PipelineStepRunTrimmomatic(PipelineStep):
@@ -32,7 +31,7 @@ class PipelineStepRunTrimmomatic(PipelineStep):
             output_args = output_files
 
         cmd = " ".join([
-            "java -jar trimmomatic-0.38.jar",
+            "java -jar /usr/local/bin/trimmomatic-0.38.jar",
             paired_arg,
             "-phred33",
             *input_files,
@@ -40,6 +39,7 @@ class PipelineStepRunTrimmomatic(PipelineStep):
             f"ILLUMINACLIP:{adapter_fasta}:2:30:10",
             "LEADING:25 TRAILING:25 SLIDINGWINDOW:4:25 MINLEN:35"
         ])
+        command.execute(cmd)
 
     def count_reads(self):
         ''' Count reads '''
