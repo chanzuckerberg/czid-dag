@@ -102,10 +102,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         k_config = {
             # All entries to be revisited and benchmarked.
             # Values for viruses and bacteria come from kSNP3 recommendations (13-15 / 19-21).
-            "Viruses": 14,
-            "Bacteria": 20,
-            "Eukaryota": 20,
-            None: 14
+            "Viruses": 13,
+            "Bacteria": 19,
+            "Eukaryota": 19,
+            None: 13
         }
         k = k_config[superkingdom_name]
         ksnp_output_dir = f"{self.output_dir_local}/ksnp3_outputs"
