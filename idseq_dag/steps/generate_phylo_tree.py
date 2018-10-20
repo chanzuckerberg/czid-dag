@@ -2,6 +2,7 @@
 import os
 import glob
 import json
+import threading
 import shelve
 import traceback
 import xml.etree.ElementTree as ET
@@ -49,7 +50,13 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
         # Trim Illumina adapters
         # TODO: consider moving this to the beginning of the main pipeline
-        self.trim_adapters_in_place(local_taxon_fasta_files)
+        threads = []
+        for taxon_fasta in local_taxon_fasta_files:
+            t = threading.Thread(target=self.trim_adapters_in_place, args=(taxon_fasta,))
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
 
         # knsp3 has a command (MakeKSNP3infile) for making a ksnp3-compatible input file from a directory of fasta files.
         # Before we can use the command, we symlink all fasta files to a dedicated directory.
@@ -319,12 +326,12 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             metadata_by_node[node] = metadata
         return metadata_by_node
 
+    @command.run_in_subprocess
     @staticmethod
-    def trim_adapters_in_place(local_input_files):
-        for local_file in local_input_files:
-            local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
-            command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
-            command.execute(f"mv {local_file_trimmed} {local_file}")
+    def trim_adapters_in_place(local_file):
+        local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
+        command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file} >/dev/null")
+        command.execute(f"mv {local_file_trimmed} {local_file}")
 
     @staticmethod
     def clean_name_for_ksnp3(name):
