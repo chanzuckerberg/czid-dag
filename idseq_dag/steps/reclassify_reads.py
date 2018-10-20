@@ -190,14 +190,17 @@ class PipelineStepReclassifyReads(PipelineStep):
                 if db_type == 'nr':
                     blast_type = 'prot'
                     blast_command = 'blastx'
-                command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path}")
-                # blast the contig to the blast index
-                output_m8 = os.path.join(genus_dir, 'blast.m8')
-                top_entry_m8 = os.path.join(genus_dir, 'blast_top.m8')
-                command.execute(f"{blast_command} -query {contig} -db {blast_index_path} -out {output_m8} -outfmt 6 -num_alignments 5 -num_threads 32")
-                # further processing of getting the top m8 entry for each contig.
-                PipelineStepReclassifyReads.get_top_m8(output_m8, top_entry_m8)
-                genus_blast_m8[genus_taxid] = (output_m8, top_entry_m8, reference_fasta)
+                try:
+                    command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path}")
+                    # blast the contig to the blast index
+                    output_m8 = os.path.join(genus_dir, 'blast.m8')
+                    top_entry_m8 = os.path.join(genus_dir, 'blast_top.m8')
+                    command.execute(f"{blast_command} -query {contig} -db {blast_index_path} -out {output_m8} -outfmt 6 -num_alignments 5 -num_threads 32")
+                    # further processing of getting the top m8 entry for each contig.
+                    PipelineStepReclassifyReads.get_top_m8(output_m8, top_entry_m8)
+                    genus_blast_m8[genus_taxid] = (output_m8, top_entry_m8, reference_fasta)
+                except:
+                    traceback.print_exc()
         return genus_blast_m8
 
     @staticmethod
@@ -311,7 +314,7 @@ class PipelineStepReclassifyReads(PipelineStep):
                     assembled_scaffold = s3.fetch_from_s3(self.s3_path(assembled_scaffold),
                                                           genus_dir)
                 else:
-                    command.execute(f"spades.py -s {fasta_file} -o {assembled_dir} -m 60 -t 32 --only-assembler")
+                    command.execute(f"spades.py -s {fasta_file} -o {assembled_dir} -m 100 -t 32 --only-assembler")
                     command.execute(f"mv {assembled_contig_tmp} {assembled_contig}")
                     command.execute(f"mv {assembled_scaffold_tmp} {assembled_scaffold}")
 
