@@ -24,7 +24,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     '''
     def run(self):
         output_files = self.output_files_local()
-        local_taxon_fasta_files = self.input_files_local[0]
+        local_taxon_fasta_files = [f for input_item in self.input_files_local[0] for f in input_item]
         taxid = self.additional_attributes["taxid"]
         reference_taxids = self.additional_attributes.get("reference_taxids", [taxid]) # Note: will only produce a result if species-level or below
         superkingdom_name = self.additional_attributes.get("superkingdom_name")
