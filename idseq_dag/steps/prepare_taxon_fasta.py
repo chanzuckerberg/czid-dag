@@ -13,9 +13,7 @@ class PipelineStepPrepareTaxonFasta(PipelineStep):
     To be used as input for phylo_trees.
     '''
     def run(self):
-        output_files = self.output_files_local()
-        taxid = self.additional_attributes["taxid"]
-        superkingdom_name = self.additional_attributes.get("superkingdom_name")
+        output_file = self.output_files_local()[0]
 
         # Retrieve IDseq taxon fasta files
         local_taxon_fasta_files = []
@@ -30,15 +28,13 @@ class PipelineStepPrepareTaxonFasta(PipelineStep):
                 local_file = os.path.join(self.output_dir_local, local_basename)
                 s3.fetch_byterange(first_byte, last_byte, bucket, key, local_file)
                 partial_fasta_files.append(local_file)
-            full_taxon_fasta = f"{self.output_dir_local}/{pipeline_run_id}.fasta"
-            self.fasta_union(partial_fasta_files, full_taxon_fasta)
-            local_taxon_fasta_files.append(full_taxon_fasta)
-            for fasta in partial_fasta_files + [full_taxon_fasta]:
+            self.fasta_union(partial_fasta_files, output_file)
+            for fasta in partial_fasta_files + [output_file]:
                 print(f"{count.reads(fasta)} reads in {fasta}")
 
         # Trim Illumina adapters
         # TODO: consider moving this to the beginning of the main pipeline
-        self.trim_adapters_in_place(local_taxon_fasta_files)
+        self.trim_adapters_in_place(output_file)
 
     def count_reads(self):
         pass
