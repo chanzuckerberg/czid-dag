@@ -51,7 +51,7 @@ class PipelineStepReclassifyReads(PipelineStep):
             self.ref_dir_local,
             allow_s3mi=True)
 
-        (read_dict, accession_dict, selected_genera) = self.summarize_hits(hit_summary)
+        (read_dict, accession_dict, selected_genera) = m8.summarize_hits(hit_summary, MIN_READS_PER_GENUS)
         output_basedir = os.path.join(self.output_dir_local, f"assembled_{db_type}")
 
         # Start a non-blocking function for download ref sequences
@@ -354,34 +354,6 @@ class PipelineStepReclassifyReads(PipelineStep):
             genus_fasta_files[genus_taxid] = output_file
 
         return genus_fasta_files
-
-    @staticmethod
-    def summarize_hits(hit_summary_file):
-        ''' Parse the hit summary file and get the relevant into'''
-        read_dict = {} # read_id => line
-        accession_dict = {} # accession => (species, genus)
-        genus_read_counts = defaultdict(int) # genus => read_counts
-        genus_species = defaultdict(set) # genus => list of species
-        genus_accessions = defaultdict(set) # genus => list of accessions
-        total_reads = 0
-        with open(hit_summary_file, 'r') as hsf:
-            for line in hsf:
-                read = line.rstrip().split("\t")
-                accession_id, species_taxid, genus_taxid = read[3:6]
-                read_dict[read[0]] = read
-                total_reads += 1
-                if accession_id == 'None' or accession_id == "" or int(genus_taxid) < 0:
-                    continue
-                accession_dict[accession_id] = (species_taxid, genus_taxid)
-                genus_read_counts[genus_taxid] += 1
-                genus_species[genus_taxid].add(species_taxid)
-                genus_accessions[genus_taxid].add(accession_id)
-        selected_genera = {} # genus => accession_list
-        for genus_taxid, reads in genus_read_counts.items():
-            if reads >= MIN_READS_PER_GENUS and len(genus_species[genus_taxid]) > 1:
-                selected_genera[genus_taxid] = list(genus_accessions[genus_taxid])
-
-        return (read_dict, accession_dict, selected_genera)
 
 
     def count_reads(self):

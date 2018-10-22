@@ -19,6 +19,33 @@ def log_corrupt(m8_file, line):
     log.write(msg)
     return msg
 
+def summarize_hits(hit_summary_file, min_reads_per_genus = 0):
+    ''' Parse the hit summary file from alignment and get the relevant into'''
+    read_dict = {} # read_id => line
+    accession_dict = {} # accession => (species, genus)
+    genus_read_counts = defaultdict(int) # genus => read_counts
+    genus_species = defaultdict(set) # genus => list of species
+    genus_accessions = defaultdict(set) # genus => list of accessions
+    total_reads = 0
+    with open(hit_summary_file, 'r') as hsf:
+        for line in hsf:
+            read = line.rstrip().split("\t")
+            accession_id, species_taxid, genus_taxid = read[3:6]
+            read_dict[read[0]] = read
+            total_reads += 1
+            if accession_id == 'None' or accession_id == "":
+                continue
+            accession_dict[accession_id] = (species_taxid, genus_taxid)
+            if int(genus_taxid) > 0:
+                genus_read_counts[genus_taxid] += 1
+                genus_species[genus_taxid].add(species_taxid)
+                genus_accessions[genus_taxid].add(accession_id)
+    selected_genera = {} # genus => accession_list
+    for genus_taxid, reads in genus_read_counts.items():
+        if reads >= min_reads_per_genus and len(genus_species[genus_taxid]) > 1:
+            selected_genera[genus_taxid] = list(genus_accessions[genus_taxid])
+
+    return (read_dict, accession_dict, selected_genera)
 
 def iterate_m8(m8_file, debug_caller=None, logging_interval=25000000):
     """Generate an iterator over the m8 file and return (read_id,
