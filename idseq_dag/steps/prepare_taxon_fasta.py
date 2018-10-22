@@ -14,23 +14,22 @@ class PipelineStepPrepareTaxonFasta(PipelineStep):
     '''
     def run(self):
         output_file = self.output_files_local()[0]
+        byterange_dict = self.additional_attributes["taxon_byteranges"]
 
         # Retrieve IDseq taxon fasta files
-        local_taxon_fasta_files = []
-        for pipeline_run_id, byterange_dict in self.additional_attributes["taxon_byteranges"].items():
-            partial_fasta_files = []
-            for hit_type, byterange in byterange_dict.items():
-                first_byte = byterange[0]
-                last_byte = byterange[1]
-                s3_file = byterange[2]
-                local_basename = f"{pipeline_run_id}_{hit_type}.fasta"
-                bucket, key = s3.split_identifiers(s3_file)
-                local_file = os.path.join(self.output_dir_local, local_basename)
-                s3.fetch_byterange(first_byte, last_byte, bucket, key, local_file)
-                partial_fasta_files.append(local_file)
-            self.fasta_union(partial_fasta_files, output_file)
-            for fasta in partial_fasta_files + [output_file]:
-                print(f"{count.reads(fasta)} reads in {fasta}")
+        partial_fasta_files = []
+        for hit_type, byterange in byterange_dict.items():
+            first_byte = byterange[0]
+            last_byte = byterange[1]
+            s3_file = byterange[2]
+            local_basename = f"{hit_type}_{os.path.basename(output_file)}.fasta"
+            bucket, key = s3.split_identifiers(s3_file)
+            local_file = os.path.join(self.output_dir_local, local_basename)
+            s3.fetch_byterange(first_byte, last_byte, bucket, key, local_file)
+            partial_fasta_files.append(local_file)
+        self.fasta_union(partial_fasta_files, output_file)
+        for fasta in partial_fasta_files + [output_file]:
+            print(f"{count.reads(fasta)} reads in {fasta}")
 
         # Trim Illumina adapters
         # TODO: consider moving this to the beginning of the main pipeline
