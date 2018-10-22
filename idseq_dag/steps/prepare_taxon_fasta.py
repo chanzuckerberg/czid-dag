@@ -39,11 +39,10 @@ class PipelineStepPrepareTaxonFasta(PipelineStep):
         pass
 
     @staticmethod
-    def trim_adapters_in_place(local_input_files):
-        for local_file in local_input_files:
-            local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
-            command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
-            command.execute(f"mv {local_file_trimmed} {local_file}")
+    def trim_adapters_in_place(local_file):
+        local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
+        command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
+        command.execute(f"mv {local_file_trimmed} {local_file}")
 
     @staticmethod
     def fasta_union(partial_fasta_files, full_fasta_file):
