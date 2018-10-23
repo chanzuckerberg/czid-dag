@@ -193,7 +193,7 @@ class PipelineStepReclassifyReads(PipelineStep):
                 if db_type == 'nr':
                     blast_type = 'prot'
                     blast_command = 'blastx'
-                command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path}")
+                command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path} -max_file_sz 50GB")
                 # blast the contig to the blast index
                 output_m8 = os.path.join(genus_dir, 'blast.m8')
                 top_entry_m8 = os.path.join(genus_dir, 'blast_top.m8')
