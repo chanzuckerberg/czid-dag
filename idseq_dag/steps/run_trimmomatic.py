@@ -40,7 +40,7 @@ class PipelineStepRunTrimmomatic(PipelineStep):
             *input_files,
             *output_args,
             f"ILLUMINACLIP:{adapter_fasta}:2:30:10",
-            "LEADING:25 TRAILING:25 SLIDINGWINDOW:4:25 MINLEN:35"
+            "LEADING:25 TRAILING:25 SLIDINGWINDOW:4:25 MINLEN:75"
         ])
         command.execute(cmd)
 
