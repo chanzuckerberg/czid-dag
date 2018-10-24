@@ -51,10 +51,10 @@ class PipelineStepBlastContigs(PipelineStep):
         contig_stats = defaultdict(int)
         PipelineStepRunAssembly.generate_info_from_sam(bowtie_sam, read2contig, contig_stats)
 
-        (updated_read_dict, read2blastm8, contig2lineage) = self.update_read_dict(read2contig,
-                                                                                  top_entry_m8,
-                                                                                  read_dict,
-                                                                                  accession_dict)
+        (updated_read_dict, read2blastm8, contig2lineage, added_reads) = self.update_read_dict(read2contig,
+                                                                                               top_entry_m8,
+                                                                                               read_dict,
+                                                                                               accession_dict)
         self.generate_m8_and_hit_summary(updated_read_dict, read2blastm8,
                                          hit_summary, deduped_m8,
                                          refined_hit_summary, refined_m8)
@@ -144,6 +144,7 @@ class PipelineStepBlastContigs(PipelineStep):
         read2blastm8 = {}
         contig2accession = {}
         contig2lineage = {}
+        added_reads = {}
 
         for contig_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in m8.iterate_m8(blast_top_m8):
             contig2accession[contig_id] = (accession_id, line)
@@ -153,11 +154,14 @@ class PipelineStepBlastContigs(PipelineStep):
             (accession, m8_line) = contig2accession.get(contig_id, (None, None))
             if accession:
                 (species_taxid, genus_taxid) = accession_dict[accession]
-                consolidated_dict[read_id] += [contig_id, accession, species_taxid, genus_taxid]
-                consolidated_dict[read_id][2] = species_taxid
+                if consolidated_dict.get(read_id):
+                    consolidated_dict[read_id] += [contig_id, accession, species_taxid, genus_taxid]
+                    consolidated_dict[read_id][2] = species_taxid
+                else:
+                    added_reads[read_id] = [read_id, 1, species_taxid, accession, species_taxid, genus_taxid, -1, contig_id, accession, species_taxid, genus_taxid]
             if m8_line:
                 read2blastm8[read_id] = m8_line
-        return (consolidated_dict, read2blastm8, contig2lineage)
+        return (consolidated_dict, read2blastm8, contig2lineage, added_reads)
 
     @staticmethod
     def run_blast(assembled_contig, reference_fasta, db_type, blast_m8, top_entry_m8):

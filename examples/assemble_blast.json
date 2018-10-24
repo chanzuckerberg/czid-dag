@@ -92,7 +92,7 @@
       }
     },
     {
-      "in": ["rapsearch2_out", "assembly_out", "gsnap_accessions_out"],
+      "in": ["rapsearch2_out", "assembly_out", "rapsearch2_accessions_out"],
       "out": "refined_rapsearch2_out",
       "class": "PipelineStepBlastContigs",
       "module": "idseq_dag.steps.blast_contigs",
