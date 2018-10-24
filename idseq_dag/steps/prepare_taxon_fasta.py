@@ -35,8 +35,22 @@ class PipelineStepPrepareTaxonFasta(PipelineStep):
         # TODO: consider moving this to the beginning of the main pipeline
         self.trim_adapters_in_place(output_file)
 
+        # Trim low-abundance kmers
+        self.trim_low_abundance_in_place(local_file, k)
+
     def count_reads(self):
         pass
+
+    @staticmethod
+    def trim_low_abundance_in_place(local_file, k):
+        local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
+        command.execute(" ".join([
+            "trim-low-abund.py",
+            f"--cutoff 2 --max-memory-usage 100e9 --ksize {k}",
+            f"{local_file}",
+            f"--output {local_file_trimmed}"
+        ]))
+        command.execute(f"mv {local_file_trimmed} {local_file}")
 
     @staticmethod
     def trim_adapters_in_place(local_file):
