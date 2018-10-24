@@ -78,7 +78,12 @@ class PipelineStepBlastContigs(PipelineStep):
             json.dump(contig_taxon_summary, contig_outf)
 
         # Upload additional file
+        contig2lineage_json = os.path.join(os.path.dirname(contig_summary_json), f"contig2lineage.{db_type}.json")
+        with open(contig2lineage_json, 'w') as c2lf:
+            json.dump(contig2lineage, c2lf)
+
         self.additional_files_to_upload.append(top_entry_m8)
+        self.additional_files_to_upload.append(contig2lineage_json)
 
     @staticmethod
     def generate_taxon_summary(read2contig, contig2lineage, read_dict, db_type):
