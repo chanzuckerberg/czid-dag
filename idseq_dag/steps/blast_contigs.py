@@ -73,7 +73,7 @@ class PipelineStepBlastContigs(PipelineStep):
                                              evalue_type, db_type.upper(),
                                              lineage_db, deuterostome_db, refined_counts)
         # generate contig stats at genus/species level
-        contig_taxon_summary = self.generate_taxon_summary(read2contig, contig2lineage, updated_read_dict)
+        contig_taxon_summary = self.generate_taxon_summary(read2contig, contig2lineage, updated_read_dict, db_type)
         with open(contig_summary_json, 'w') as contig_outf:
             json.dump(contig_taxon_summary, contig_outf)
 
@@ -81,7 +81,7 @@ class PipelineStepBlastContigs(PipelineStep):
         self.additional_files_to_upload.append(top_entry_m8)
 
     @staticmethod
-    def generate_taxon_summary(read2contig, contig2lineage, read_dict):
+    def generate_taxon_summary(read2contig, contig2lineage, read_dict, db_type):
         # Return an array with
         # { taxid: , tax_level:, contig_counts: { 'contig_name': <count>, .... } }
         genus_summary = defaultdict(lambda: defaultdict(int))
@@ -102,7 +102,8 @@ class PipelineStepBlastContigs(PipelineStep):
         for idx, summary in enumerate([species_summary, genus_summary]):
             tax_level = idx + 1
             for taxid, contig_counts in summary.items():
-                entry = { 'taxid': taxid, 'tax_level': tax_level, 'contig_counts': contig_counts}
+                entry = { 'taxid': taxid, 'tax_level': tax_level,
+                          'count_type': db_type.upper(), 'contig_counts': contig_counts}
                 output_array.append(entry)
         return output_array
 
