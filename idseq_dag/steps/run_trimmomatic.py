@@ -40,7 +40,15 @@ class PipelineStepRunTrimmomatic(PipelineStep):
             *input_files,
             *output_args,
             f"ILLUMINACLIP:{adapter_fasta}:2:30:10",
+            # Remove Illumina adapters provided in the fasta file. Initially, look for seed matches
+            # allowing maximally *2* mismatches. These seeds will be extended and clipped if in the case of paired end
+            # reads a score of *30* is reached, or in the case of single ended reads a
+            # score of *10*.
             "LEADING:25 TRAILING:25 SLIDINGWINDOW:4:25 MINLEN:75"
+            # Remove leading low-quality bases or Ns (below quality *25*)
+            # Remove trailing low-quality bases or Ns (below quality *25*)
+            # Scan the read with a *4*-base wide sliding window, cutting when the average quality per base
+            # drops below *25*. Discard reads which are less than *75* bases long after these steps.
         ])
         command.execute(cmd)
 
