@@ -148,7 +148,7 @@ class PipelineStepBlastContigs(PipelineStep):
 
         for contig_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in m8.iterate_m8(blast_top_m8):
             contig2accession[contig_id] = (accession_id, line)
-            contig2lineage = accession_dict[accession_id]
+            contig2lineage[contig_id] = accession_dict[accession_id]
 
         for read_id, contig_id in read2contig.items():
             (accession, m8_line) = contig2accession.get(contig_id, (None, None))
