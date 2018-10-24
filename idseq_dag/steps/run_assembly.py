@@ -35,7 +35,7 @@ class PipelineStepRunAssembly(PipelineStep):
         assembled_scaffold_tmp = os.path.join(assembled_dir, 'scaffolds.fasta')
 
         try:
-            command.execute(f"spades.py -s {input_fasta} -o {assembled_dir} -m 200 -t 32 --only-assembler")
+            command.execute(f"spades.py -s {input_fasta} -o {assembled_dir} -m {memory} -t 32 --only-assembler")
             command.execute(f"mv {assembled_contig_tmp} {assembled_contig}")
             command.execute(f"mv {assembled_scaffold_tmp} {assembled_scaffold}")
 
