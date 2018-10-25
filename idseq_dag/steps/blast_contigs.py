@@ -93,7 +93,8 @@ class PipelineStepBlastContigs(PipelineStep):
         species_summary = defaultdict(lambda: defaultdict(int))
         for read_id, read_info in read_dict.items():
             contig = read2contig.get(read_id)
-            if contig and contig != '*':
+            if contig and contig != '*' and contig2lineage.get(contig):
+                # It's possible a contig doesn't blast to anything
                 species_taxid, genus_taxid = contig2lineage[contig]
                 species_summary[species_taxid][contig] += 1
                 genus_summary[genus_taxid][contig] += 1
@@ -171,7 +172,7 @@ class PipelineStepBlastContigs(PipelineStep):
         if db_type == 'nr':
             blast_type = 'prot'
             blast_command = 'blastx'
-        command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path}")
+        command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path} -max_file_sz 50GB")
         command.execute(f"{blast_command} -query {assembled_contig} -db {blast_index_path} -out {blast_m8} -outfmt 6 -num_alignments 5 -num_threads 32")
         # further processing of getting the top m8 entry for each contig.
         PipelineStepBlastContigs.get_top_m8(blast_m8, top_entry_m8)
