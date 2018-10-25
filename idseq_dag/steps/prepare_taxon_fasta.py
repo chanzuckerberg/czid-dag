@@ -6,6 +6,7 @@ from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.count as count
+import k_config from idseq_dag.util.kmers
 
 class PipelineStepPrepareTaxonFasta(PipelineStep):
     ''' 
@@ -36,6 +37,8 @@ class PipelineStepPrepareTaxonFasta(PipelineStep):
         self.trim_adapters_in_place(output_file)
 
         # Trim low-abundance kmers
+        superkingdom_name = self.additional_attributes.get("superkingdom_name")
+        k = k_config[superkingdom_name]
         self.trim_low_abundance_in_place(local_file, k)
 
     def count_reads(self):

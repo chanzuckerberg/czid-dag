@@ -12,6 +12,7 @@ import idseq_dag.util.command as command
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
+import k_config from idseq_dag.util.kmers
 
 class PipelineStepGeneratePhyloTree(PipelineStep):
     ''' 
@@ -23,24 +24,13 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
       (b) Genbank full reference genomes from the same taxid.
     '''
 
-    k_config = {
-        # Chosen kmer-size as a function of kingdom.
-        # Must be an odd number.
-        # All entries to be revisited and benchmarked.
-        # Values for viruses and bacteria come from kSNP3 recommendations (13-15 / 19-21).
-        "Viruses": 13,
-        "Bacteria": 19,
-        "Eukaryota": 19,
-        None: 13
-    }
-
     def run(self):
         output_files = self.output_files_local()
         local_taxon_fasta_files = [f for input_item in self.input_files_local for f in input_item]
         taxid = self.additional_attributes["taxid"]
         reference_taxids = self.additional_attributes.get("reference_taxids", [taxid]) # Note: will only produce a result if species-level or below
         superkingdom_name = self.additional_attributes.get("superkingdom_name")
-        self.k = self.k_config[superkingdom_name]
+        k = k_config[superkingdom_name]
 
         # knsp3 has a command (MakeKSNP3infile) for making a ksnp3-compatible input file from a directory of fasta files.
         # Before we can use the command, we symlink all fasta files to a dedicated directory.
@@ -82,7 +72,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Now build ksnp3 command:
         ksnp_output_dir = f"{self.output_dir_local}/ksnp3_outputs"
         ksnp_cmd = (f"mkdir {ksnp_output_dir}; cd {os.path.dirname(ksnp_output_dir)}; "
-                    f"kSNP3 -in inputs.txt -outdir {os.path.basename(ksnp_output_dir)} -k {self.k}")
+                    f"kSNP3 -in inputs.txt -outdir {os.path.basename(ksnp_output_dir)} -k {k}")
 
         # Annotate SNPs using reference genomes:
         # TODO: fix gi vs accession problem
