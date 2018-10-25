@@ -126,6 +126,7 @@ class PipelineStepBlastContigs(PipelineStep):
                     read = consolidated_dict[read_id]
                     output_str = "\t".join(read)
                     rhsf.write(output_str + "\n")
+            # TODO(yf): add the reads that are newly blasted
         # Generate new M8
         with open(refined_m8, 'w') as rmf:
             with open(deduped_m8, 'r', encoding='utf-8') as mf:
