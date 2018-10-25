@@ -12,6 +12,7 @@ import idseq_dag.util.command as command
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
+import idseq_dag.util.convert as convert
 
 class PipelineStepGeneratePhyloTree(PipelineStep):
     ''' 
@@ -119,16 +120,16 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         command.execute(f"mv {ksnp_output_dir}/tree.parsimony.tre {output_files[0]}")
         ksnp_vcf_file = glob.glob(f"{ksnp_output_dir}/*.vcf")
         if ksnp_vcf_file:
-            TODO: move this to a function
+            # TODO: move this to a function
             target_vcf_file = f"{ksnp_output_dir}/variants_reference1.vcf"
             command.execute(f"mv {ksnp_vcf_file[0]} {target_vcf_file}")
             sample_names_by_run_ids = self.additional_attributes["sample_names_by_run_ids"]
             vcf_columns = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT"
-            column_description_line = command.execute_with_output(f"grep -e '^{vcf_columns}' {target_vcf_file}")
-            run_ids_in_order = column_description_line.split("FORMAT\t")[1].split("\t")
+            column_description_line = execute_with_output(f"awk /'^{vcf_columns}'/ {target_vcf_file}")
+            run_ids_in_order = [int(id) for id in column_description_line.split("FORMAT\t")[1].split("\t") if convert.can_convert_to_int(id)]
             sample_names_in_order = [sample_names_by_run_ids.get(id, f"pipeline_run_{id}") for id in run_ids_in_order]
-            new_column_description = f"{vcf_columns}\t{'\t'.join(sample_names_in_order)}"
-            command.execute(f"sed -i 's/^{column_description_line}/{new_column_description}/' {target_vcf_file}")
+            new_column_description = '\t'.join([vcf_columns] + sample_names_in_order)
+            command.execute(f"sed -i 's/^#CHROM.*/{new_column_description}/' {target_vcf_file}")
             self.additional_files_to_upload.append(target_vcf_file)
 
         # Upload all kSNP3 output files for potential future reference
