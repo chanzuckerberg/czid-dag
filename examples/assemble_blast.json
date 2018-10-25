@@ -39,7 +39,9 @@
       "rapsearch2.hitsummary2.tab",
       "refined_rapsearch2_counts.json",
       "rapsearch2_contig_summary.json"
-    ]
+    ],
+    "refined_taxon_count_out": ["refined_taxon_counts.json"],
+    "contig_summary_out": ["combined_contig_summary.json"]
   },
   "steps": [
     {
@@ -103,6 +105,22 @@
       "additional_attributes": {
           "db_type": "nr"
       }
+    },
+    {
+      "in": ["refined_gsnap_out", "refined_rapsearch2_out"],
+      "out": "refined_taxon_count_out",
+      "class": "PipelineStepCombineTaxonCounts",
+      "module": "idseq_dag.steps.combine_taxon_counts",
+      "additional_files": {},
+      "additional_attributes": {}
+    },
+    {
+      "in": ["refined_gsnap_out", "refined_rapsearch2_out"],
+      "out": "contig_summary_out",
+      "class": "PipelineStepCombineJson",
+      "module": "idseq_dag.steps.combine_json",
+      "additional_files": {},
+      "additional_attributes": {"field_idx": 4}
     }
   ],
   "given_targets": {
