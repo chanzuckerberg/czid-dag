@@ -298,7 +298,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             metadata_by_node[node] = metadata
         return metadata_by_node
 
-    def name_samples_vcf(self, input_file, output_file)
+    def name_samples_vcf(self, input_file, output_file):
         # The VCF has standard columns CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT,
         # followed by 1 column for each of the pipeline_run_ids. This function replaces the pipeline_run)_ids
         # by the corresponding sample names so that users can understand the file.
