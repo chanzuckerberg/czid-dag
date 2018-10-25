@@ -12,6 +12,7 @@ import idseq_dag.util.s3 as s3
 import idseq_dag.util.m8 as m8
 
 MIN_ACCESSIONS_WHOLE_DB_DOWNLOAD = 5000
+MAX_ACCESSION_SEQUENCE_LEN = 100000000
 
 class PipelineStepDownloadAccessions(PipelineStep):
     '''
@@ -85,8 +86,9 @@ class PipelineStepDownloadAccessions(PipelineStep):
         if entry:
             range_start = entry[0]
             seq_len = entry[1] + entry[2]
-            db_file.seek(range_start, 0)
-            return db_file.read(seq_len)
+            if seq_len <= MAX_ACCESSION_SEQUENCE_LEN:
+                db_file.seek(range_start, 0)
+                return db_file.read(seq_len)
 
     @staticmethod
     def fetch_sequence_for_thread(error_flags, accession, accession_out_file,
@@ -98,17 +100,18 @@ class PipelineStepDownloadAccessions(PipelineStep):
             if entry:
                 range_start, name_length, seq_len = entry
                 range_end = range_start + name_length + seq_len - 1
-                num_retries = 3
-                for attempt in range(num_retries):
-                    try:
-                        s3.fetch_byterange(range_start, range_end, bucket, key, accession_out_file)
-                        break
-                    except Exception as e:
-                        if attempt + 1 < num_retries:  # Exponential backoff
-                            time.sleep(1.0 * (4**attempt))
-                        else:
-                            msg = f"All retries failed for getting sequence by accession ID {accession}: {e}"
-                        raise RuntimeError(msg)
+                if seq_len <= MAX_ACCESSION_SEQUENCE_LEN:
+                    num_retries = 3
+                    for attempt in range(num_retries):
+                        try:
+                            s3.fetch_byterange(range_start, range_end, bucket, key, accession_out_file)
+                            break
+                        except Exception as e:
+                            if attempt + 1 < num_retries:  # Exponential backoff
+                                time.sleep(1.0 * (4**attempt))
+                            else:
+                                msg = f"All retries failed for getting sequence by accession ID {accession}: {e}"
+                            raise RuntimeError(msg)
 
         except:
             with mutex:

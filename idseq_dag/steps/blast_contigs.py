@@ -40,7 +40,7 @@ class PipelineStepBlastContigs(PipelineStep):
                 command.execute(f"cp {deduped_m8} {refined_m8}")
                 command.execute(f"cp {hit_summary} {refined_hit_summary}")
                 command.execute(f"cp {orig_counts} {refined_counts}")
-                command.execute("echo '{}' > " + contig_summary_json)
+                command.execute("echo '[]' > " + contig_summary_json)
                 return
 
         (read_dict, accession_dict, _selected_genera) = m8.summarize_hits(hit_summary)
