@@ -6,7 +6,7 @@ from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.count as count
-import k_config from idseq_dag.util.kmers
+from idseq_dag.util.kmers import k_config
 
 class PipelineStepPrepareTaxonFasta(PipelineStep):
     ''' 
