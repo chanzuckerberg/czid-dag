@@ -30,12 +30,12 @@ def summarize_hits(hit_summary_file, min_reads_per_genus = 0):
     with open(hit_summary_file, 'r') as hsf:
         for line in hsf:
             read = line.rstrip().split("\t")
-            accession_id, species_taxid, genus_taxid = read[3:6]
+            accession_id, species_taxid, genus_taxid, family_taxid = read[3:7]
             read_dict[read[0]] = read
             total_reads += 1
             if accession_id == 'None' or accession_id == "":
                 continue
-            accession_dict[accession_id] = (species_taxid, genus_taxid)
+            accession_dict[accession_id] = (species_taxid, genus_taxid, family_taxid)
             if int(genus_taxid) > 0:
                 genus_read_counts[genus_taxid] += 1
                 genus_species[genus_taxid].add(species_taxid)

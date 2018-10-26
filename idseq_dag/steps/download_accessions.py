@@ -31,7 +31,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
             self.additional_files["lineage_db"],
             self.ref_dir_local,
             allow_s3mi=True)
-        (read_dict, accession_dict, selected_genera) = m8.summarize_hits(hit_summary)
+        (read_dict, accession_dict, _selected_genera) = m8.summarize_hits(hit_summary)
         if len(accession_dict) < MIN_ACCESSIONS_WHOLE_DB_DOWNLOAD:
             self.download_ref_sequences_from_s3(accession_dict, output_reference_fasta, db_type,
                                                 loc_db, db_s3_path)

@@ -162,8 +162,8 @@ class PipelineStepReclassifyReads(PipelineStep):
                 for read_id, contig_id in read2contig.items():
                     (accession, m8_line) = contig2accession.get(contig_id, (None, None))
                     if accession:
-                        (species_taxid, genus_taxid) = accession_dict[accession]
-                        consolidated_dict[read_id] += [f"{genus_taxid}:{contig_id}", accession, species_taxid, genus_taxid]
+                        (species_taxid, genus_taxid, family_taxid) = accession_dict[accession]
+                        consolidated_dict[read_id] += [f"{genus_taxid}:{contig_id}", accession, species_taxid, genus_taxid, family_taxid]
                         consolidated_dict[read_id][2] = species_taxid
                     if m8_line:
                         read2blastm8[read_id] = m8_line

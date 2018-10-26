@@ -155,12 +155,12 @@ class PipelineStepBlastContigs(PipelineStep):
         for read_id, contig_id in read2contig.items():
             (accession, m8_line) = contig2accession.get(contig_id, (None, None))
             if accession:
-                (species_taxid, genus_taxid) = accession_dict[accession]
+                (species_taxid, genus_taxid, family_taxid) = accession_dict[accession]
                 if consolidated_dict.get(read_id):
-                    consolidated_dict[read_id] += [contig_id, accession, species_taxid, genus_taxid]
+                    consolidated_dict[read_id] += [contig_id, accession, species_taxid, genus_taxid, family_taxid]
                     consolidated_dict[read_id][2] = species_taxid
                 else:
-                    added_reads[read_id] = [read_id, 1, species_taxid, accession, species_taxid, genus_taxid, -1, contig_id, accession, species_taxid, genus_taxid]
+                    added_reads[read_id] = [read_id, 1, species_taxid, accession, species_taxid, genus_taxid, family_taxid, contig_id, accession, species_taxid, genus_taxid, family_taxid]
             if m8_line:
                 read2blastm8[read_id] = m8_line
         return (consolidated_dict, read2blastm8, contig2lineage, added_reads)
