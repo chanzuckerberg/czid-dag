@@ -39,7 +39,7 @@ class PipelineStepPrepareTaxonFasta(PipelineStep):
         # Trim low-abundance kmers
         superkingdom_name = self.additional_attributes.get("superkingdom_name")
         k = k_config[superkingdom_name]
-        self.trim_low_abundance_in_place(local_file, k)
+        self.trim_low_abundance_in_place(output_file, k)
 
     def count_reads(self):
         pass
