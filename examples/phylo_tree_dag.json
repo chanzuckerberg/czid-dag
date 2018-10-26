@@ -15,6 +15,7 @@
       "module": "idseq_dag.steps.prepare_taxon_fasta",
       "additional_files": {},
       "additional_attributes": {
+        "superkingdom_name": "Bacteria",
         "taxon_byteranges": {
           "NT": [431082985, 431233435, "s3://idseq-samples-development/samples/84/860/postprocess/2.4/taxid_annot_sorted_nt.fasta"],
           "NR": [385014390, 385959812, "s3://idseq-samples-development/samples/84/860/postprocess/2.4/taxid_annot_sorted_nr.fasta"]
@@ -28,6 +29,7 @@
       "module": "idseq_dag.steps.prepare_taxon_fasta",
       "additional_files": {},
       "additional_attributes": {
+        "superkingdom_name": "Bacteria",
         "taxon_byteranges": {
           "NT": [28835, 89930, "s3://idseq-samples-development/samples/84/857/postprocess/2.4/taxid_annot_sorted_nt.fasta"],
           "NR": [71608, 91100, "s3://idseq-samples-development/samples/84/857/postprocess/2.4/taxid_annot_sorted_nr.fasta"]
@@ -41,6 +43,7 @@
       "module": "idseq_dag.steps.prepare_taxon_fasta",
       "additional_files": {},
       "additional_attributes": {
+        "superkingdom_name": "Bacteria",
         "taxon_byteranges": {
           "NT": [178740111, 178757997, "s3://idseq-samples-development/samples/84/858/postprocess/2.4/taxid_annot_sorted_nt.fasta"],
           "NR": [189431932, 189449594, "s3://idseq-samples-development/samples/84/858/postprocess/2.4/taxid_annot_sorted_nr.fasta"]
@@ -54,6 +57,7 @@
       "module": "idseq_dag.steps.prepare_taxon_fasta",
       "additional_files": {},
       "additional_attributes": {
+        "superkingdom_name": "Bacteria",
         "taxon_byteranges": {
           "NT": [28835, 89930, "s3://idseq-samples-development/samples/84/872/postprocess/2.4/taxid_annot_sorted_nt.fasta"],
           "NR": [71608, 91100, "s3://idseq-samples-development/samples/84/872/postprocess/2.4/taxid_annot_sorted_nr.fasta"]
