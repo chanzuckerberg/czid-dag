@@ -81,6 +81,10 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
         self.dump_align_viz_json(output_json_dir, db_type, result_dict)
 
+        taxon_byteranges_output = self.output_files_local()[1]
+        taxon_byteranges_input = self.input_files_local[1][-1]
+        self.dump_best_accession(taxon_byteranges_input, result_dir, taxon_byteranges_output)
+
         deleter_thread.join()
 
         # Write summary file
@@ -232,6 +236,49 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                     with open(fn, 'w') as out_f:
                         json.dump(species_dict, out_f)
                     self.additional_files_to_upload.append(fn)
+
+    def dump_best_accession(taxon_byteranges_input, result_dir, taxon_byteranges_output):
+        '''
+        Augment taxon_byteranges with best_accession.
+        result_dir is a dictionary like:
+          { "family taxid 1": {
+              "genus taxid 1": {
+                "species taxid 1": {
+                  "accession 1a": { "coverage_summary": { "num_reads": ... } },
+                  "accession 1b": { "coverage_summary": { "num_reads": ... } },
+                  ...
+                }
+              },
+              "genus taxid 2": {
+                "species taxid 2": {
+                  "accession 2a": { "coverage_summary": { "num_reads": ... } },
+                  "accession 2b": { "coverage_summary": { "num_reads": ... } },
+                  ...
+                }
+              }
+            }
+          }
+        '''
+        best_accession_by_taxid = defaultdict(lambda: {"accession": None, "max_num_reads": 0})
+        for (family_id, family_dict) in result_dict.items():
+            for (genus_id, genus_dict) in family_dict.items():
+                for (species_id, species_dict) in genus_dict.items():
+                    for (accession, info) in species_dict.items():
+                        num_reads = info["coverage_summary"]["num_reads"]
+                        for taxid in [species_id, genus_id, family_id]:
+                            if num_reads > best_accession_by_taxid[taxid]["max_num_reads"]:
+                                best_accession_by_taxid[taxid] = {
+                                   "accession": accession,
+                                   "max_num_reads": num_reads
+                                }
+
+        with open(taxon_byteranges_input) as f:
+            taxon_byteranges = json.load(f)
+        for tbr in taxon_byteranges:
+            taxid =  tbr["taxid"]
+            tbr["best_accession"] = best_accession_by_taxid[taxid]["accession"]
+        with open(taxon_byteranges_output, 'w') as f:
+            json.dump(taxon_byteranges, f)
 
     @staticmethod
     def parse_reads(annotated_fasta, db_type):
