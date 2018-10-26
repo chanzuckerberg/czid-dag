@@ -83,7 +83,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
         taxon_byteranges_output = self.output_files_local()[1]
         taxon_byteranges_input = self.input_files_local[1][-1]
-        self.dump_best_accession(taxon_byteranges_input, result_dir, taxon_byteranges_output)
+        self.dump_best_accession(taxon_byteranges_input, result_dict, taxon_byteranges_output)
 
         deleter_thread.join()
 
@@ -237,10 +237,11 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                         json.dump(species_dict, out_f)
                     self.additional_files_to_upload.append(fn)
 
-    def dump_best_accession(taxon_byteranges_input, result_dir, taxon_byteranges_output):
+    @staticmethod
+    def dump_best_accession(taxon_byteranges_input, result_dict, taxon_byteranges_output):
         '''
         Augment taxon_byteranges with best_accession.
-        result_dir is a dictionary like:
+        result_dict is a dictionary like:
           { "family taxid 1": {
               "genus taxid 1": {
                 "species taxid 1": {
@@ -275,8 +276,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         with open(taxon_byteranges_input) as f:
             taxon_byteranges = json.load(f)
         for tbr in taxon_byteranges:
-            taxid =  tbr["taxid"]
-            tbr["best_accession"] = best_accession_by_taxid[taxid]["accession"]
+            taxid = tbr["taxid"]
+            tbr["best_accession"] = best_accession_by_taxid[str(taxid)]["accession"]
         with open(taxon_byteranges_output, 'w') as f:
             json.dump(taxon_byteranges, f)
 
