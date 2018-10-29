@@ -51,11 +51,9 @@ class PipelineStepBlastContigs(PipelineStep):
         contig_stats = defaultdict(int)
         PipelineStepRunAssembly.generate_info_from_sam(bowtie_sam, read2contig, contig_stats)
 
-        (updated_read_dict, read2blastm8, contig2lineage, added_reads) = self.update_read_dict(read2contig,
-                                                                                               top_entry_m8,
-                                                                                               read_dict,
-                                                                                               accession_dict)
-        self.generate_m8_and_hit_summary(updated_read_dict, read2blastm8,
+        (updated_read_dict, read2blastm8, contig2lineage, added_reads) = self.update_read_dict(
+                read2contig, top_entry_m8, read_dict, accession_dict)
+        self.generate_m8_and_hit_summary(updated_read_dict, added_reads, read2blastm8,
                                          hit_summary, deduped_m8,
                                          refined_hit_summary, refined_m8)
 
@@ -114,11 +112,12 @@ class PipelineStepBlastContigs(PipelineStep):
         return output_array
 
     @staticmethod
-    def generate_m8_and_hit_summary(consolidated_dict, read2blastm8,
+    def generate_m8_and_hit_summary(consolidated_dict, added_reads, read2blastm8,
                                     hit_summary, deduped_m8,
                                     refined_hit_summary, refined_m8):
         ''' generate new m8 and hit_summary based on consolidated_dict and read2blastm8 '''
         # Generate new hit summary
+        new_read_ids = added_reads.keys()
         with open(refined_hit_summary, 'w') as rhsf:
             with open(hit_summary, 'r', encoding='utf-8') as hsf:
                 for line in hsf:
@@ -126,7 +125,11 @@ class PipelineStepBlastContigs(PipelineStep):
                     read = consolidated_dict[read_id]
                     output_str = "\t".join(read)
                     rhsf.write(output_str + "\n")
-            # TODO(yf): add the reads that are newly blasted
+            # add the reads that are newly blasted
+            for read_id in new_read_ids:
+                read_info = added_reads[read_id]
+                output_str = "\t".join(read)
+                rhsf.write(output_str + "\n")
         # Generate new M8
         with open(refined_m8, 'w') as rmf:
             with open(deduped_m8, 'r', encoding='utf-8') as mf:
@@ -139,6 +142,12 @@ class PipelineStepBlastContigs(PipelineStep):
                         rmf.write("\t".join(m8_fields))
                     else:
                         rmf.write(line)
+            # add the reads that are newly blasted
+            for read_id in new_read_ids:
+                m8_line = read2blastm8.get(read_id)
+                m8_fields = m8_line.split("\t")
+                m8_fields[0] = read_id
+                rmf.write("\t".join(m8_fields))
 
     @staticmethod
     def update_read_dict(read2contig, blast_top_m8, read_dict, accession_dict):
@@ -160,7 +169,7 @@ class PipelineStepBlastContigs(PipelineStep):
                     consolidated_dict[read_id] += [contig_id, accession, species_taxid, genus_taxid, family_taxid]
                     consolidated_dict[read_id][2] = species_taxid
                 else:
-                    added_reads[read_id] = [read_id, 1, species_taxid, accession, species_taxid, genus_taxid, family_taxid, contig_id, accession, species_taxid, genus_taxid, family_taxid]
+                    added_reads[read_id] = [read_id, 1, species_taxid, accession, species_taxid, genus_taxid, family_taxid, contig_id, accession, species_taxid, genus_taxid, family_taxid, 'from_assembly']
             if m8_line:
                 read2blastm8[read_id] = m8_line
         return (consolidated_dict, read2blastm8, contig2lineage, added_reads)
