@@ -193,14 +193,17 @@ class PipelineStepReclassifyReads(PipelineStep):
                 if db_type == 'nr':
                     blast_type = 'prot'
                     blast_command = 'blastx'
-                command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path} -max_file_sz 50GB")
-                # blast the contig to the blast index
-                output_m8 = os.path.join(genus_dir, 'blast.m8')
-                top_entry_m8 = os.path.join(genus_dir, 'blast_top.m8')
-                command.execute(f"{blast_command} -query {contig} -db {blast_index_path} -out {output_m8} -outfmt 6 -num_alignments 5 -num_threads 32")
-                # further processing of getting the top m8 entry for each contig.
-                PipelineStepReclassifyReads.get_top_m8(output_m8, top_entry_m8)
-                genus_blast_m8[genus_taxid] = (output_m8, top_entry_m8, reference_fasta)
+                try:
+                    command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path}")
+                    # blast the contig to the blast index
+                    output_m8 = os.path.join(genus_dir, 'blast.m8')
+                    top_entry_m8 = os.path.join(genus_dir, 'blast_top.m8')
+                    command.execute(f"{blast_command} -query {contig} -db {blast_index_path} -out {output_m8} -outfmt 6 -num_alignments 5 -num_threads 32")
+                    # further processing of getting the top m8 entry for each contig.
+                    PipelineStepReclassifyReads.get_top_m8(output_m8, top_entry_m8)
+                    genus_blast_m8[genus_taxid] = (output_m8, top_entry_m8, reference_fasta)
+                except:
+                    traceback.print_exc()
         return genus_blast_m8
 
     @staticmethod
@@ -300,26 +303,22 @@ class PipelineStepReclassifyReads(PipelineStep):
             output = [None, None, None, None]
             assembled_contig = os.path.join(genus_dir, 'contigs.fasta')
             assembled_scaffold = os.path.join(genus_dir, 'scaffolds.fasta')
-            read2contig = {}
-            contig_stats_json = os.path.join(genus_dir, 'contig_stats.json')
-            bowtie_sam = os.path.join(genus_dir, 'read-contig.sam')
 
-            if s3.check_s3_presence(self.s3_path(assembled_contig)) and \
-                s3.check_s3_presence(self.s3_path(assembled_scaffold)) and \
-                s3.check_s3_presence(self.s3_path(bowtie_sam)):
-                # check if file already assembled before, if so, reuse.
-                assembled_contig = s3.fetch_from_s3(self.s3_path(assembled_contig), genus_dir)
-                assembled_scaffold = s3.fetch_from_s3(self.s3_path(assembled_scaffold), genus_dir)
-                bowtie_sam = s3.fetch_from_s3(self.s3_path(bowtie_sam), genus_dir)
-                _contig_stats = defaultdict(int)
-                PipelineStepRunAssembly.generate_info_from_sam(bowtie_sam,
-                                                               read2contig, _contig_stats)
-            else:
-                PipelineStepRunAssembly.assemble(fasta_file, assembled_contig, assembled_scaffold,
-                                                 bowtie_sam, contig_stats_json, read2contig)
+            try:
+                if s3.check_s3_presence(self.s3_path(assembled_contig)) and \
+                    s3.check_s3_presence(self.s3_path(assembled_scaffold)):
+                    # check if file already assembled before, if so, reuse.
+                    assembled_contig = s3.fetch_from_s3(self.s3_path(assembled_contig),
+                                                        genus_dir)
+                    assembled_scaffold = s3.fetch_from_s3(self.s3_path(assembled_scaffold),
+                                                          genus_dir)
+                else:
+                    command.execute(f"spades.py -s {fasta_file} -o {assembled_dir} -m 100 -t 32 --only-assembler")
+                    command.execute(f"mv {assembled_contig_tmp} {assembled_contig}")
+                    command.execute(f"mv {assembled_scaffold_tmp} {assembled_scaffold}")
 
-
-            if len(read2contig) > 0: # assemble success
+                # build the bowtie index based on the contigs
+                (read2contig, bowtie_sam) = self.generate_read_to_contig_mapping(assembled_contig, fasta_file)
                 output = [assembled_contig, assembled_scaffold, read2contig, bowtie_sam]
 
             genus_assembled[genus_taxid] = output
