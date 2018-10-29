@@ -128,7 +128,7 @@ class PipelineStepBlastContigs(PipelineStep):
             # add the reads that are newly blasted
             for read_id in new_read_ids:
                 read_info = added_reads[read_id]
-                output_str = "\t".join(read)
+                output_str = "\t".join(read_info)
                 rhsf.write(output_str + "\n")
         # Generate new M8
         with open(refined_m8, 'w') as rmf:
