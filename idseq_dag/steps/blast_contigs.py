@@ -93,7 +93,7 @@ class PipelineStepBlastContigs(PipelineStep):
             contig = read2contig.get(read_id)
             if contig and contig != '*' and contig2lineage.get(contig):
                 # It's possible a contig doesn't blast to anything
-                species_taxid, genus_taxid = contig2lineage[contig]
+                species_taxid, genus_taxid, family_taxid = contig2lineage[contig]
                 species_summary[species_taxid][contig] += 1
                 genus_summary[genus_taxid][contig] += 1
             else:
