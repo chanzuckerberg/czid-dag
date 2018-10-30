@@ -260,7 +260,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             }
           }
         '''
-        best_accession_by_taxid = defaultdict(lambda: {"accession": None, "max_num_reads": 0})
+        best_accession_by_taxid = defaultdict(lambda: {"accession": "", "max_num_reads": 0})
         for (family_id, family_dict) in result_dict.items():
             for (genus_id, genus_dict) in family_dict.items():
                 for (species_id, species_dict) in genus_dict.items():
