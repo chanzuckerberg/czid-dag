@@ -62,7 +62,16 @@ class PipelineStepRunLZW(PipelineStep):
                 word = c
         if word != "":
             results.append(dictionary[word])
-        return float(len(results))
+
+        seq_length = len(sequence)
+        lzw_fraction = float(len(results)) / seq_length
+        if seq_length > 150:
+            # Make sure longer reads don't get excessively penalized
+            adjustment_heuristic = (1 + (seq_length - 150) / 1000) # TODO: revisit 
+            score = lzw_fraction * adjustment_heuristic
+        else:
+            score = lzw_fraction
+        return score
 
     @staticmethod
     def lzw_compute(input_files, slice_step=NUM_SLICES):
