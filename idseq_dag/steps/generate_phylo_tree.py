@@ -1,5 +1,6 @@
 ''' Generate Phylogenetic tree '''
 import os
+import glob
 import json
 import shelve
 import traceback
@@ -11,6 +12,7 @@ import idseq_dag.util.command as command
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
+import idseq_dag.util.convert as convert
 
 class PipelineStepGeneratePhyloTree(PipelineStep):
     ''' 
@@ -23,32 +25,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     '''
     def run(self):
         output_files = self.output_files_local()
+        local_taxon_fasta_files = [f for input_item in self.input_files_local for f in input_item]
         taxid = self.additional_attributes["taxid"]
         reference_taxids = self.additional_attributes.get("reference_taxids", [taxid]) # Note: will only produce a result if species-level or below
         superkingdom_name = self.additional_attributes.get("superkingdom_name")
-
-        # Retrieve IDseq taxon fasta files
-        local_taxon_fasta_files = []
-        for pipeline_run_id, byterange_dict in self.additional_attributes["taxon_byteranges"].items():
-            partial_fasta_files = []
-            for hit_type, byterange in byterange_dict.items():
-                first_byte = byterange[0]
-                last_byte = byterange[1]
-                s3_file = byterange[2]
-                local_basename = f"{pipeline_run_id}_{hit_type}.fasta"
-                bucket, key = s3.split_identifiers(s3_file)
-                local_file = os.path.join(self.output_dir_local, local_basename)
-                s3.fetch_byterange(first_byte, last_byte, bucket, key, local_file)
-                partial_fasta_files.append(local_file)
-            full_taxon_fasta = f"{self.output_dir_local}/{pipeline_run_id}.fasta"
-            self.fasta_union(partial_fasta_files, full_taxon_fasta)
-            local_taxon_fasta_files.append(full_taxon_fasta)
-            for fasta in partial_fasta_files + [full_taxon_fasta]:
-                print(f"{count.reads(fasta)} reads in {fasta}")
-
-        # Trim Illumina adapters
-        # TODO: consider moving this to the beginning of the main pipeline
-        self.trim_adapters_in_place(local_taxon_fasta_files)
 
         # knsp3 has a command (MakeKSNP3infile) for making a ksnp3-compatible input file from a directory of fasta files.
         # Before we can use the command, we symlink all fasta files to a dedicated directory.
@@ -79,47 +59,54 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         ksnp3_input_file = f"{self.output_dir_local}/inputs.txt"
         command.execute(f"cd {input_dir_for_ksnp3}/..; MakeKSNP3infile {os.path.basename(input_dir_for_ksnp3)} {ksnp3_input_file} A")
 
-        # Specify which genomes should be used for annotation.
-        # Specify the names of the genomes that should be used for annotation.
-        # Here, we use the full genomes from genbank.
+        # Specify the names of finished reference genomes.
+        # Used for annotation & variant-calling.
         annotated_genome_input = f"{self.output_dir_local}/annotated_genomes"
-        genbanbk_fasta_files = list(genbank_fastas.values())
-        if genbanbk_fasta_files:
-            grep_options = " ".join([f"-e '{path}'" for path in genbanbk_fasta_files])
+        reference_fasta_files = list(genbank_fastas.values()) + list(accession_fastas.values())
+        if reference_fasta_files:
+            grep_options = " ".join([f"-e '{path}'" for path in reference_fasta_files])
             command.execute(f"grep {grep_options} {ksnp3_input_file} | cut -f2 > {annotated_genome_input}")
 
-        # Now run ksnp3.
-        # We can choose among 4 different output files, see http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0081760#s2:
-        # (1) tree.parsimony.tre: basic, includes no node labels
-        # (2) tree_AlleleCounts.parsimony.tre: labels the internal nodes with the number of SNPs that are shared exclusively by the descendants of that node
-        # (3) tree_tipAlleleCounts.parsimony.tre: same as (2), but also labels the strain names at the tips with the number of SNPs that are exclusive to that strain.
-        # (4) tree_AlleleCounts.parsimony.NodeLabel.tre: labels the internal nodes with the node number separated by an underscore from the number of SNPs that are
-        #     shared exclusively by the descendants of that node.
-        # Note: for integration with idseq-web, the node names need to be the pipeline_run_ids. So if we wanted to use outputs (2)/(3)/(4),
-        # we would need to parse the appended information out from the newick node names and put it in a separate data structure.
+        # Now build ksnp3 command:
         k_config = {
             # All entries to be revisited and benchmarked.
             # Values for viruses and bacteria come from kSNP3 recommendations (13-15 / 19-21).
-            "Viruses": 14,
-            "Bacteria": 20,
-            "Eukaryota": 20,
-            None: 14
+            "Viruses": 13,
+            "Bacteria": 19,
+            "Eukaryota": 19,
+            None: 13
         }
         k = k_config[superkingdom_name]
-        ksnp_cmd = (f"cd {self.output_dir_local}; mkdir ksnp3_outputs; "
-                    f"kSNP3 -in inputs.txt -outdir ksnp3_outputs -k {k}")
+        ksnp_output_dir = f"{self.output_dir_local}/ksnp3_outputs"
+        ksnp_cmd = (f"mkdir {ksnp_output_dir}; cd {os.path.dirname(ksnp_output_dir)}; "
+                    f"kSNP3 -in inputs.txt -outdir {os.path.basename(ksnp_output_dir)} -k {k}")
+
+        # Annotate SNPs using reference genomes:
+        # TODO: fix gi vs accession problem
         if os.path.isfile(annotated_genome_input):
             ksnp_cmd += f" -annotate {os.path.basename(annotated_genome_input)}"
-            # Note: produces SNP annotation file in a human-readable format that's very space inefficient (~100 MB).
-            # May want to do some postprocessing once we know better what exactly we need for the web app.
-        command.execute(ksnp_cmd)
-        command.execute(f"mv {self.output_dir_local}/ksnp3_outputs/tree.parsimony.tre {output_files[0]}")
-        snp_annotation_output = f"{self.output_dir_local}/ksnp3_outputs/SNPs_all_annotated"
-        if os.path.isfile(snp_annotation_output):
-            self.additional_files_to_upload.append(snp_annotation_output)
-        else:
-            log.write(f"Warning: {snp_annotation_output} was not generated!")
+            self.optional_files_to_upload.append(f"{ksnp_output_dir}/SNPs_all_annotated")
 
+        # Produce VCF file with respect to first reference genome in annotated_genome_input:
+        if os.path.isfile(annotated_genome_input):
+            ksnp_cmd += " -vcf"
+
+        # Run ksnp3 command:
+        command.execute(ksnp_cmd)
+
+        # Postprocess output names in preparation for upload:
+        command.execute(f"mv {ksnp_output_dir}/tree.parsimony.tre {output_files[0]}")
+        ksnp_vcf_file = glob.glob(f"{ksnp_output_dir}/*.vcf")
+        if ksnp_vcf_file:
+            target_vcf_file = f"{ksnp_output_dir}/variants_reference1.vcf"
+            self.name_samples_vcf(ksnp_vcf_file[0], target_vcf_file)
+            self.additional_files_to_upload.append(target_vcf_file)
+
+        # Upload all kSNP3 output files for potential future reference
+        supplementary_files = [f for f in glob.glob(f"{ksnp_output_dir}/*")
+                               if os.path.isfile(f) and
+                               f not in self.additional_files_to_upload + self.optional_files_to_upload]
+        self.additional_files_to_upload.extend(supplementary_files)
 
     def count_reads(self):
         pass
@@ -261,9 +248,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         accession_fastas = {}
         for acc, info in accession2info.items():
             clean_accession = self.clean_name_for_ksnp3(acc)
-            local_fasta = f"{dest_dir}/NCBI_NT_accession_{clean_accession}"
+            local_fasta = f"{dest_dir}/NCBI_NT_accession_{clean_accession}.fasta"
             command.execute(f"ln -s {info['seq_file']} {local_fasta}")
-            command.execute(f"echo '>{clean_accession}' | cat - {local_fasta} > temp_file && mv temp_file {local_fasta}")
+            command.execute(f"echo '>{acc}' | cat - {local_fasta} > temp_file && mv temp_file {local_fasta}")
             accession_fastas[acc] = local_fasta
 
         # Return kept accessions and paths of their fasta files
@@ -311,31 +298,18 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             metadata_by_node[node] = metadata
         return metadata_by_node
 
-    @staticmethod
-    def trim_adapters_in_place(local_input_files):
-        for local_file in local_input_files:
-            local_file_trimmed = os.path.join(os.path.dirname(local_file), "trimmed_" + os.path.basename(local_file))
-            command.execute(f"cutadapt -a AGATCGGAAGAGCACACGTCT -o {local_file_trimmed} {local_file}")
-            command.execute(f"mv {local_file_trimmed} {local_file}")
+    def name_samples_vcf(self, input_file, output_file):
+        # The VCF has standard columns CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT,
+        # followed by 1 column for each of the pipeline_run_ids. This function replaces the pipeline_run)_ids
+        # by the corresponding sample names so that users can understand the file.
+        sample_names_by_run_ids = self.additional_attributes["sample_names_by_run_ids"]
+        vcf_columns = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT"
+        column_description_line = command.execute_with_output(f"awk /'^{vcf_columns}'/ {input_file}")
+        run_ids_in_order = [id for id in column_description_line.split("FORMAT\t")[1].split("\t") if convert.can_convert_to_int(id)]
+        sample_names_in_order = [sample_names_by_run_ids.get(id, f"pipeline_run_{id}") for id in run_ids_in_order]
+        new_column_description = '\t'.join([vcf_columns] + sample_names_in_order)
+        command.execute(f"sed 's/^#CHROM.*/{new_column_description}/' {input_file} > {output_file}")
 
     @staticmethod
     def clean_name_for_ksnp3(name):
         return name.replace(' ', '-').replace('.', '')
-
-    @staticmethod
-    def fasta_union(partial_fasta_files, full_fasta_file):
-        ''' Takes a list of fasta file paths and writes the union of the fasta records to full_fasta_file. '''
-        if len(partial_fasta_files) == 1:
-            command.execute(f"ln -s {partial_fasta_files[0]} {full_fasta_file}")
-            return
-        # For now, just load the files into memory. They are relatively small and
-        # the same approach is used in the web app to serve taxon fasta files.
-        # TODO: consider changing it to a solution that requires less memory.
-        full_fasta = set()
-        for fasta_file in partial_fasta_files:
-            with open(fasta_file, 'r') as f:
-                fasta = set(f.read().split(">"))
-            full_fasta.update(fasta)
-        full_fasta.discard('')
-        with open(full_fasta_file, 'w') as f:
-            f.write('>' + '>'.join(full_fasta))
