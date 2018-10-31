@@ -87,10 +87,6 @@ RUN /usr/local/bin/spades.py --test
 
 WORKDIR /tmp
 
-# Blast command line
-RUN wget -N ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-1.x86_64.rpm 
-RUN alien -i ncbi-blast-2.6.0+-1.x86_64.rpm 
-RUN rm -rf ncbi-blast-2.6.0+-1.x86_64.rpm
 # Compile and install gmap/gsnap
 RUN wget http://research-pub.gene.com/gmap/src/gmap-gsnap-2017-11-15.tar.gz
 RUN mkdir gmap-gsnap && tar xf gmap-gsnap-2017-11-15.tar.gz -C gmap-gsnap --strip-components 1
