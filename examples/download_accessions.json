@@ -1,5 +1,5 @@
 {
-  "output_dir_s3": "s3://idseq-samples-prod/yunfang/samples_4534/download_accessions_test",
+  "output_dir_s3": "s3://idseq-samples-development/yunfang/samples_4534/download_accessions_test",
   "targets": {
     "gsnap_out": [
         "gsnap.m8",

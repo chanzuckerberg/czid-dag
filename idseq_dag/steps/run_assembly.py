@@ -9,7 +9,7 @@ import idseq_dag.util.log as log
 import idseq_dag.util.count as count
 
 class PipelineStepRunAssembly(PipelineStep):
-    ''' PriceSeq PipelineStep implementation '''
+    ''' Assembly PipelineStep implementation '''
     def run(self):
         """
            Run Assembly

@@ -1,5 +1,5 @@
 {
-  "output_dir_s3": "s3://idseq-samples-prod/yunfang/sample_1793/assembly_blast/",
+  "output_dir_s3": "s3://idseq-samples-development/yunfang/sample_1793/assembly_blast/",
   "targets": {
     "host_filter_out": [
       "gsnap_filter_1.fa",
