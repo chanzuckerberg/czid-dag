@@ -11,10 +11,14 @@ import idseq_dag.util.log as log
 
 
 MIN_INTERVAL_BETWEEN_DESCRIBE_INSTANCES = 180
-MAX_INTERVAL_BETWEEN_DESCRIBE_INSTANCES = 900
+MAX_INTERVAL_BETWEEN_DESCRIBE_INSTANCES = 900 # needs to match MAX_REFRESH_INTERVAL in idseq-web/app/jobs/autoscaling.py
 MAX_POLLING_LATENCY = 10  # seconds
 MAX_INSTANCES_TO_POLL = 8
 MAX_DISPATCHES_PER_MINUTE = 10
+
+DRAINING_TAG = "draining" # needs to match idseq-web/app/jobs/autoscaling.py
+JOB_TAG_PREFIX = "RunningIDseqBatchJob_" # needs to match idseq-web/app/jobs/autoscaling.py
+
 
 @command.retry
 def get_server_ips_work(service_name, environment):
@@ -176,3 +180,17 @@ def wait_for_server_ip(service_name,
                                          max_concurrent, chunk_id)
         return result
 
+
+def get_instance_id_from_ip(instance_ip):
+    cmd = f"aws ec2 describe-instances --filter Name=private-ip-address,Values={instance_ip} --query 'Reservations[].Instances[].[InstanceId]' --output=text"
+    results = command.execute_with_output(cmd).splitlines()
+    assert len(results) == 1
+    return results[0]
+
+
+def register_job_tag(instance_ip):
+    batch_job_id = os.environ.get('AWS_BATCH_JOB_ID', 'local')
+    job_tag = f"{JOB_TAG_PREFIX}{batch_job_id}"
+    id = get_instance_id_from_ip(instance_ip)
+    unixtime = int(time.time())
+    command.execute(f"aws ec2 create-tags --resources {id} --tags Key={job_tag},Value={unixtime}")
