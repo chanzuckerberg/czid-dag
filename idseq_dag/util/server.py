@@ -197,4 +197,4 @@ def register_job_tag(instance_iP):
     return instance_iD, job_tag
 
 def delete_job_tag(instance_iD, job_tag):
-    command.execute(f"aws ec2 delete-tags --resources {instance_iD} --tags Key={job_tag}"
+    command.execute(f"aws ec2 delete-tags --resources {instance_iD} --tags Key={job_tag}")
