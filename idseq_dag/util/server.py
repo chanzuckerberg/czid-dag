@@ -191,10 +191,10 @@ def get_instance_iD_from_iP(instance_iP):
 def register_job_tag(instance_iP):
     batch_job_id = os.environ.get('AWS_BATCH_JOB_ID', 'local')
     job_tag = f"{JOB_TAG_PREFIX}{batch_job_id}"
-    id = get_instance_iD_from_iP(instance_iP)
+    instance_iD = get_instance_iD_from_iP(instance_iP)
     unixtime = int(time.time())
-    command.execute(f"aws ec2 create-tags --resources {id} --tags Key={job_tag},Value={unixtime}")
-    return id, job_tag
+    command.execute(f"aws ec2 create-tags --resources {instance_iD} --tags Key={job_tag},Value={unixtime}")
+    return instance_iD, job_tag
 
 def delete_job_tag(instance_iD, job_tag):
     command.execute(f"aws ec2 delete-tags --resources {instance_iD} --tags Key={job_tag}"
