@@ -297,8 +297,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                                                         max_concurrent, chunk_id)
                 log.write("starting alignment for chunk %s on %s server %s" %
                              (chunk_id, service, instance_ip))
-                command.execute(command.remote(commands, key_path, remote_username, instance_ip))
                 instance_iD, job_tag = server.register_job_tag(instance_ip)
+                command.execute(command.remote(commands, key_path, remote_username, instance_ip))
 
                 if service == "gsnap":
                     verification_command = "cat %s" % multihit_remote_outfile
