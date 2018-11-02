@@ -34,11 +34,12 @@ def get_server_ips_work(service_name, environment):
         for instance in reservation["Instances"]
         if DRAINING_TAG not in [tag["Key"] for tag in instance["Tags"]]
     ]
-    print(f'CHARLES: {[
+    tag_list = [
         (instance["NetworkInterfaces"][0]["PrivateIpAddress"], instance["Tags"])
         for reservation in describe_json["Reservations"] 
         for instance in reservation["Instances"]
-    ]}')
+    ]
+    print(tag_list)
     print(f"CHARLES: {server_ips}")
     return server_ips
 
