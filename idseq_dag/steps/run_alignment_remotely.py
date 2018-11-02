@@ -298,7 +298,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 log.write("starting alignment for chunk %s on %s server %s" %
                              (chunk_id, service, instance_ip))
                 command.execute(command.remote(commands, key_path, remote_username, instance_ip))
-                server.register_job_tag(instance_ip)
+                instance_iD, job_tag = server.register_job_tag(instance_ip)
 
                 if service == "gsnap":
                     verification_command = "cat %s" % multihit_remote_outfile
@@ -311,6 +311,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 min_column_number = interpret_min_column_number_string(
                     min_column_number_string, correct_number_of_output_columns,
                     try_number)
+
+                server.delete_job_tag(instance_iD, job_tag)
                 try_number += 1
 
             # Move output from remote machine to local machine

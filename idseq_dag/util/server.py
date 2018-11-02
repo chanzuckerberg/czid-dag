@@ -34,13 +34,6 @@ def get_server_ips_work(service_name, environment):
         for instance in reservation["Instances"]
         if DRAINING_TAG not in [tag["Key"] for tag in instance["Tags"]]
     ]
-    tag_list = [
-        (instance["NetworkInterfaces"][0]["PrivateIpAddress"], instance["Tags"])
-        for reservation in describe_json["Reservations"] 
-        for instance in reservation["Instances"]
-    ]
-    print(tag_list)
-    print(f"CHARLES: {server_ips}")
     return server_ips
 
 
@@ -188,16 +181,20 @@ def wait_for_server_ip(service_name,
         return result
 
 
-def get_instance_id_from_ip(instance_ip):
-    cmd = f"aws ec2 describe-instances --filter Name=private-ip-address,Values={instance_ip} --query 'Reservations[].Instances[].[InstanceId]' --output=text"
+def get_instance_iD_from_iP(instance_iP):
+    cmd = f"aws ec2 describe-instances --filter Name=private-ip-address,Values={instance_iP} --query 'Reservations[].Instances[].[InstanceId]' --output=text"
     results = command.execute_with_output(cmd).splitlines()
     assert len(results) == 1
     return results[0]
 
 
-def register_job_tag(instance_ip):
+def register_job_tag(instance_iP):
     batch_job_id = os.environ.get('AWS_BATCH_JOB_ID', 'local')
     job_tag = f"{JOB_TAG_PREFIX}{batch_job_id}"
-    id = get_instance_id_from_ip(instance_ip)
+    id = get_instance_id_from_ip(instance_iP)
     unixtime = int(time.time())
     command.execute(f"aws ec2 create-tags --resources {id} --tags Key={job_tag},Value={unixtime}")
+    return id, job_tag
+
+def delete_job_tag(instance_iD, job_tag):
+    command.execute(f"aws ec2 delete-tags --resources {instance_iD} --tags Key={job_tag}"
