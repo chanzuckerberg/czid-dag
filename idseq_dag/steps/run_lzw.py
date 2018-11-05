@@ -76,7 +76,7 @@ class PipelineStepRunLZW(PipelineStep):
         return score
 
     @staticmethod
-    def lzw_compute(input_files, slice_step=NUM_SLICES, threshold_readlength):
+    def lzw_compute(input_files, threshold_readlength, slice_step=NUM_SLICES):
         """Spawn subprocesses on NUM_SLICES of the input files, then coalesce the
         scores into a temp file, and return that file's name."""
 
