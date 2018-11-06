@@ -292,13 +292,10 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 max_concurrent = self.additional_attributes["max_concurrent"]
                 environment = self.additional_attributes["environment"]
 
-                instance_ip = server.wait_for_server_ip(service, key_path,
-                                                        remote_username, environment,
-                                                        max_concurrent, chunk_id)
-                log.write("starting alignment for chunk %s on %s server %s" %
-                             (chunk_id, service, instance_ip))
-                instance_iD, job_tag = server.register_job_tag(instance_ip)
-                command.execute(command.remote(commands, key_path, remote_username, instance_ip))
+                with ASGInstance(service, key_path,
+                                 remote_username, environment,
+                                 max_concurrent, chunk_id) as server_ip:
+                    command.execute(command.remote(commands, key_path, remote_username, instance_ip))
 
                 if service == "gsnap":
                     verification_command = "cat %s" % multihit_remote_outfile
@@ -312,7 +309,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                     min_column_number_string, correct_number_of_output_columns,
                     try_number)
 
-                server.delete_job_tag(instance_iD, job_tag)
                 try_number += 1
 
             # Move output from remote machine to local machine

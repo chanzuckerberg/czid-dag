@@ -6,6 +6,8 @@ import threading
 import traceback
 import multiprocessing
 
+from contextlib import contextmanager
+
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 
@@ -18,22 +20,23 @@ MAX_DISPATCHES_PER_MINUTE = 10
 
 DRAINING_TAG = "draining" # needs to match idseq-web/app/jobs/autoscaling.py
 JOB_TAG_PREFIX = "RunningIDseqBatchJob_" # needs to match idseq-web/app/jobs/autoscaling.py
-
+JOB_TAG_REFRESH_SECONDS = 10 * 60
 
 @command.retry
 def get_server_ips_work(service_name, environment):
+    ''' return a dict of relevant instance IPs to instance IDs '''
     tag = "service"
     value = "%s-%s" % (service_name, environment)
     describe_json = json.loads(
         command.execute_with_output(
             "aws ec2 describe-instances --filters 'Name=tag:%s,Values=%s' 'Name=instance-state-name,Values=running'"
             % (tag, value)))
-    server_ips = [
-        instance["NetworkInterfaces"][0]["PrivateIpAddress"]
+    server_ips = {
+        instance["NetworkInterfaces"][0]["PrivateIpAddress"]: instance["InstanceId"]
         for reservation in describe_json["Reservations"] 
         for instance in reservation["Instances"]
         if DRAINING_TAG not in [tag["Key"] for tag in instance["Tags"]]
-    ]
+    }
     return server_ips
 
 
@@ -73,9 +76,9 @@ def wait_for_server_ip_work(service_name,
         log.write(
             "Chunk {chunk_id} of {service_name} is at third gate".format(
                 chunk_id=chunk_id, service_name=service_name))
-        instance_ips = get_server_ips(
+        instance_ip_id_dict = get_server_ips(
             service_name, environment, aggressive=had_to_wait[0])
-        instance_ips = random.sample(instance_ips,
+        instance_ips = random.sample(instance_ip_id_dict.keys(),
                                      min(MAX_INSTANCES_TO_POLL,
                                          len(instance_ips)))
         ip_nproc_dict = {}
@@ -133,7 +136,7 @@ def wait_for_server_ip_work(service_name,
             free_slots = max_concurrent - ip_nproc_dict[min_nproc_ip]
             log.write("%s server %s has capacity %d. Kicking off " %
                          (service_name, min_nproc_ip, free_slots))
-            return min_nproc_ip
+            return min_nproc_ip, instance_ip_id_dict[min_nproc_ip]
         else:
             had_to_wait[0] = True
             wait_seconds = random.randint(
@@ -181,20 +184,34 @@ def wait_for_server_ip(service_name,
         return result
 
 
-def get_instance_iD_from_iP(instance_iP):
-    cmd = f"aws ec2 describe-instances --filter Name=private-ip-address,Values={instance_iP} --query 'Reservations[].Instances[].[InstanceId]' --output=text"
-    results = command.execute_with_output(cmd).splitlines()
-    assert len(results) == 1
-    return results[0]
-
-
-def register_job_tag(instance_iP):
+def build_job_tag(chunk_id):
     batch_job_id = os.environ.get('AWS_BATCH_JOB_ID', 'local')
-    job_tag = f"{JOB_TAG_PREFIX}{batch_job_id}"
-    instance_iD = get_instance_iD_from_iP(instance_iP)
-    unixtime = int(time.time())
-    command.execute(f"aws ec2 create-tags --resources {instance_iD} --tags Key={job_tag},Value={unixtime}")
-    return instance_iD, job_tag
+    job_tag_key = f"{JOB_TAG_PREFIX}{batch_job_id}_chunk{chunk_id}"
+    job_tag_value = int(time.time())
+    return job_tag_key, job_tag_value
+
+
+def register_job_tag(instance_iD, tag_key, tag_value):
+    while True:
+        command.execute(f"aws ec2 create-tags --resources {instance_iD} --tags Key={tag_key},Value={tag_value}")
+        time.sleep(JOB_TAG_REFRESH_SECONDS)
+
 
 def delete_job_tag(instance_iD, job_tag):
     command.execute(f"aws ec2 delete-tags --resources {instance_iD} --tags Key={job_tag}")
+
+
+@contextmanager
+def ASGInstance(service, key_path, remote_username, environment, max_concurrent, chunk_id):
+    instance_ip, instance_iD = wait_for_server_ip(service, key_path, remote_username, environment, max_concurrent, chunk_id)
+    log.write(f"starting alignment for chunk {chunk_id} on {service} server {instance_ip}")
+    job_tag_key, job_tag_value = build_job_tag(chunk_id)
+    t = PeriodicThread(target=register_job_tag, sleep_seconds=JOB_TAG_REFRESH_SECONDS,
+                       args=(instance_iD, job_tag_key, job_tag_value))
+    t.start()
+
+    yield instance_ip
+
+    t.stop()
+    t.join()
+    delete_job_tag(instance_iD, job_tag)
