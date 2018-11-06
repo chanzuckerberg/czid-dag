@@ -191,14 +191,11 @@ def build_job_tag(chunk_id):
     return job_tag_key, job_tag_value
 
 
-def register_job_tag(instance_iD, tag_key, tag_value):
-    while True:
-        command.execute(f"aws ec2 create-tags --resources {instance_iD} --tags Key={tag_key},Value={tag_value}")
-        time.sleep(JOB_TAG_REFRESH_SECONDS)
+def create_tag(instance_iD, tag_key, tag_value):
+    command.execute(f"aws ec2 create-tags --resources {instance_iD} --tags Key={tag_key},Value={tag_value}")
 
-
-def delete_job_tag(instance_iD, job_tag):
-    command.execute(f"aws ec2 delete-tags --resources {instance_iD} --tags Key={job_tag}")
+def delete_tag(instance_iD, tag_key):
+    command.execute(f"aws ec2 delete-tags --resources {instance_iD} --tags Key={tag_key}")
 
 
 @contextmanager
@@ -206,7 +203,7 @@ def ASGInstance(service, key_path, remote_username, environment, max_concurrent,
     instance_ip, instance_iD = wait_for_server_ip(service, key_path, remote_username, environment, max_concurrent, chunk_id)
     log.write(f"starting alignment for chunk {chunk_id} on {service} server {instance_ip}")
     job_tag_key, job_tag_value = build_job_tag(chunk_id)
-    t = PeriodicThread(target=register_job_tag, sleep_seconds=JOB_TAG_REFRESH_SECONDS,
+    t = PeriodicThread(target=create_tag, sleep_seconds=JOB_TAG_REFRESH_SECONDS,
                        args=(instance_iD, job_tag_key, job_tag_value))
     t.start()
 
@@ -214,4 +211,4 @@ def ASGInstance(service, key_path, remote_username, environment, max_concurrent,
 
     t.stop()
     t.join()
-    delete_job_tag(instance_iD, job_tag)
+    delete_tag(instance_iD, job_tag_key)
