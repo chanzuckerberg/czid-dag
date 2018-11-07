@@ -1,5 +1,6 @@
 import threading
 import time
+import traceback
 
 class PeriodicThread(threading.Thread):
     '''
@@ -31,5 +32,9 @@ class PeriodicThread(threading.Thread):
 
     def run(self) -> None:
         while not self.stopped():
-            self.target(*self.args, **self.kwargs)
-            time.sleep(self.sleep_seconds)
+            try:
+                self.target(*self.args, **self.kwargs)
+            except: #pylint: disable=bare-except
+                traceback.print_exc()
+            finally:
+                time.sleep(self.sleep_seconds)
