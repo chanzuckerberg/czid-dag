@@ -292,7 +292,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 max_concurrent = self.additional_attributes["max_concurrent"]
                 environment = self.additional_attributes["environment"]
 
-                with ASGInstance(service, key_path,
+                with server.ASGInstance(service, key_path,
                                  remote_username, environment,
                                  max_concurrent, chunk_id) as server_ip:
                     command.execute(command.remote(commands, key_path, remote_username, instance_ip))

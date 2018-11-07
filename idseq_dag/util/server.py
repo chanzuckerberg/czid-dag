@@ -8,6 +8,8 @@ import multiprocessing
 
 from contextlib import contextmanager
 
+from idseq_dag.util.periodic_thread import PeriodicThread
+
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 
