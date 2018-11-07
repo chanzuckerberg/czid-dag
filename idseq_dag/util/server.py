@@ -218,9 +218,9 @@ def ASGInstance(service, key_path, remote_username, environment, max_concurrent,
     t = PeriodicThread(target=create_tag, sleep_seconds=job_tag_refresh_seconds,
                        args=(instance_iD, job_tag_key, job_tag_value))
     t.start()
-
-    yield instance_ip
-
-    t.stop()
-    t.join()
-    delete_tag(instance_iD, job_tag_key)
+    try:
+        yield instance_ip
+    finally:
+        t.stop()
+        t.join()
+        delete_tag(instance_iD, job_tag_key)
