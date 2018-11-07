@@ -206,8 +206,8 @@ def create_tag(instance_iD, tag_key, tag_value_func):
     command.execute(f"aws ec2 create-tags --resources {instance_iD} --tags Key={tag_key},Value={tag_value_func()}")
 
 
-def delete_tag(instance_iD, tag_key):
-    command.execute(f"aws ec2 delete-tags --resources {instance_iD} --tags Key={tag_key}")
+def delete_tag_with_retries(instance_iD, tag_key):
+    command.execute_with_retries(f"aws ec2 delete-tags --resources {instance_iD} --tags Key={tag_key}")
 
 
 @contextmanager
@@ -228,4 +228,4 @@ def ASGInstance(service, key_path, remote_username, environment, max_concurrent,
     finally:
         t.stop()
         t.join()
-        delete_tag(instance_iD, job_tag_key)
+        delete_tag_with_retries(instance_iD, job_tag_key)
