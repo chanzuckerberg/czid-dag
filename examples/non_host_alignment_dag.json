@@ -57,7 +57,7 @@
         "chunks_in_flight": 32,
         "chunk_size": 15000,
         "max_concurrent": 3,
-        "environment": "prod"
+        "environment": "staging"
       }
     },
     {
@@ -77,7 +77,7 @@
         "chunks_in_flight": 32,
         "chunk_size": 10000,
         "max_concurrent": 6,
-        "environment": "prod"
+        "environment": "staging"
       }
     },
     {

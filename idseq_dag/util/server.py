@@ -82,7 +82,7 @@ def wait_for_server_ip_work(service_name,
             service_name, environment, aggressive=had_to_wait[0])
         instance_ips = random.sample(instance_ip_id_dict.keys(),
                                      min(MAX_INSTANCES_TO_POLL,
-                                         len(instance_ips)))
+                                         len(instance_ip_id_dict)))
         ip_nproc_dict = {}
         dict_mutex = threading.RLock()
         dict_writable = True
