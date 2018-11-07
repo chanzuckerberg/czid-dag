@@ -191,15 +191,20 @@ def wait_for_server_ip(service_name,
         return result
 
 
+def unixtime_now():
+    return int(time.time())
+
+
 def build_job_tag(job_tag_prefix, chunk_id):
     batch_job_id = os.environ.get('AWS_BATCH_JOB_ID', 'local')
     job_tag_key = f"{job_tag_prefix}{batch_job_id}_chunk{chunk_id}"
-    job_tag_value = int(time.time())
-    return job_tag_key, job_tag_value
+    job_tag_value_func = unixtime_now
+    return job_tag_key, job_tag_value_func
 
 
-def create_tag(instance_iD, tag_key, tag_value):
-    command.execute(f"aws ec2 create-tags --resources {instance_iD} --tags Key={tag_key},Value={tag_value}")
+def create_tag(instance_iD, tag_key, tag_value_func):
+    command.execute(f"aws ec2 create-tags --resources {instance_iD} --tags Key={tag_key},Value={tag_value_func()}")
+
 
 def delete_tag(instance_iD, tag_key):
     command.execute(f"aws ec2 delete-tags --resources {instance_iD} --tags Key={tag_key}")
@@ -214,9 +219,9 @@ def ASGInstance(service, key_path, remote_username, environment, max_concurrent,
     instance_ip, instance_iD = wait_for_server_ip(service, key_path, remote_username, environment, max_concurrent, chunk_id,
         max_interval_between_describe_instances, draining_tag)
     log.write(f"starting alignment for chunk {chunk_id} on {service} server {instance_ip}")
-    job_tag_key, job_tag_value = build_job_tag(job_tag_prefix, chunk_id)
+    job_tag_key, job_tag_value_func = build_job_tag(job_tag_prefix, chunk_id)
     t = PeriodicThread(target=create_tag, sleep_seconds=job_tag_refresh_seconds,
-                       args=(instance_iD, job_tag_key, job_tag_value))
+                       args=(instance_iD, job_tag_key, job_tag_value_func))
     t.start()
     try:
         yield instance_ip
