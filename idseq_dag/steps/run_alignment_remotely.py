@@ -294,20 +294,20 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
                 with server.ASGInstance(service, key_path,
                                  remote_username, environment,
-                                 max_concurrent, chunk_id) as server_ip:
+                                 max_concurrent, chunk_id) as instance_ip:
                     command.execute(command.remote(commands, key_path, remote_username, instance_ip))
 
-                if service == "gsnap":
-                    verification_command = "cat %s" % multihit_remote_outfile
-                else:
-                    # For rapsearch, first remove header lines starting with '#'
-                    verification_command = "grep -v '^#' %s" % multihit_remote_outfile
-                verification_command += " | awk '{print NF}' | sort -nu | head -n 1"
-                min_column_number_string = command.execute_with_output(
-                    command.remote(verification_command, key_path, remote_username, instance_ip))
-                min_column_number = interpret_min_column_number_string(
-                    min_column_number_string, correct_number_of_output_columns,
-                    try_number)
+                    if service == "gsnap":
+                        verification_command = "cat %s" % multihit_remote_outfile
+                    else:
+                        # For rapsearch, first remove header lines starting with '#'
+                        verification_command = "grep -v '^#' %s" % multihit_remote_outfile
+                    verification_command += " | awk '{print NF}' | sort -nu | head -n 1"
+                    min_column_number_string = command.execute_with_output(
+                        command.remote(verification_command, key_path, remote_username, instance_ip))
+                    min_column_number = interpret_min_column_number_string(
+                        min_column_number_string, correct_number_of_output_columns,
+                        try_number)
 
                 try_number += 1
 

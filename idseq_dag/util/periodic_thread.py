@@ -17,6 +17,7 @@ class PeriodicThread(threading.Thread):
         self.target = target
         self.sleep_seconds = sleep_seconds
         self.args = args
+        self.kwargs = kwargs
         self._stop_event = threading.Event()
 
     def stop(self):
