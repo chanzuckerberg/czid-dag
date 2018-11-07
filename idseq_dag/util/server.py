@@ -220,7 +220,7 @@ def ASGInstance(service, key_path, remote_username, environment, max_concurrent,
         max_interval_between_describe_instances, draining_tag)
     log.write(f"starting alignment for chunk {chunk_id} on {service} server {instance_ip}")
     job_tag_key, job_tag_value_func = build_job_tag(job_tag_prefix, chunk_id)
-    t = PeriodicThread(target=create_tag, sleep_seconds=job_tag_refresh_seconds,
+    t = PeriodicThread(target=create_tag, wait_seconds=job_tag_refresh_seconds, stop_latency_seconds=60,
                        args=(instance_iD, job_tag_key, job_tag_value_func))
     t.start()
     try:
