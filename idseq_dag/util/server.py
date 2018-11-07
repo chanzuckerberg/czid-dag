@@ -15,17 +15,12 @@ import idseq_dag.util.log as log
 
 
 MIN_INTERVAL_BETWEEN_DESCRIBE_INSTANCES = 180
-MAX_INTERVAL_BETWEEN_DESCRIBE_INSTANCES = 900 # needs to match MAX_REFRESH_INTERVAL in idseq-web/app/jobs/autoscaling.py
 MAX_POLLING_LATENCY = 10  # seconds
 MAX_INSTANCES_TO_POLL = 8
 MAX_DISPATCHES_PER_MINUTE = 10
 
-DRAINING_TAG = "draining" # needs to match idseq-web/app/jobs/autoscaling.py
-JOB_TAG_PREFIX = "RunningIDseqBatchJob_" # needs to match idseq-web/app/jobs/autoscaling.py
-JOB_TAG_REFRESH_SECONDS = 10 * 60
-
 @command.retry
-def get_server_ips_work(service_name, environment):
+def get_server_ips_work(service_name, environment, draining_tag):
     ''' return a dict of relevant instance IPs to instance IDs '''
     tag = "service"
     value = "%s-%s" % (service_name, environment)
@@ -37,13 +32,15 @@ def get_server_ips_work(service_name, environment):
         instance["NetworkInterfaces"][0]["PrivateIpAddress"]: instance["InstanceId"]
         for reservation in describe_json["Reservations"] 
         for instance in reservation["Instances"]
-        if DRAINING_TAG not in [tag["Key"] for tag in instance["Tags"]]
+        if draining_tag not in [tag["Key"] for tag in instance["Tags"]]
     }
     return server_ips
 
 
 def get_server_ips(service_name,
                    environment,
+                   max_interval_between_describe_instances,
+                   draining_tag,
                    aggressive=False,
                    cache={},
                    mutex=threading.RLock()):  #pylint: disable=dangerous-default-value
@@ -52,14 +49,14 @@ def get_server_ips(service_name,
             if aggressive:
                 period = MIN_INTERVAL_BETWEEN_DESCRIBE_INSTANCES
             else:
-                period = MAX_INTERVAL_BETWEEN_DESCRIBE_INSTANCES
+                period = max_interval_between_describe_instances
             now = time.time()
             cache_key = (service_name, environment)
             if cache_key not in cache or now - cache[cache_key][0] >= period:
                 # this may raise an exception when the AWS account rate limit is exceeded due to many concurrent jobs
                 cache[cache_key] = (now,
                                     get_server_ips_work(
-                                        service_name, environment))
+                                        service_name, environment, draining_tag))
             return cache[cache_key][1]
     except:
         # return [] causes a sleep of wait_seconds before retrying (see below)
@@ -73,13 +70,17 @@ def wait_for_server_ip_work(service_name,
                             environment,
                             max_concurrent,
                             chunk_id,
+                            max_interval_between_describe_instances,
+                            draining_tag,
                             had_to_wait=[False]):  #pylint: disable=dangerous-default-value
     while True:
         log.write(
             "Chunk {chunk_id} of {service_name} is at third gate".format(
                 chunk_id=chunk_id, service_name=service_name))
         instance_ip_id_dict = get_server_ips(
-            service_name, environment, aggressive=had_to_wait[0])
+            service_name, environment,
+            max_interval_between_describe_instances, draining_tag, 
+            aggressive=had_to_wait[0])
         instance_ips = random.sample(instance_ip_id_dict.keys(),
                                      min(MAX_INSTANCES_TO_POLL,
                                          len(instance_ip_id_dict)))
@@ -154,6 +155,8 @@ def wait_for_server_ip(service_name,
                        environment,
                        max_concurrent,
                        chunk_id,
+                       max_interval_between_describe_instances,
+                       draining_tag,
                        mutex=threading.RLock(),
                        mutexes={},
                        last_checks={}):  #pylint: disable=dangerous-default-value
@@ -182,13 +185,15 @@ def wait_for_server_ip(service_name,
         # if we had to wait here, that counts toward the rate limit delay
         result = wait_for_server_ip_work(service_name, key_path,
                                          remote_username, environment,
-                                         max_concurrent, chunk_id)
+                                         max_concurrent, chunk_id,
+                                         max_interval_between_describe_instances,
+                                         draining_tag)
         return result
 
 
-def build_job_tag(chunk_id):
+def build_job_tag(job_tag_prefix, chunk_id):
     batch_job_id = os.environ.get('AWS_BATCH_JOB_ID', 'local')
-    job_tag_key = f"{JOB_TAG_PREFIX}{batch_job_id}_chunk{chunk_id}"
+    job_tag_key = f"{job_tag_prefix}{batch_job_id}_chunk{chunk_id}"
     job_tag_value = int(time.time())
     return job_tag_key, job_tag_value
 
@@ -201,11 +206,16 @@ def delete_tag(instance_iD, tag_key):
 
 
 @contextmanager
-def ASGInstance(service, key_path, remote_username, environment, max_concurrent, chunk_id):
-    instance_ip, instance_iD = wait_for_server_ip(service, key_path, remote_username, environment, max_concurrent, chunk_id)
+def ASGInstance(service, key_path, remote_username, environment, max_concurrent, chunk_id,
+                max_interval_between_describe_instances=900,
+                job_tag_prefix="RunningIDseqBatchJob_",
+                job_tag_refresh_seconds=600,
+                draining_tag="draining"):
+    instance_ip, instance_iD = wait_for_server_ip(service, key_path, remote_username, environment, max_concurrent, chunk_id,
+        max_interval_between_describe_instances, draining_tag)
     log.write(f"starting alignment for chunk {chunk_id} on {service} server {instance_ip}")
-    job_tag_key, job_tag_value = build_job_tag(chunk_id)
-    t = PeriodicThread(target=create_tag, sleep_seconds=JOB_TAG_REFRESH_SECONDS,
+    job_tag_key, job_tag_value = build_job_tag(job_tag_prefix, chunk_id)
+    t = PeriodicThread(target=create_tag, sleep_seconds=job_tag_refresh_seconds,
                        args=(instance_iD, job_tag_key, job_tag_value))
     t.start()
 
