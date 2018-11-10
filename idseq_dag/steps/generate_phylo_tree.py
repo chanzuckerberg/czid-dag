@@ -229,7 +229,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                     # if num_reads > max_num_reads:
                     #     max_num_reads = num_reads
                     #     most_matched_accession = acc
-                    accessions.add(most_matched_accession)
+                    accessions.add(acc)
                 if len(accessions) >= n:
                     break
             except:
