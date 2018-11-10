@@ -189,7 +189,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             for key2, sub_dict in current_dict.items():
                 PipelineStepGeneratePhyloTree.parse_tree(sub_dict, results, key2)
 
-    def get_accession_sequences(self, dest_dir, n=10):
+    def get_accession_sequences(self, dest_dir, n=30):
         '''
         Retrieve NCBI NT references for the most-matched accession in each alignment viz file, up to a maximum of n references.
         Write each reference to a separate fasta file.
@@ -225,11 +225,11 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 flat_align_viz_dict = {}
                 self.parse_tree(align_viz_dict, flat_align_viz_dict)
                 for acc, info in flat_align_viz_dict.items():
-                    num_reads = info["coverage_summary"]["num_reads"]
-                    if num_reads > max_num_reads:
-                        max_num_reads = num_reads
-                        most_matched_accession = acc
-                accessions.add(most_matched_accession)
+                    # num_reads = info["coverage_summary"]["num_reads"]
+                    # if num_reads > max_num_reads:
+                    #     max_num_reads = num_reads
+                    #     most_matched_accession = acc
+                    accessions.add(most_matched_accession)
                 if len(accessions) >= n:
                     break
             except:
