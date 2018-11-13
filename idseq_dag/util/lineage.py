@@ -90,8 +90,9 @@ def validate_taxid_lineage(taxid_lineage, hit_taxid_str, hit_level_str):
 
 def _get_accessions_for_taxid(taxid, accession2taxid_db, lineage_db):
     result = []
-    for acc in accession2taxid_db.keys():
-        lin = lineage_db[acc]
-        if any(t == str(taxid) for t in lin):
-            result.append(acc)
+    for acc, taxid_for_acc in accession2taxid_db.keys():
+        if taxid_for_acc in lineage_db:
+            lin = lineage_db[taxid_for_acc]
+            if any(t == str(taxid) for t in lin):
+                result.append(acc)
     return result
