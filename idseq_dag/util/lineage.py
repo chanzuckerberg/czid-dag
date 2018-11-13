@@ -86,3 +86,12 @@ def validate_taxid_lineage(taxid_lineage, hit_taxid_str, hit_level_str):
     cleaned = cleaned_taxid_lineage(taxid_lineage, hit_taxid_str,
                                     hit_level_str)
     return fill_missing_calls(cleaned)
+
+
+def _get_accessions_for_taxid(taxid, accession2taxid_db, lineage_db):
+    result = []
+    for acc in accession2taxid_db.keys():
+        lin = lineage_db[acc]
+        if any(t == str(taxid) for t in lin):
+            result.append(acc)
+    return result
