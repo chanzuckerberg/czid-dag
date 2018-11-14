@@ -238,9 +238,18 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         if len(accessions) > n:
             accessions = set(list(accessions)[0:n])
 
+        ### HACK: OVERWRITE WITH ALL THE PEGIVIRUS ACCESSIONS > 10,000 BP LONG
+        nt_loc_dict = shelve.open(nt_loc_db.replace(".db", ""))
+        accessions = set([
+            acc for acc in [
+                'KC815311.1', 'NC_021154.1', 'KC410872.1', 'NC_020902.1', 'KC796076.1', 'NC_038435.1', 'KC796093.1',
+                'KC796087.1', 'KC796084.1', 'KC145265.1', 'JC603295.1', 'NC_038433.1', 'KC796080.1', 'NC_038434.1',
+                'MG600416.1', 'KC796079.1', 'MF152653.1', 'KJ950934.1', 'NC_025679.1', 'MG273688.1'
+            ] if acc in nt_loc_dict
+        ])
+
         # Make map of accession to sequence file
         accession2info = dict((acc, {}) for acc in accessions)
-        nt_loc_dict = shelve.open(nt_loc_db.replace(".db", ""))
         PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_s3(
             accession2info, nt_loc_dict, nt_db)
 
@@ -252,7 +261,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             command.execute(f"ln -s {info['seq_file']} {local_fasta}")
             command.execute(f"echo '>{acc}' | cat - {local_fasta} > temp_file && mv temp_file {local_fasta}")
             accession_fastas[acc] = local_fasta
-
+            
         # Return kept accessions and paths of their fasta files
         return accession_fastas
 
