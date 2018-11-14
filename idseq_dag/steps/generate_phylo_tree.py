@@ -261,7 +261,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             command.execute(f"ln -s {info['seq_file']} {local_fasta}")
             command.execute(f"echo '>{acc}' | cat - {local_fasta} > temp_file && mv temp_file {local_fasta}")
             accession_fastas[acc] = local_fasta
-            
+
         # Return kept accessions and paths of their fasta files
         return accession_fastas
 
