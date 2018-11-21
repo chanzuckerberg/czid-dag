@@ -19,6 +19,14 @@ class PipelineStepRunTrimmomatic(PipelineStep):
         adapter_fasta = s3.fetch_from_s3(
             self.additional_files["adapter_fasta"],
             self.ref_dir_local)
+        # Check first line of file
+        with open(input_files[0], 'r') as f:
+            first_line = f.readline()
+        if first_line[0] != '@':
+            # Not fastq
+            for in_file, out_file in zip(input_files, output_files):
+                command.execute(f"cp {in_file} {out_file}")
+            return
 
         if is_paired:
             paired_arg = "PE"
