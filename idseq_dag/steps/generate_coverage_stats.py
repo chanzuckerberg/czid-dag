@@ -32,8 +32,10 @@ class PipelineStepGenerateCoverageStats(PipelineStep):
                     coverage.append(pileup_column.get_num_aligned())
                 sorted_coverage = sorted(coverage)
                 contig_len = len(coverage)
-                avg = sum(coverage)/contig_len
+                if contig_len <= 0:
+                    continue
 
+                avg = sum(coverage)/contig_len
                 contig2coverage[c] = {
                     "coverage": coverage,
                     "avg": avg,
