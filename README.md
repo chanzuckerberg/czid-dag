@@ -226,7 +226,7 @@ TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
 - 3.2.1
-   - GSNAP Pre-release 2018-10-20 by TWU.
+   - [staging only, not production] GSNAP Pre-release 2018-10-20 by TWU.
 
 - 3.2.0
    - Assembly with paired ends if available
