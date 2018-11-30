@@ -16,7 +16,6 @@ class PipelineStepRunStar(PipelineStep):
         scratch_dir = os.path.join(self.output_dir_local, "scratch_star")
 
         output_files_local = self.output_files_local()
-        output_gene_file = self.additional_attributes.get("output_gene_file")
 
         genome_dir = s3.fetch_from_s3(
             self.additional_files["star_genome"],
@@ -46,22 +45,23 @@ class PipelineStepRunStar(PipelineStep):
             # (a) ERCCs are doped into part 0 and we want their counts.
             # (b) If there is only 1 part (e.g. human), the host gene counts also
             # make sense.
-            if part_idx == 0:
+            if count_genes:
                 gene_count_file = os.path.join(tmp, "ReadsPerGene.out.tab")
-                if os.path.isfile(gene_count_file) and output_gene_file:
-                    moved = os.path.join(self.output_dir_local,
-                                         output_gene_file)
-                    command.execute(f"mv {gene_count_file} {moved}")
-                    self.additional_files_to_upload.append(moved)
+                if os.path.isfile(gene_count_file):
+                    command.execute(f"mv {gene_count_file} {output_files_local[0]}")
+                else:
+                    # Does this ever happen?
+                    print "WARNING: ReadsPerGene.out.tab was not generated"
+                    command.execute(f"touch {output_files_local[0]}")
 
         # Cleanup
-        for src, dst in zip(unmapped, output_files_local):
+        for src, dst in zip(unmapped, output_files_local[1:]):
             command.execute(f"mv {src} {dst}")  # Move out of scratch dir
         command.execute("cd %s; rm -rf *" % scratch_dir)
 
     def count_reads(self):
         self.should_count_reads = True
-        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
+        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[1:])
 
     def run_star_part(self,
                       output_dir,
