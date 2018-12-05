@@ -9,12 +9,12 @@
       "pdb.accession2taxid.gz",
       "prot.accession2taxid.gz"
     ],
-    "nt_input": {
+    "nt_input": [ 
        "nt"
-    },
-    "nr_input": {
+    ],
+    "nr_input": [
        "nr"
-    },
+    ],
     "accession2taxid_out": [
       "accession2taxid.gz",
       "accession2taxid_wgs.gz",
