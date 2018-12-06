@@ -1,5 +1,6 @@
 ''' Generate loc db  '''
 import shelve
+import re
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
@@ -12,7 +13,7 @@ class PipelineStepGenerateLocDB(PipelineStep):
 
         """
         db_file = self.input_files_local[0][0]
-        loc_db_file = self.output_files_local()[0][0]
+        loc_db_file = self.output_files_local()[0]
         loc_dict = shelve.open(loc_db_file.replace(".db", ""))
         with open(db_file) as dbf:
             seq_offset = 0

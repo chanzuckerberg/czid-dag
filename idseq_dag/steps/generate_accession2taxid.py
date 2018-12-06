@@ -28,7 +28,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
         accessions_files = []
         threads = []
         for source_file in [nt_file, nr_file]:
-            accession_file = f"#{source_file}.accessions"
+            accession_file = f"{source_file}.accessions"
             thread = threading.Thread(target=self.grab_accession_names,
                                       args=[source_file, accession_file])
             accessions_files.append(accession_file)
@@ -49,7 +49,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
         for accession_mapping_file in accession_mapping_files:
             partition_list = []
             for p in range(NUM_PARTITIONS):
-                part_file = f"#{accession_mapping_file}-#{p}"
+                part_file = f"{accession_mapping_file}-{p}"
                 partition_list.append(part_file)
                 thread = threading.Thread(target=self.grab_accession_mapping_list,
                                           args=[accession_mapping_file, NUM_PARTITIONS, p,
@@ -81,7 +81,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
                         for line in pf:
                             (accession, _ac1, taxid, _gi) = line.rstrip().split("\t")
                             current_match = taxid2accession_dict.get(taxid, "")
-                            taxid2accession_dict[taxid] = f"#{current_match},#{accession}"
+                            taxid2accession_dict[taxid] = f"{current_match},{accession}"
                             gzf.write(line)
 
 
@@ -101,7 +101,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
                             out.write(line)
                     num_lines += 1
                     if num_lines % 100000 == 0:
-                        log.write(f"{source_gz} partition #{partition_id} line #{num_lines}")
+                        log.write(f"{source_gz} partition {partition_id} line {num_lines}")
 
 
     def count_reads(self):
