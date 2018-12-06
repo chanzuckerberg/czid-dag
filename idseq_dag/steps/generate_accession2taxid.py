@@ -34,6 +34,11 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
             accessions_files.append(accession_file)
             threads.append(thread)
             thread.start()
+        wgs_accessions = f"{nt_file}.wgs_acc"
+        wgs_thread = threading.Thread(target=self.grab_wgs_accessions,
+                                      args=[nt_file, wgs_accessions])
+        wgs_thread.start()
+
         for t in threads:
             t.join()
 
@@ -62,35 +67,40 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
         for t in threads:
             t.join()
         # generate the accession2taxid db and file
-        with shelve.open(accession2taxid_db) as accession_dict:
-            with gzip.open(output_gz, "wt") as gzf:
-                for partition_list in mapping_files:
-                    for partition in partition_list:
-                        with open(partition, 'r', encoding="utf-8") as pf:
-                            for line in pf:
-                                if len(line) <= 1:
-                                    break
-                                fields = line.rstrip().split("\t")
-                                accession_dict[fields[0]] = fields[2]
-                                gzf.write(line)
-
-        # generate taxid2 accession
-        wgs_list = mapping_files[0]
-        with shelve.open(taxid2wgs_accession_db) as taxid2accession_dict:
-            with gzip.open(output_wgs_gz, "wt") as gzf:
-                for partition in wgs_list:
+        accessions = [] # reset accessions to release memory
+        accession_dict = shelve.open(accession2taxid_db)
+        with gzip.open(output_gz, "wt") as gzf:
+            for partition_list in mapping_files:
+                for partition in partition_list:
                     with open(partition, 'r', encoding="utf-8") as pf:
                         for line in pf:
                             if len(line) <= 1:
                                 break
-                            (accession, _ac1, taxid, _gi) = line.rstrip().split("\t")
+                            fields = line.rstrip().split("\t")
+                            accession_dict[fields[0]] = fields[2]
+                            gzf.write(line)
+
+        # generate taxid2 accession
+        wgs_thread.join()
+        with shelve.open(taxid2wgs_accession_db) as taxid2accession_dict:
+            with gzip.open(output_wgs_gz, "wt") as gzf:
+                with open(wgs_accessions, 'r', encoding="utf-8") as wgsf:
+                    for line in wgsf:
+                        accession = line[1:].split(".")[0]
+                        taxid = accession_dict.get(accession)
+                        if taxid:
                             current_match = taxid2accession_dict.get(taxid, "")
                             taxid2accession_dict[taxid] = f"{current_match},{accession}"
                             gzf.write(line)
 
+        accession_dict.close()
+
 
     def grab_accession_names(self, source_file, dest_file):
         command.execute(f"grep '^>' {source_file} |cut -f 1 -d' ' > {dest_file}")
+
+    def grab_wgs_accessions(self, source_file, dest_file):
+        command.execute(f"grep '^>' {source_file} | grep 'complete genome' | cut -f 1 -d' ' > {dest_file}")
 
     @run_in_subprocess
     def grab_accession_mapping_list(self, source_gz, num_partitions, partition_id,

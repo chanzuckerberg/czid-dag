@@ -2,6 +2,7 @@
 import shelve
 import re
 from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.util.command import run_in_subprocess
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
@@ -10,10 +11,14 @@ class PipelineStepGenerateLocDB(PipelineStep):
     ''' Generate Loc DB for NT/NR '''
     def run(self):
         """
-
+        Generate Loc DB for NT/NR
         """
         db_file = self.input_files_local[0][0]
         loc_db_file = self.output_files_local()[0]
+        self.generate_loc_db(db_file, loc_db_file)
+
+    @run_in_subprocess
+    def generate_loc_db(self, db_file, loc_db_file):
         loc_dict = shelve.open(loc_db_file)
         with open(db_file) as dbf:
             seq_offset = 0
