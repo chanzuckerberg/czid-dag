@@ -68,6 +68,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
                     for partition in partition_list:
                         with open(partition, 'r') as pf:
                             for line in pf:
+                                line = line.decode('utf-8')
                                 fields = line.rstrip().split("\t")
                                 accession_dict[fields[0]] = fields[2]
                                 gzf.write(line)
