@@ -66,9 +66,10 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
             with gzip.open(output_gz, "w") as gzf:
                 for partition_list in mapping_files:
                     for partition in partition_list:
-                        with open(partition, 'r') as pf:
+                        with open(partition, 'r', encoding="utf-8") as pf:
                             for line in pf:
-                                line = line.decode('utf-8')
+                                if len(line) <= 1:
+                                    break
                                 fields = line.rstrip().split("\t")
                                 accession_dict[fields[0]] = fields[2]
                                 gzf.write(line)
@@ -78,9 +79,10 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
         with shelve.open(taxid2wgs_accession_db) as taxid2accession_dict:
             with gzip.open(output_wgs_gz, "w") as gzf:
                 for partition in wgs_list:
-                    with open(partition, 'r') as pf:
+                    with open(partition, 'r', encoding="utf-8") as pf:
                         for line in pf:
-                            line = line.decode('utf-8')
+                            if len(line) <= 1:
+                                break
                             (accession, _ac1, taxid, _gi) = line.rstrip().split("\t")
                             current_match = taxid2accession_dict.get(taxid, "")
                             taxid2accession_dict[taxid] = f"{current_match},{accession}"
@@ -104,7 +106,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
                             out.write(line)
                     num_lines += 1
                     if num_lines % 1000000 == 0:
-                        log.write(f"{source_gz} partition {partition_id} line {num_lines}")
+                        log.write(f"{source_gz} partition {partition_id} line {num_lines/1000000}M")
 
 
     def count_reads(self):
