@@ -14,7 +14,7 @@ class PipelineStepGenerateLocDB(PipelineStep):
         """
         db_file = self.input_files_local[0][0]
         loc_db_file = self.output_files_local()[0]
-        loc_dict = shelve.open(loc_db_file.replace(".db", ""))
+        loc_dict = shelve.open(loc_db_file)
         with open(db_file) as dbf:
             seq_offset = 0
             seq_len = 0

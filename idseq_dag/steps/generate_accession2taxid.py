@@ -79,6 +79,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
                 for partition in wgs_list:
                     with open(partition, 'r') as pf:
                         for line in pf:
+                            line = line.decode('utf-8')
                             (accession, _ac1, taxid, _gi) = line.rstrip().split("\t")
                             current_match = taxid2accession_dict.get(taxid, "")
                             taxid2accession_dict[taxid] = f"{current_match},{accession}"
@@ -96,6 +97,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
             with gzip.open(source_gz, 'r') as mapf:
                 for line in mapf:
                     if num_lines % num_partitions == partition_id:
+                        line = line.decode('utf-8')
                         accession = line.split("\t")[0]
                         if accession in accessions:
                             out.write(line)
