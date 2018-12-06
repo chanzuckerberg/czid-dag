@@ -62,7 +62,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
         for t in threads:
             t.join()
         # generate the accession2taxid db and file
-        with shelve.open(accession2taxid_db.replace(".db","")) as accession_dict:
+        with shelve.open(accession2taxid_db) as accession_dict:
             with gzip.open(output_gz, "w") as gzf:
                 for partition_list in mapping_files:
                     for partition in partition_list:
@@ -74,7 +74,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
 
         # generate taxid2 accession
         wgs_list = mapping_files[0]
-        with shelve.open(taxid2wgs_accession_db.replace(".db","")) as taxid2accession_dict:
+        with shelve.open(taxid2wgs_accession_db) as taxid2accession_dict:
             with gzip.open(output_wgs_gz, "w") as gzf:
                 for partition in wgs_list:
                     with open(partition, 'r') as pf:
