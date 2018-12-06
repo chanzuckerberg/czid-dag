@@ -102,7 +102,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
                         if accession in accessions:
                             out.write(line)
                     num_lines += 1
-                    if num_lines % 100000 == 0:
+                    if num_lines % 1000000 == 0:
                         log.write(f"{source_gz} partition {partition_id} line {num_lines}")
 
 
