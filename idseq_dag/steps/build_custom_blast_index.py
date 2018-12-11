@@ -18,7 +18,7 @@ class PipelineStepBuildCustomBlastIndex(PipelineStep):
 
         db_type = self.additional_attributes['db_type']
         file_source = self.additional_attributes['data_source']
-        output_db_name = os.path.basename(output_tar_file).replace(".tar", "")
+        output_db_name = output_tar_file.replace(".tar", "")
 
         if file_source.startswith("s3://"):
             db_file = s3.fetch_from_s3(file_source, self.output_dir_local)
