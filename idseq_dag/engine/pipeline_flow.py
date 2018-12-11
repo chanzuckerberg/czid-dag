@@ -26,7 +26,7 @@ class PipelineFlow(object):
         self.targets = dag["targets"]
         self.steps = dag["steps"]
         self.given_targets = dag["given_targets"]
-        if dag["omit_version"]:
+        if dag.get("omit_version"):
             self.output_dir_s3 = dag["output_dir_s3"]
         else:
             self.output_dir_s3 = os.path.join(dag["output_dir_s3"],
