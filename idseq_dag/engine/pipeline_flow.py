@@ -26,8 +26,11 @@ class PipelineFlow(object):
         self.targets = dag["targets"]
         self.steps = dag["steps"]
         self.given_targets = dag["given_targets"]
-        self.output_dir_s3 = os.path.join(dag["output_dir_s3"],
-                                          self.parse_output_version(idseq_dag.__version__))
+        if dag["omit_version"]:
+            self.output_dir_s3 = dag["output_dir_s3"]
+        else:
+            self.output_dir_s3 = os.path.join(dag["output_dir_s3"],
+                                              self.parse_output_version(idseq_dag.__version__))
         self.output_dir_local = dag.get("output_dir_local", DEFAULT_OUTPUT_DIR_LOCAL).rstrip('/')
         self.ref_dir_local = dag.get("ref_dir_local", DEFAULT_REF_DIR_LOCAL)
         self.large_file_list = []
@@ -49,7 +52,7 @@ class PipelineFlow(object):
         '''
         Validate the json format. see examples/*.json.
         Required fields are:
-          "output_dir_s3": base results folder. a pipeline version number will be appended for real output folder.
+          "output_dir_s3": base results folder. A pipeline version number will be appended for real output folder unless "omit_version" is True.
           "targets": lists of files that are given or would be generated
           "steps": steps that species actions to generate input and output
           "given_targets": input files that are given
