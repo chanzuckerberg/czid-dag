@@ -17,6 +17,8 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
         1. Download NT/NR
         2. Extract accessions
         3. Subsetting accessions to the ones appearing in NT/NR
+        Example command:
+        aegea batch submit --command="pip install --upgrade git+git://github.com/chanzuckerberg/s3mi.git; cd /mnt; git clone https://github.com/chanzuckerberg/idseq-dag.git; cd idseq-dag;  pip3 install -e .; sed 's/<NCBI_DATE>/2018-12-01/g' examples/accession2taxid_dag.json > examples/accession2taxid_dag.json.now  idseq_dag --no-versioned-output examples/accession2taxid_dag.json.now"  --storage /mnt=1000 --volume-type gp2 --ecr-image idseq_dag --memory 240000 --queue idseq-prod-himem --vcpus 32 --job-role idseq-pipeline
 
         """
         accession_mapping_files = self.input_files_local[0]
