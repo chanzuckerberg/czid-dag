@@ -22,7 +22,6 @@ NULL_LINEAGE = (str(NULL_SPECIES_ID), str(NULL_GENUS_ID), str(NULL_FAMILY_ID))
 #
 # See also comments under call_hits_m8().
 
-
 def cleaned_taxid_lineage(taxid_lineage, hit_taxid_str, hit_level_str):
     """Take the taxon lineage and mark meaningless calls with fake taxids."""
     # This assumption is being made in postprocessing
