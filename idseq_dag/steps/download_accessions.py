@@ -9,6 +9,7 @@ import idseq_dag.util.command as command
 import idseq_dag.util.count as count
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.m8 as m8
+import idseq_dag.util.custom_marshal as custom_marshal
 
 MIN_ACCESSIONS_WHOLE_DB_DOWNLOAD = 5000
 MAX_ACCESSION_SEQUENCE_LEN = 100000000
@@ -42,7 +43,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
     def download_ref_sequences_from_file(self, accession_dict, loc_db, db_path,
                                          output_reference_fasta):
         db_file = open(db_path, 'r')
-        loc_dict = marshal.shelve_open_retry(loc_db)
+        loc_dict = custom_marshal.shelve_open_r(loc_db)
         with open(output_reference_fasta, 'w') as orf:
             for accession, taxinfo in accession_dict.items():
                 accession_data = self.get_sequence_by_accession_from_file(accession, loc_dict, db_file)
@@ -59,7 +60,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
         mutex = threading.RLock()
 
         bucket, key = db_s3_path[5:].split("/", 1)
-        loc_dict = marshal.shelve_open_retry(loc_db)
+        loc_dict = custom_marshal.shelve_open_r(loc_db)
         accession_dir = os.path.join(self.output_dir_local, db_type, 'accessions')
         command.execute(f"mkdir -p {accession_dir}")
         for accession, taxinfo in accession_dict.items():

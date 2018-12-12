@@ -1,7 +1,7 @@
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.lineage as lineage
 import idseq_dag.util.s3 as s3
-import idseq_dag.util.marshal as marshal
+import idseq_dag.util.custom_marshal as custom_marshal
 
 class PipelineStepGenerateTaxidFasta(PipelineStep):
     """Generate taxid FASTA from hit summaries. Intermediate conversion step
@@ -24,7 +24,7 @@ class PipelineStepGenerateTaxidFasta(PipelineStep):
             self.additional_files["lineage_db"],
             self.ref_dir_local,
             allow_s3mi=True)
-        lineage_map = marshal.shelve_open_retry(lineage_db)
+        lineage_map = custom_marshal.shelve_open_r(lineage_db)
 
         # Get primary hit mappings
         valid_hits = PipelineStepGenerateTaxidFasta.parse_hits(

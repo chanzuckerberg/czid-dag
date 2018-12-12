@@ -12,7 +12,7 @@ from idseq_dag.util.lineage import INVALID_CALL_BASE_ID
 import idseq_dag.util.log as log
 import idseq_dag.util.command as command
 import idseq_dag.util.s3 as s3
-import idseq_dag.util.marshal as marshal
+import idseq_dag.util.custom_marshal as custom_marshal
 
 
 class PipelineStepGenerateAlignmentViz(PipelineStep):
@@ -47,7 +47,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             annotated_fasta, db_type)
         log.write(f"Read to Seq dictionary size: {len(read2seq)}")
 
-        nt_loc_dict = marshal.shelve_open_retry(db_path)
+        nt_loc_dict = custom_marshal.shelve_open_r(db_path)
         groups, line_count = self.process_reads_from_m8_file(
             annotated_m8, read2seq)
 

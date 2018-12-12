@@ -12,7 +12,7 @@ import idseq_dag.util.s3 as s3
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
 import idseq_dag.util.convert as convert
-import idseq_dag.util.marshal as marshal
+import idseq_dag.util.custom_marshal as custom_marshal
 
 class PipelineStepGeneratePhyloTree(PipelineStep):
     ''' 
@@ -240,7 +240,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
         # Make map of accession to sequence file
         accession2info = dict((acc, {}) for acc in accessions)
-        nt_loc_dict = marshal.shelve_open_retry(nt_loc_db)
+        nt_loc_dict = custom_marshal.shelve_open_r(nt_loc_db)
         PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_s3(
             accession2info, nt_loc_dict, nt_db)
 
