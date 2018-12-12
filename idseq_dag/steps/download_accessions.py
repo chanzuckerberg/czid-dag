@@ -1,6 +1,5 @@
 import json
 import os
-import shelve
 import threading
 import time
 import traceback
@@ -43,7 +42,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
     def download_ref_sequences_from_file(self, accession_dict, loc_db, db_path,
                                          output_reference_fasta):
         db_file = open(db_path, 'r')
-        loc_dict = shelve.open(loc_db.replace('.db', ''), 'r')
+        loc_dict = marshal.shelve_open_retry(loc_db)
         with open(output_reference_fasta, 'w') as orf:
             for accession, taxinfo in accession_dict.items():
                 accession_data = self.get_sequence_by_accession_from_file(accession, loc_dict, db_file)
@@ -60,7 +59,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
         mutex = threading.RLock()
 
         bucket, key = db_s3_path[5:].split("/", 1)
-        loc_dict = shelve.open(loc_db.replace('.db', ''), 'r')
+        loc_dict = marshal.shelve_open_retry(loc_db)
         accession_dir = os.path.join(self.output_dir_local, db_type, 'accessions')
         command.execute(f"mkdir -p {accession_dir}")
         for accession, taxinfo in accession_dict.items():
