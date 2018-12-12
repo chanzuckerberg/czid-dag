@@ -5,5 +5,4 @@ def shelve_open_retry(db_file):
         result = shelve.open(db_file, 'r')
     except:
         result = shelve.open(db_file.replace(".db", ""), 'r')
-    finally:
-        return result
+    return result
