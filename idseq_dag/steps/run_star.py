@@ -192,12 +192,12 @@ class PipelineStepRunStar(PipelineStep):
         line = f.readline()
         if line:
             if line[0] == 64:  # Equivalent to '@', fastq format
-                rid = line.decode('utf-8').split('\t', 1)[0].strip()
+                rid = line.decode('utf-8').split('\t', 1)[0].split('_', 1)[0].strip()
                 read.append(line)
                 for i in range(3):
                     read.append(f.readline())
             elif line[0] == 62: # Equivalent to '>', fasta format
-                rid = line.decode('utf-8').split('\t', 1)[0].strip()
+                rid = line.decode('utf-8').split('\t', 1)[0].split('_', 1)[0].strip()
                 read.append(line)
                 read.append(f.readline())
             else:
