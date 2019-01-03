@@ -28,7 +28,7 @@ class PipelineStepRunLZW(PipelineStep):
     def run(self):
         input_fas = self.input_files_local[0]
         output_fas = self.output_files_local()
-        cutoff_scores = self.additional_attributes["thresholds"]
+        cutoff_scores = [0] # HACK: remove no reads
         threshold_readlength = self.additional_attributes.get("threshold_readlength", 150)
         PipelineStepRunLZW.generate_lzw_filtered(input_fas, output_fas, cutoff_scores, threshold_readlength)
 
