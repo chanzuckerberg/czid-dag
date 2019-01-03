@@ -1,14 +1,19 @@
 import os
+import math
+import json
 import threading
 import shutil
 import random
 import traceback
 import multiprocessing
+import shelve
+from collections import defaultdict
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 
 import idseq_dag.util.command as command
 import idseq_dag.util.server as server
+import idseq_dag.util.lineage as lineage
 import idseq_dag.util.log as log
 import idseq_dag.util.m8 as m8
 from idseq_dag.util.s3 import fetch_from_s3
@@ -68,11 +73,13 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         sample_name = self.output_dir_s3.rstrip('/').replace('s3://', '').replace('/', '-')
         chunk_size = self.additional_attributes["chunk_size"]
         index_dir_suffix = self.additional_attributes.get("index_dir_suffix")
-        remote_username = "ec2-user"
-        remote_home_dir = "/home/%s" % remote_username
         if service == "gsnap":
+            remote_username = "ubuntu"
+            remote_home_dir = "/home/%s" % remote_username
             remote_index_dir = "%s/share" % remote_home_dir
         elif service == "rapsearch2":
+            remote_username = "ec2-user"
+            remote_home_dir = "/home/%s" % remote_username
             remote_index_dir = "%s/references/nr_rapsearch" % remote_home_dir
 
         if index_dir_suffix:
@@ -95,13 +102,12 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             self.chunks_in_flight.acquire()
             self.check_for_errors(mutex, chunk_output_files, input_chunks, service)
             t = threading.Thread(
-                target=PipelineStepRunAlignmentRemotely.run_chunk_wrapper,
+                target=self.run_chunk_wrapper,
                 args=[
-                    self.chunks_in_flight, chunk_output_files, n, mutex, self.run_chunk,
-                    [
-                        part_suffix, remote_home_dir, remote_index_dir,
-                        remote_work_dir, remote_username, chunk_input_files,
-                        key_path, service, True
+                      self.chunks_in_flight, chunk_output_files, n, mutex, self.run_chunk, [
+                      part_suffix, remote_home_dir, remote_index_dir,
+                      remote_work_dir, remote_username, chunk_input_files,
+                      key_path, service, True
                     ]
                 ])
             t.start()
@@ -119,10 +125,10 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         service = self.additional_attributes["service"]
         if len(self.input_files_local[0]) == 1:
             return self.input_files_local[0]
-        if len(self.input_files_local[0]) == 3:
+        elif len(self.input_files_local[0]) == 3:
             if service == 'gsnap':
                 return self.input_files_local[0][0:2]
-            if service == 'rapsearch2':
+            elif service == 'rapsearch2':
                 return [self.input_files_local[0][2]]
         return None
 
@@ -141,7 +147,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         for input_file in input_files:
             # Count number of lines in the file
             nlines = int(command.execute_with_output("wc -l %s" % input_file)
-                         .strip().split()[0])
+                                .strip().split()[0])
             # Number of lines should be the same in paired files
             if known_nlines is not None:
                 msg = "Mismatched line counts in supposedly paired files: {}".format(
@@ -199,8 +205,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 with open(f, 'rb') as fd:
                     shutil.copyfileobj(fd, outf)
 
-    @staticmethod
-    def run_chunk_wrapper(chunks_in_flight, chunk_output_files, n, mutex, target, args):
+    def run_chunk_wrapper(self, chunks_in_flight, chunk_output_files, n, mutex, target, args):
         result = "error"
         try:
             result = target(*args)
@@ -220,7 +225,13 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         assert service in ("gsnap", "rapsearch2")
 
         chunk_id = input_files[0].split(part_suffix)[-1]
-        multihit_basename = f"multihit-{service}-out{part_suffix}{chunk_id}.m8"
+        # TODO: Switch to python 3.6 which supports interpolation in string
+        # formatting, and we will half the number of lines below.
+        multihit_basename = "multihit-{service}-out{part_suffix}{chunk_id}.m8".format(
+            service=service,
+            part_suffix=part_suffix,
+            chunk_id=chunk_id,
+        )
         multihit_local_outfile = os.path.join(self.chunks_result_dir_local, multihit_basename)
         multihit_remote_outfile = os.path.join(remote_work_dir, multihit_basename)
         multihit_s3_outfile = os.path.join(self.chunks_result_dir_s3, multihit_basename)
@@ -233,9 +244,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 remote_work_dir=remote_work_dir) for input_fa in input_files)
 
         base_str = "mkdir -p {remote_work_dir} ; {download_input_from_s3} ; "
-        environment = self.additional_attributes["environment"]
         if service == "gsnap":
-            commands = base_str + "{remote_home_dir}/bin/gsnapl -A m8 --batch=0 --use-shared-memory=0 --gmap-mode=none --npaths=100 --ordered -t 36 --max-mismatches=40 -D {remote_index_dir} -d nt_k16 {remote_input_files} > {multihit_remote_outfile}"
+            commands = base_str + "{remote_home_dir}/bin/gsnapl -A m8 --batch=0 --use-shared-memory=0 --gmap-mode=none --npaths=100 --ordered -t 36 --maxsearch=1000 --max-mismatches=40 -D {remote_index_dir} -d nt_k16 {remote_input_files} > {multihit_remote_outfile}"
         else:
             commands = base_str + "/usr/local/bin/rapsearch -d {remote_index_dir}/nr_rapsearch -e -6 -l 10 -a T -b 0 -v 50 -z 24 -q {remote_input_files} -o {multihit_remote_outfile}"
 
@@ -280,28 +290,26 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 log.write("waiting for {} server for chunk {}".format(
                     service, chunk_id))
                 max_concurrent = self.additional_attributes["max_concurrent"]
+                environment = self.additional_attributes["environment"]
 
-                with server.ASGInstance(service, key_path,
-                                        remote_username, environment,
-                                        max_concurrent, chunk_id,
-                                        self.additional_attributes.get("max_interval_between_describe_instances") or 900,
-                                        self.additional_attributes.get("job_tag_prefix") or "RunningIDseqBatchJob_",
-                                        self.additional_attributes.get("job_tag_refresh_seconds") or 600,
-                                        self.additional_attributes.get("draining_tag") or "draining") as instance_ip:
-                    command.execute(command.remote(commands, key_path, remote_username, instance_ip))
+                instance_ip = server.wait_for_server_ip(service, key_path,
+                                                        remote_username, environment,
+                                                        max_concurrent, chunk_id)
+                log.write("starting alignment for chunk %s on %s server %s" %
+                             (chunk_id, service, instance_ip))
+                command.execute(command.remote(commands, key_path, remote_username, instance_ip))
 
-                    if service == "gsnap":
-                        verification_command = "cat %s" % multihit_remote_outfile
-                    else:
-                        # For rapsearch, first remove header lines starting with '#'
-                        verification_command = "grep -v '^#' %s" % multihit_remote_outfile
-                    verification_command += " | awk '{print NF}' | sort -nu | head -n 1"
-                    min_column_number_string = command.execute_with_output(
-                        command.remote(verification_command, key_path, remote_username, instance_ip))
-                    min_column_number = interpret_min_column_number_string(
-                        min_column_number_string, correct_number_of_output_columns,
-                        try_number)
-
+                if service == "gsnap":
+                    verification_command = "cat %s" % multihit_remote_outfile
+                else:
+                    # For rapsearch, first remove header lines starting with '#'
+                    verification_command = "grep -v '^#' %s" % multihit_remote_outfile
+                verification_command += " | awk '{print NF}' | sort -nu | head -n 1"
+                min_column_number_string = command.execute_with_output(
+                    command.remote(verification_command, key_path, remote_username, instance_ip))
+                min_column_number = interpret_min_column_number_string(
+                    min_column_number_string, correct_number_of_output_columns,
+                    try_number)
                 try_number += 1
 
             # Move output from remote machine to local machine
@@ -312,7 +320,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             with self.iostream_upload:  # Limit concurrent uploads so as not to stall the pipeline.
                 command.execute(
                     command.scp(key_path, remote_username, instance_ip,
-                                multihit_remote_outfile, multihit_local_outfile))
+                        multihit_remote_outfile, multihit_local_outfile))
                 command.execute("aws s3 cp --only-show-errors %s %s/" %
                                 (multihit_local_outfile,
                                  self.chunks_result_dir_s3))

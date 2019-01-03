@@ -15,7 +15,7 @@ Check out our repositories:
 - [idseq-web](https://github.com/chanzuckerberg/idseq-web) - Frontend portal
 - [idseq-dag](https://github.com/chanzuckerberg/idseq-dag) - Bioinformatics pipeline and workflow engine (here)
 - [idseq-cli](https://github.com/chanzuckerberg/idseq-cli) - Command line upload interface
-- [idseq-bench](https://github.com/chanzuckerberg/idseq-bench) - Pipeline benchmarking tools
+- [idseq-bench](https://github.com/chanzuckerberg/idseq-bench) - Pipeline benchmarking tools 
 
 ## IDSEQ-DAG
 
@@ -225,32 +225,11 @@ IDseq DAGs require the use of several indices prepared from files in NCBI. If yo
 TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
-
-- 3.3.0
-   - Upgrade GSNAP executable to version 2018-10-26.  Index remains unchanged at 2018-12-01.
-     In comprehensive testing on a diverse set of samples, this has shown just a few minor
-     effects on overall results, mostly for reads that align at the limit of detection.
-     The benefit of the change is 3x-8x faster performance.  A/B test data is archived
-     in slack channel #idseq-benchmarking.
-
-- 3.2.5-3.2.1 only affect staging environment
-   - 3.2.5 GSNAP Pre-release 2018-10-26, this time for real.
-   - 3.2.4 Revert 3.2.3.
-   - 3.2.3 GSNAP Pre-release 2018-10-20 (briefly thought to be 2018-10-20 by mistake).
-   - 3.2.2 Revert 3.2.1.
-   - 3.2.1 GSNAP Pre-release 2018-10-20.
-
-- 3.2.0
-   - Assembly with paired ends if available
-   - Coverage Stats Step
-- 3.1.0
-   - Assembly based pipeline. Add assembly and blast the contigs to the aligned accessions
-
 - 2.11.0
    - Add adapter trimming step.
 
 - 2.10.0
-   - Relax LZW filter for reads longer than 150 bp, linearly with read length.
+   - Relax LZW filter for reads longer than 150 bp, linearly with read length. 
 
 - 2.9.0
    - Change how blacklist filter works so that if a read maps both to
