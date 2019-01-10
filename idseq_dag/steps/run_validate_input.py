@@ -30,8 +30,8 @@ class PipelineStepRunValidateInput(PipelineStep):
         # keep a dictionary of the distribution of read lengths in the files
         self.summary_dict = {'<50':0, '50-500': 0, '500-10000': 0, '10000+': 0}
 
-        quick_check_passed = 
-            self.quick_check_file(input_files[0], file_ext == 'fastq') and
+        quick_check_passed = \
+            self.quick_check_file(input_files[0], file_ext == 'fastq') and \
             (num_inputs == 1 or self.quick_check_file(input_files[1], file_ext == 'fastq'))
 
         for infile, outfile in zip(input_files, output_files):
