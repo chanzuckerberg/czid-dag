@@ -139,7 +139,7 @@ class PipelineStepRunValidateInput(PipelineStep):
 
                 read_l = input_f.readline()
                 if len(read_l) == 0:
-                    raise RuntimeError(f"Invalid input file, unexpected EOF: {file}")
+                    raise RuntimeError(f"Invalid input file, unexpected EOF: {infile}")
 
                 read_l = read_l.rstrip()
                 next_line = input_f.readline()
@@ -150,11 +150,11 @@ class PipelineStepRunValidateInput(PipelineStep):
                 if is_fastq:
                     identifier2_l = next_line
                     if len(identifier2_l) == 0:
-                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {file}")
+                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {infile}")
                     
                     quality_l = input_f.readline()
                     if len(quality_l) == 0:
-                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {file}")    
+                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {infile}")    
                     
                     quality_l = quality_l.rstrip()
                     next_line = input_f.readline()
