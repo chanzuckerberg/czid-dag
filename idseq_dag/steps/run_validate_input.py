@@ -99,12 +99,12 @@ class PipelineStepRunValidateInput(PipelineStep):
                         return False
 
                 if fragment_length == 0:
-                    fragment_length = len(identifier_l)
+                    fragment_length = len(read_l)
                     if fragment_length < vc.READ_LEN_CUTOFF_LOW or fragment_length > vc.READ_LEN_CUTOFF_MID:
                          # non-standard fragment lengths require more detailed examination
                         return False
 
-                if fragment_length != len(identifier_l) or fragment_length != len(identifier2_l):
+                if fragment_length != len(read_l) or fragment_length != len(quality_l):
                      # file does not meet "quick check" requirements since fragments/quality
                      # scores are not all of same length
                     return False
