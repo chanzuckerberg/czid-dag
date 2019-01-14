@@ -164,15 +164,15 @@ class PipelineStepRunValidateInput(PipelineStep):
 
                 if is_fastq:
                     if identifier_l[0] != '@':
-                        raise RuntimeError(f"Invalid FASTQ file: {infile}, \
-                            invalid identifier: {identifier_l}")
+                        raise RuntimeError(f"Invalid FASTQ file: {infile}, " + \
+                            f"invalid identifier: {identifier_l}")
                     if identifier2_l[0] != '+':
-                        raise RuntimeError(f"Invalid FASTQ file: {infile}, \
-                            invalid identifier: {identifier2_l}")
+                        raise RuntimeError(f"Invalid FASTQ file: {infile}, " + \
+                            f"invalid identifier: {identifier2_l}")
                 else:
                     if identifier_l[0] != '>':
-                        raise RuntimeError(f"Invalid FASTA file: {infile}, \
-                            invalid identifier: {identifier_l}")
+                        raise RuntimeError(f"Invalid FASTA file: {infile}, " + \
+                            f"invalid identifier: {identifier_l}")
 
                 # At this point, identifier_l and identifier2_l end in a newline and
                 # read_l and quality_l do not end in a newline
