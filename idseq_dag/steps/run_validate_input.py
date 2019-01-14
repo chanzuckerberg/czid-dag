@@ -30,18 +30,23 @@ class PipelineStepRunValidateInput(PipelineStep):
         # keep a dictionary of the distribution of read lengths in the files
         self.summary_dict = {'<50':0, '50-500': 0, '500-10000': 0, '10000+': 0}
 
-        quick_check_passed = \
-            self.quick_check_file(input_files[0], file_ext == 'fastq') and \
-            (num_inputs == 1 or self.quick_check_file(input_files[1], file_ext == 'fastq'))
+        try:
+            quick_check_passed = \
+                self.quick_check_file(input_files[0], file_ext == 'fastq') and \
+                (num_inputs == 1 or self.quick_check_file(input_files[1], file_ext == 'fastq'))
 
-        for infile, outfile in zip(input_files, output_files):
-            if quick_check_passed:
-                self.truncate_file(infile, outfile, file_ext == 'fastq', max_fragments)
-            else:
-                self.full_check_and_truncate_file(file, outfile, file_ext == 'fastq', max_fragments)
+            for infile, outfile in zip(input_files, output_files):
+                if quick_check_passed:
+                    self.truncate_file(infile, outfile, file_ext == 'fastq', max_fragments)
+                else:
+                    self.full_check_and_truncate_file(file, outfile, file_ext == 'fastq', max_fragments)
 
-        with open(summary_file, 'w') as summary_f:
-            json.dump(self.summary_dict, summary_f)
+            with open(summary_file, 'w') as summary_f:
+                json.dump(self.summary_dict, summary_f)
+        except Exception as e:
+            with open(summary_file, 'w') as summary_f:
+                json.dump({'Validation error': str(e)}, summary_f)
+            raise e
 
         return
 
@@ -202,6 +207,6 @@ class PipelineStepRunValidateInput(PipelineStep):
     
     def count_reads(self):
         self.should_count_reads = True
-        self.counts_dict[self.name] = self.summary_dict['50-500'] +
-                                      self.summary_dict['500-10000'] +
+        self.counts_dict[self.name] = self.summary_dict['50-500'] + \
+                                      self.summary_dict['500-10000'] + \
                                       self.summary_dict['10000+']
