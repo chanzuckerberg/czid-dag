@@ -4,6 +4,7 @@ from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
+import idseq_dag.util.validate_constants as vc
 
 class PipelineStepRunValidateInput(PipelineStep):
     def run(self):
@@ -28,7 +29,10 @@ class PipelineStepRunValidateInput(PipelineStep):
                 input_files[i] = file = file[:-3]
 
         # keep a dictionary of the distribution of read lengths in the files
-        self.summary_dict = {'<50':0, '50-500': 0, '500-10000': 0, '10000+': 0}
+        self.summary_dict = {vc.BUCKET_TOO_SHORT:0,
+                             vc.BUCKET_NORMAL: 0,
+                             vc.BUCKET_LONG: 0,
+                             vc.BUCKET_TOO_LONG: 0}
 
         try:
             quick_check_passed = \
@@ -96,7 +100,7 @@ class PipelineStepRunValidateInput(PipelineStep):
 
                 if fragment_length == 0:
                     fragment_length = len(identifier_l)
-                    if fragment_length < 50 or fragment_length > 500:
+                    if fragment_length < vc.READ_LEN_CUTOFF_LOW or fragment_length > vc.READ_LEN_CUTOFF_MID:
                          # non-standard fragment lengths require more detailed examination
                         return False
 
@@ -113,7 +117,7 @@ class PipelineStepRunValidateInput(PipelineStep):
         else:
             num_lines = max_fragments * 2
         command.execute(f"head -n {num_lines} {infile} > {outfile}")
-        self.summary_dict['50-500'] = count.reads_in_group(self.output_files_local()[0:2])
+        self.summary_dict[vc.BUCKET_NORMAL] = count.reads_in_group(self.output_files_local()[0:2])
         return
 
     # full_check_and_truncate_file does an exhaustive check of the input file, up to
@@ -186,15 +190,15 @@ class PipelineStepRunValidateInput(PipelineStep):
                     elif read_len < len(quality_l):
                         quality_l = quality_l[0:read_len]
 
-                if read_len < 50:
-                    self.summary_dict['<50'] += 1
+                if read_len < vc.READ_LEN_CUTOFF_LOW:
+                    self.summary_dict[vc.BUCKET_TOO_SHORT] += 1
                     continue
-                elif read_len < 500:
-                    self.summary_dict['50-500'] += 1
-                elif read_len < 10000:
-                    self.summary_dict['500-10000'] += 1
+                elif read_len < vc.READ_LEN_CUTOFF_MID:
+                    self.summary_dict[vc.BUCKET_NORMAL] += 1
+                elif read_len < vc.READ_LEN_CUTOFF_HIGH:
+                    self.summary_dict[vc.BUCKET_LONG] += 1
                 else:
-                    self.summary_dict['10000+'] += 1
+                    self.summary_dict[vc.BUCKET_TOO_LONG] += 1
                     read_l = read_l[0:10000]
                     if is_fastq:
                         quality_l = quality_l[0:10000]
@@ -207,6 +211,6 @@ class PipelineStepRunValidateInput(PipelineStep):
     
     def count_reads(self):
         self.should_count_reads = True
-        self.counts_dict[self.name] = self.summary_dict['50-500'] + \
-                                      self.summary_dict['500-10000'] + \
-                                      self.summary_dict['10000+']
+        self.counts_dict[self.name] = self.summary_dict[vc.BUCKET_NORMAL] + \
+                                      self.summary_dict[vc.BUCKET_LONG] + \
+                                      self.summary_dict[vc.BUCKET_TOO_LONG]

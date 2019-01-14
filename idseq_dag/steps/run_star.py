@@ -7,6 +7,7 @@ import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.count as count
+import idseq_dag.util.validate_constants as vc
 
 class PipelineStepRunStar(PipelineStep):
     def run(self):
@@ -38,8 +39,8 @@ class PipelineStepRunStar(PipelineStep):
         with open(validated_input_counts_file) as validated_input_counts_f:
             validated_input_counts = json.load(validated_input_counts_f)
 
-        use_starlong = validated_input_counts['500-10000'] > 1 or 
-                       validated_input_counts['10000+'] > 1
+        use_starlong = validated_input_counts[vc.BUCKET_LONG] > 1 or 
+                       validated_input_counts[vc.BUCKET_TOO_LONG] > 1
 
         for part_idx in range(num_parts):
             tmp = f"{scratch_dir}/star-part-{part_idx}"
