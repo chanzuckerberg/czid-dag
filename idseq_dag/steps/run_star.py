@@ -39,7 +39,7 @@ class PipelineStepRunStar(PipelineStep):
         with open(validated_input_counts_file) as validated_input_counts_f:
             validated_input_counts = json.load(validated_input_counts_f)
 
-        use_starlong = validated_input_counts[vc.BUCKET_LONG] > 1 or 
+        use_starlong = validated_input_counts[vc.BUCKET_LONG] > 1 or \
                        validated_input_counts[vc.BUCKET_TOO_LONG] > 1
 
         for part_idx in range(num_parts):
