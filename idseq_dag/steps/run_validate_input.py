@@ -56,7 +56,7 @@ class PipelineStepRunValidateInput(PipelineStep):
 
     # quick_check_file returns:
     #   True if the first 100 fragments all have the same length of reads and
-    #   are well-formated single-line FASTA / FASTQ entries. 
+    #   are well-formated single-line FASTA / FASTQ entries.
     #
     #   False if the entries are not formatted simply or the read lengths are not
     #   all identical or if there is another possibly recoverable error
@@ -121,7 +121,7 @@ class PipelineStepRunValidateInput(PipelineStep):
         return
 
     # full_check_and_truncate_file does an exhaustive check of the input file, up to
-    # max_fragments, and reformats the output to conform to what the rest of the 
+    # max_fragments, and reformats the output to conform to what the rest of the
     # computational pipeline expects (single-line reads of max-length 10,000). After
     # viewing max_fragments reads or encountering EOF, the function returns.
     #
@@ -150,21 +150,21 @@ class PipelineStepRunValidateInput(PipelineStep):
                 while len(next_line) > 0 and next_line[0] not in ['>', '@', '+']:
                     read_l += next_line.rstrip()
                     next_line = input_f.readline()
-                    
+
                 if is_fastq:
                     identifier2_l = next_line
                     if len(identifier2_l) == 0:
                         raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {infile}")
-                    
+
                     quality_l = input_f.readline()
                     if len(quality_l) == 0:
-                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {infile}")    
-                    
+                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {infile}")
+
                     quality_l = quality_l.rstrip()
                     next_line = input_f.readline()
                     while len(next_line) > 0 and next_line[0] not in ['>', '@', '+']:
                         quality_l += next_line.rstrip()
-                        next_line = input_f.readline()                    
+                        next_line = input_f.readline()
 
                 if is_fastq:
                     if identifier_l[0] != '@':
@@ -181,7 +181,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                 # At this point, identifier_l and identifier2_l end in a newline and
                 # read_l and quality_l do not end in a newline
                 read_len = len(read_l)
-                
+
                 # Force read and quality lengths to be identical, either by padding quality
                 # with the last quality score or truncating quality score
                 if is_fastq:
@@ -208,7 +208,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                     output_f.write(identifier2_l + quality_l + "\n")
 
         return
-    
+
     def count_reads(self):
         self.should_count_reads = True
         self.counts_dict[self.name] = self.summary_dict[vc.BUCKET_NORMAL] + \

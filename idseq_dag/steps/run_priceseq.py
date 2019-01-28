@@ -29,7 +29,7 @@ class PipelineStepRunPriceSeq(PipelineStep):
         ]
         self.run_priceseqfilter(input_files, price_out, is_paired, file_type)
 
-        # Some FASTQ files come with very low quality scores, e.g. some PacBio files 
+        # Some FASTQ files come with very low quality scores, e.g. some PacBio files
         # are entirely 0s for quality score, so in the case that everything gets
         # filtered out by PriceSeqFilter, try running again w/o quality scores.
         # We accomplish this by just converting to FASTA.
