@@ -56,6 +56,8 @@ class PipelineStepRunValidateInput(PipelineStep):
         except Exception as e:
             with open(summary_file, 'w') as summary_f:
                 json.dump({'Validation error': str(e)}, summary_f)
+                s3_path = self.s3_path(summary_f)
+                idseq_dag.util.s3.upload_with_retries(summary_f, s3_path)
             raise e
 
         return
