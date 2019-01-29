@@ -45,7 +45,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                 if quick_check_passed:
                     num_fragments = self.truncate_file(infile, outfile, file_ext == 'fastq', max_fragments)
                 else:
-                    num_fragments = self.full_check_and_truncate_file(file, outfile, file_ext == 'fastq', max_fragments)
+                    num_fragments = self.full_check_and_truncate_file(infile, outfile, file_ext == 'fastq', max_fragments)
                 all_fragments.append(num_fragments)
 
             if len(all_fragments) == 2 and abs(all_fragments[1]-all_fragments[0]) > 1000:
