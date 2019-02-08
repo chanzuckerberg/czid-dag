@@ -98,9 +98,12 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         command.execute(f"mv {ksnp_output_dir}/tree.parsimony.tre {output_files[0]}")
         ksnp_vcf_file = glob.glob(f"{ksnp_output_dir}/*.vcf")
         if ksnp_vcf_file:
-            target_vcf_file = f"{ksnp_output_dir}/variants_reference1.vcf"
-            self.name_samples_vcf(ksnp_vcf_file[0], target_vcf_file)
-            self.additional_files_to_upload.append(target_vcf_file)
+            try:
+                target_vcf_file = f"{ksnp_output_dir}/variants_reference1.vcf"
+                self.name_samples_vcf(ksnp_vcf_file[0], target_vcf_file)
+                self.additional_files_to_upload.append(target_vcf_file)
+            except:
+                pass
 
         # Upload all kSNP3 output files for potential future reference
         supplementary_files = [f for f in glob.glob(f"{ksnp_output_dir}/*")
@@ -300,7 +303,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
     def name_samples_vcf(self, input_file, output_file):
         # The VCF has standard columns CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, FORMAT,
-        # followed by 1 column for each of the pipeline_run_ids. This function replaces the pipeline_run)_ids
+        # followed by 1 column for each of the pipeline_run_ids. This function replaces the pipeline_run_ids
         # by the corresponding sample names so that users can understand the file.
         sample_names_by_run_ids = self.additional_attributes["sample_names_by_run_ids"]
         vcf_columns = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT"
