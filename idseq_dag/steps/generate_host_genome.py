@@ -21,7 +21,11 @@ class PipelineStepGenerateHostGenome(PipelineStep):
                                            self.output_dir_local,
                                            allow_s3mi=True,
                                            auto_unzip=True)
-
+        if input_fasta_path[-3:] == '.gz':
+            # unzip the file
+            dest_path = input_fasta_path[:-3]
+            command.execute(f"gzip -dc {input_fasta_path} > {dest_path}")
+            input_fasta_path = dest_path
 
         input_gtf_path = None
         if self.additional_files.get("input_gtf"):
