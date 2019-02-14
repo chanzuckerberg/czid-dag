@@ -1,11 +1,11 @@
 ''' Generate Host Genome given a fasta'''
 import os
+import multiprocessing
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
-import idseq_dag.util.count as count
-import idseq_dag.util.fasta as fasta
+import idseq_dag.util.s3 as s3
 
 MAX_STAR_PART_SIZE = 3252010122
 
@@ -15,8 +15,8 @@ class PipelineStepGenerateHostGenome(PipelineStep):
         """
         Generate host genome indexes for STAR and bowtie2
         """
-	# Set up
-	input_fasta_path = self.input_files_local[0][0]
+        # Set up
+        input_fasta_path = self.input_files_local[0][0]
         ercc_fasta_path = s3.fetch_from_s3(self.additional_files["ercc_fasta"],
                                            self.output_dir_local,
                                            allow_s3mi=True,
@@ -30,16 +30,16 @@ class PipelineStepGenerateHostGenome(PipelineStep):
         input_gtf_path = None
         if self.additional_files.get("input_gtf"):
             input_gtf_path = s3.fetch_from_s3(self.additional_files["input_gtf"],
-                                             self.output_dir_local,
-                                             allow_s3mi=True)
+                                              self.output_dir_local,
+                                              allow_s3mi=True)
 
         ercc_gtf_path = s3.fetch_from_s3(self.additional_files["ercc_gtf"],
                                          self.output_dir_local,
                                          allow_s3mi=True,
                                          auto_unzip=True)
 
-	host_name = elf.additional_attributes["host_name"]
-	input_fasta_with_ercc = f"{input_fasta_path}.with_ercc"
+        host_name = self.additional_attributes["host_name"]
+        input_fasta_with_ercc = f"{input_fasta_path}.with_ercc"
         command.execute(f"cat {ercc_fasta_path} {input_fasta_path}  > {input_fasta_with_ercc}")
 
         input_gtf_with_ercc = ercc_gtf_path
@@ -52,12 +52,13 @@ class PipelineStepGenerateHostGenome(PipelineStep):
         command.execute(f"cp {input_fasta_with_ercc} {output_fasta_file}")
         command.execute(f"cp {input_gtf_with_ercc} {output_gtf_file}")
 
-	# make STAR index
-	make_star_index(input_fasta_with_ercc, input_gtf_with_ercc, output_star_index)
+        # make STAR index
+        self.make_star_index(input_fasta_with_ercc, input_gtf_with_ercc, output_star_index)
 
-	# make bowtie2 index
-	make_bowtie2_index(host_name, input_fasta_with_ercc, output_bowtie2_index)
+        # make bowtie2 index
+        self.make_bowtie2_index(host_name, input_fasta_with_ercc, output_bowtie2_index)
 
+    @staticmethod
     def split_fasta(fasta_file, max_fasta_part_size):
         fasta_file_list = []
         part_idx = 0
@@ -87,14 +88,15 @@ class PipelineStepGenerateHostGenome(PipelineStep):
             current_output_file.close()
         return fasta_file_list
 
-    def make_star_index(fasta_file, gtf_file, output_star_genome_path, scratch_dir):
+    @staticmethod
+    def make_star_index(fasta_file, gtf_file, output_star_genome_path):
         star_genome_dir_name = output_star_genome_path[:-4]
 
         # star genome organization
         # STAR_genome/part-${i}, parts.txt
         fasta_file_list = []
         if os.path.getsize(fasta_file) > MAX_STAR_PART_SIZE:
-            fasta_file_list = split_fasta(fasta_file, MAX_STAR_PART_SIZE)
+            fasta_file_list = PipelineStepGenerateHostGenome.split_fasta(fasta_file, MAX_STAR_PART_SIZE)
         else:
             fasta_file_list.append(fasta_file)
 
@@ -107,7 +109,7 @@ class PipelineStepGenerateHostGenome(PipelineStep):
             star_genome_part_dir = f"{star_genome_dir_name}/part-{i}"
             star_command_params = [
                 'mkdir -p ', star_genome_part_dir, ';',
-                STAR, '--runThreadN',
+                'STAR', '--runThreadN',
                 str(multiprocessing.cpu_count()), '--runMode', 'genomeGenerate',
                 gtf_command_part, '--genomeDir', star_genome_part_dir,
                 '--genomeFastaFiles', fasta_file_list[i]
@@ -121,7 +123,7 @@ class PipelineStepGenerateHostGenome(PipelineStep):
         star_work_dir = os.path.dirname(star_genome_dir_name)
         command.execute(f"tar cvf {output_star_genome_path} -C {star_work_dir} {star_genome}")
 
-
+    @staticmethod
     def make_bowtie2_index(host_name, fasta_file, output_bowtie2_index):
         bowtie2_genome_dir_name = output_bowtie2_index[:-4]
         bowtie2_command_params = [
