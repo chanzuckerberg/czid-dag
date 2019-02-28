@@ -334,8 +334,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         seq_name = ''
         entry = nt_loc_dict.get(accession_id)
         if entry:
-            range_start = entry[0]
-            seq_len = entry[1] + entry[2]
+            range_start = int(entry[0])
+            seq_len = int(entry[1]) + int(entry[2])
             ntf.seek(range_start, 0)
             seq_name, ref_seq = ntf.read(seq_len).split("\n", 1)
             ref_seq = ref_seq.replace("\n", "")
@@ -350,7 +350,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
         if not entry:
             return seq_len, seq_name
 
-        range_start, name_length, seq_len = entry
+        range_start, name_length, seq_len = [int(e) for e in entry]
 
         accession_file = f'accession-{accession_id}'
         num_retries = 3
