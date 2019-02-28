@@ -84,8 +84,8 @@ class PipelineStepDownloadAccessions(PipelineStep):
     def get_sequence_by_accession_from_file(accession_id, loc_dict, db_file):
         entry = loc_dict.get(accession_id)
         if entry:
-            range_start = entry[0]
-            seq_len = entry[1] + entry[2]
+            range_start = int(entry[0])
+            seq_len = int(entry[1]) + int(entry[2])
             if seq_len <= MAX_ACCESSION_SEQUENCE_LEN:
                 db_file.seek(range_start, 0)
                 return db_file.read(seq_len)
@@ -98,7 +98,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
         try:
             entry = loc_dict.get(accession)
             if entry:
-                range_start, name_length, seq_len = entry
+                range_start, name_length, seq_len = [int(e) for e in entry]
                 range_end = range_start + name_length + seq_len - 1
                 if seq_len <= MAX_ACCESSION_SEQUENCE_LEN:
                     num_retries = 3
