@@ -94,7 +94,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
                             fields = line.rstrip().split("\t")
                             gzf.write(line)
                             batch_list[fields[0]] = fields[2]
-                            if len(bath_list) >= BATCH_INSERT_SIZE:
+                            if len(batch_list) >= BATCH_INSERT_SIZE:
                                 accession_dict.batch_inserts(batch_list.items())
                                 batch_list = {}
             accession_dict.batch_inserts(batch_list.items())
@@ -132,7 +132,6 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
                             gzf.write(line)
 
         # generate taxid2 accession
-        wgs_thread.join()
         with shelve.Shelf(dbm.ndbm.open(taxid2wgs_accession_db.replace(".db", ""), 'c')) as taxid2accession_dict:
             with gzip.open(output_wgs_gz, "wt") as gzf:
                 with open(wgs_accessions, 'r', encoding="utf-8") as wgsf:
