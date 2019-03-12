@@ -1,4 +1,5 @@
 import sqlite3
+import shelve
 from enum import IntEnum
 
 DICT_DELIMITER = chr(1) # Delimiter for an array of values
@@ -6,7 +7,6 @@ class IdSeqDictValue(IntEnum):
     VALUE_TYPE_SCALAR = 1
     VALUE_TYPE_ARRAY = 2
 SQLITE_TABLE_NAME = "idseq_dict"
-
 
 class IdSeqDict(object):
     '''
@@ -46,13 +46,19 @@ class IdSeqDict(object):
         cursor.execute(f"INSERT OR REPLACE INTO {SQLITE_TABLE_NAME} VALUES {value_str}")
         self.db_conn.commit()
 
-    def get(self, key):
+    def get(self, key, default_value=None):
         cursor = self.db_conn.cursor()
         res = cursor.execute(f"SELECT dict_value FROM idseq_dict where dict_key = '{key}'")
         v = res.fetchone()
         if v is None:
-            return None
+            return default_value
         value = v[0]
         if self.value_type == IdSeqDictValue.VALUE_TYPE_ARRAY:
             return value.split(DICT_DELIMITER)
         return value
+
+def open_file_db_by_extension(db_path, value_type=IdSeqDictValue.VALUE_TYPE_SCALAR):
+    if db_path[-8:] == '.sqlite3': # sqlite3 format
+        return IdSeqDict(db_path, value_type)
+    # shelve format
+    return shelve.open(db_path.replace('.db', ''), 'r')

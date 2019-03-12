@@ -1,6 +1,5 @@
 import json
 import os
-import shelve
 import threading
 import time
 import traceback
@@ -10,6 +9,8 @@ import idseq_dag.util.command as command
 import idseq_dag.util.count as count
 import idseq_dag.util.s3 as s3
 import idseq_dag.util.m8 as m8
+
+from idseq_dag.util.dict import IdSeqDict, IdSeqDictValue, open_file_db_by_extension
 
 MIN_ACCESSIONS_WHOLE_DB_DOWNLOAD = 5000
 MAX_ACCESSION_SEQUENCE_LEN = 100000000
@@ -43,7 +44,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
     def download_ref_sequences_from_file(self, accession_dict, loc_db, db_path,
                                          output_reference_fasta):
         db_file = open(db_path, 'r')
-        loc_dict = shelve.open(loc_db.replace('.db', ''), 'r')
+        loc_dict = open_file_db_by_extension(loc_db, IdSeqDictValue.VALUE_TYPE_ARRAY)
         with open(output_reference_fasta, 'w') as orf:
             for accession, taxinfo in accession_dict.items():
                 accession_data = self.get_sequence_by_accession_from_file(accession, loc_dict, db_file)
@@ -60,7 +61,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
         mutex = threading.RLock()
 
         bucket, key = db_s3_path[5:].split("/", 1)
-        loc_dict = shelve.open(loc_db.replace('.db', ''), 'r')
+        loc_dict = open_file_db_by_extension(loc_db, IdSeqDictValue.VALUE_TYPE_ARRAY)
         accession_dir = os.path.join(self.output_dir_local, db_type, 'accessions')
         command.execute(f"mkdir -p {accession_dir}")
         for accession, taxinfo in accession_dict.items():

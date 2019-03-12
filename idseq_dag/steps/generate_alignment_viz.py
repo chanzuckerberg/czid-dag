@@ -1,7 +1,6 @@
 import json
 import os
 import re
-import shelve
 import threading
 import time
 import traceback
@@ -14,6 +13,7 @@ import idseq_dag.util.log as log
 import idseq_dag.util.command as command
 import idseq_dag.util.s3 as s3
 
+from idseq_dag.util.dict import IdSeqDict, IdSeqDictValue, open_file_db_by_extension
 
 class PipelineStepGenerateAlignmentViz(PipelineStep):
     """Pipeline step to generate JSON file for read alignment visualizations to
@@ -47,8 +47,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             annotated_fasta, db_type)
         log.write(f"Read to Seq dictionary size: {len(read2seq)}")
 
-        db_path = nt_loc_db.replace(".db", "")
-        nt_loc_dict = shelve.open(db_path)
+        nt_loc_dict = open_file_db_by_extension(nt_loc_db, IdSeqDictValue.VALUE_TYPE_ARRAY)
         groups, line_count = self.process_reads_from_m8_file(
             annotated_m8, read2seq)
 
