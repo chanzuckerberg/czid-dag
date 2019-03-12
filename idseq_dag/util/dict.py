@@ -10,7 +10,7 @@ SQLITE_TABLE_NAME = "idseq_dict"
 
 class IdSeqDict(object):
     '''
-        a key -> value permanent permanent dictionary store with sqlite3 as the backend.
+        a key -> value permanent dictionary store with sqlite3 as the backend.
         key has to be a string
         value could be either array of strings or a string
     '''
@@ -23,10 +23,12 @@ class IdSeqDict(object):
         self.db_conn.commit()
 
     def __del__(self):
+        ''' destructor '''
         self.db_conn.commit()
         self.db_conn.close()
 
     def update(self, key, value):
+        ''' Update a particular key value pair '''
         cursor = self.db_conn.cursor()
         val = value
         if self.value_type == IdSeqDictValue.VALUE_TYPE_ARRAY:
@@ -34,6 +36,7 @@ class IdSeqDict(object):
         cursor.execute(f"INSERT OR REPLACE INTO {SQLITE_TABLE_NAME} VALUES ('{key}', '{val}')")
 
     def batch_inserts(self, tuples):
+        ''' Insert multiple records at a time '''
         if len(tuples) == 0:
             return
         def tuple_to_sql_str(user_tuple):
@@ -47,6 +50,7 @@ class IdSeqDict(object):
         self.db_conn.commit()
 
     def get(self, key, default_value=None):
+        ''' Emulate get as a python dictionary  '''
         cursor = self.db_conn.cursor()
         res = cursor.execute(f"SELECT dict_value FROM idseq_dict where dict_key = '{key}'")
         v = res.fetchone()
@@ -58,6 +62,7 @@ class IdSeqDict(object):
         return value
 
 def open_file_db_by_extension(db_path, value_type=IdSeqDictValue.VALUE_TYPE_SCALAR):
+    ''' if extension is .sqlite3 open it as an IdSeqDict, otherwise, open as shelve in read mode '''
     if db_path[-8:] == '.sqlite3': # sqlite3 format
         return IdSeqDict(db_path, value_type)
     # shelve format
