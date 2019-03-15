@@ -14,11 +14,15 @@ class PipelineStepRunStar(PipelineStep):
     The attributes 'validated_input_counts_file' and 'sequence_input_files'
     should be initialized in any children that want to make use of the run() method.
     """
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.sequence_input_files = None
+        self.validated_input_counts_file = None
 
     def run(self):
         """Run STAR to filter out host reads."""
         # Setup
-        if hasattr(self, 'sequence_input_files') and hasattr(self, 'validated_input_counts_file'):
+        if self.sequence_input_files is not None and self.validated_input_counts_file is not None:
             validated_input_counts_file = self.validated_input_counts_file
             input_files = self.sequence_input_files
         else:
