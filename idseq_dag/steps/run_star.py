@@ -11,8 +11,11 @@ import idseq_dag.util.validate_constants as vc
 
 class PipelineStepRunStar(PipelineStep):
     """ Implements the step for running STAR.
-    The attributes 'validated_input_counts_file' and 'sequence_input_files'
-    should be initialized in any children that want to make use of the run() method.
+    The attributes 'validated_input_counts_file' and 'sequence_input_files' should be
+    initialized in the run() method of any children that are not for execution directly
+    on the output of the 'run_validate_input' step.
+    Note that these attributes cannot be set in the __init__ method because required
+    file path information only becomes available once the wait_for_input_files() has run.
     """
     def __init__(self, *args):
         super().__init__(*args)
