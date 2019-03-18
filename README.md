@@ -230,8 +230,9 @@ TODO: Move this code over to the idseq-dag repo.
      after the host has been filtered out (if host is non-human).
 
 - 3.4.0
-   - Use sqlite3 instead of shelve.
-
+   - switch from shelve to sqlite3 for all the lookup tables
+   - add lineage generation step
+   
 - 3.3.2
    - Add input validation step.
 
