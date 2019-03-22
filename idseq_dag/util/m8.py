@@ -328,13 +328,13 @@ def generate_taxon_count_json_from_m8(
     # Parse through hit file and m8 input file and format a JSON file with
     # our desired attributes, including aggregated statistics.
 
-    taxids_to_remove = [
+    taxids_to_remove = {
       "9606", # Homo sapiens (species)
       "9605", # Homo (genus)
       "9604"  # Hominidae (family)
-    ]
+    }
     if deuterostome_path:
-        taxids_to_remove += read_file_into_set(deuterostome_path)
+        taxids_to_remove.update(read_file_into_set(deuterostome_path))
 
     def any_hits_to_remove(hits):
         for taxid in hits:
