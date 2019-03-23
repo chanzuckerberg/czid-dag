@@ -328,22 +328,42 @@ def generate_taxon_count_json_from_m8(
     # Parse through hit file and m8 input file and format a JSON file with
     # our desired attributes, including aggregated statistics.
 
-    taxids_to_remove = {
-      "9606", # Homo sapiens (species)
-      "9605", # Homo (genus)
-      "9604"  # Hominidae (family)
-    }
+
     if deuterostome_path:
-        taxids_to_remove.update(read_file_into_set(deuterostome_path))
+        taxids_to_remove = read_file_into_set(deuterostome_path)
+
+    human_taxids = {
+        "9606", # Homo sapiens (species)
+        "9605", # Homo (genus)
+        "9604",  # Hominidae (family)
+    }
 
     def any_hits_to_remove(hits):
+        """ Returns a tuple:
+        (should drop line, should flag read as human)
+        """
         for taxid in hits:
+            if taxid in human_taxids:
+                return True, True
             if int(taxid) >= 0 and taxid in taxids_to_remove:
+                return True, False
+        return False, False
+
+    human_taxids = {
+        "9606", # Homo sapiens (species)
+        "9605", # Homo (genus)
+        "9604",  # Hominidae (family)
+    }
+
+    def should_flag_as_human(hits):
+        for taxid in hits:
+            if taxid in human_taxids:
                 return True
         return False
 
     # Setup
     aggregation = {}
+    human_reads = set()
     hit_f = open(hit_level_file, 'r', encoding='utf-8')
     m8_f = open(m8_file, 'r', encoding='utf-8')
     # Lines in m8_file and hit_level_file correspond (same read_id)
@@ -357,7 +377,7 @@ def generate_taxon_count_json_from_m8(
     while hit_line and m8_line:
         # Retrieve data values from files
         hit_line_columns = hit_line.rstrip("\n").split("\t")
-        _read_id = hit_line_columns[0]
+        read_id = hit_line_columns[0]
         hit_level = hit_line_columns[1]
         hit_taxid = hit_line_columns[2]
         if int(hit_level) < 0:  # Skip negative levels and continue
@@ -404,7 +424,11 @@ def generate_taxon_count_json_from_m8(
             hit_taxids_all_levels, hit_taxid, hit_level)
         assert num_ranks == len(cleaned_hit_taxids_all_levels)
 
-        if not any_hits_to_remove(cleaned_hit_taxids_all_levels):
+        drop_line, flag_as_human = any_hits_to_remove(cleaned_hit_taxids_all_levels)
+        if flag_as_human:
+            human_reads.add(read_id)
+
+        if not drop_line:
             # Aggregate each level and collect statistics
             agg_key = tuple(cleaned_hit_taxids_all_levels)
             while agg_key:
