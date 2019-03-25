@@ -111,7 +111,7 @@ def read_file_into_set(file_name):
 
 @command.run_in_subprocess
 def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
-                 output_m8, output_summary, taxon_blacklist=None):
+                 output_m8, output_summary, human_reads, taxon_blacklist=None):
     """
     Determine the optimal taxon assignment for each read from the alignment
     results. When a read aligns to multiple distinct references, we need to
@@ -245,6 +245,13 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
             return 1, selected_taxid, accession_id
         return -1, "-1", None
 
+    def should_flag_as_human(species_taxid, genus_taxid, family_taxid):
+        return (
+            family_taxid == "9604" # Hominidae
+            or genus_taxid == "9605" # Homo 
+            or species_taxid == "9606" # Homo sapiens
+        )
+
     # Read input_m8 and group hits by read id
     m8 = defaultdict(list)
     for read_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, _line in iterate_m8(
@@ -281,42 +288,44 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
     # Generate output files. outf is the main output_m8 file and outf_sum is
     # the summary level info.
     emitted = set()
-    with open(output_m8, "w") as outf:
-        with open(output_summary, "w") as outf_sum:
-            # Iterator over the lines of the m8 file. Emit the hit with the
-            # best value that provides the most specific taxonomy
-            # information. If there are multiple hits (also called multiple
-            # accession IDs) for a given read that all have the same e-value,
-            # some may provide species information and some may only provide
-            # genus information. We want to emit the one that provides the
-            # species information because from that we can infer the rest of
-            # the lineage. If we accidentally emitted the one that provided
-            # only genus info, downstream steps may have difficulty
-            # recovering the species.
+    with open(output_m8, "w") as outf, \
+         open(output_summary, "w") as outf_sum, \
+         open(human_reads, "w") as hf:
+        # Iterator over the lines of the m8 file. Emit the hit with the
+        # best value that provides the most specific taxonomy
+        # information. If there are multiple hits (also called multiple
+        # accession IDs) for a given read that all have the same e-value,
+        # some may provide species information and some may only provide
+        # genus information. We want to emit the one that provides the
+        # species information because from that we can infer the rest of
+        # the lineage. If we accidentally emitted the one that provided
+        # only genus info, downstream steps may have difficulty
+        # recovering the species.
 
-            # TODO: Consider all hits within a fixed margin of the best e-value.
-            # This change may need to be accompanied by a change to
-            # GSNAP/RAPSearch parameters.
-            for read_id, accession_id, _percent_id, _alignment_length, e_value, bitscore, line in iterate_m8(
-                    input_m8, "call_hits_m8_emit_deduped_and_summarized_hits"):
-                if read_id in emitted:
-                    continue
+        # TODO: Consider all hits within a fixed margin of the best e-value.
+        # This change may need to be accompanied by a change to
+        # GSNAP/RAPSearch parameters.
+        for read_id, accession_id, _percent_id, _alignment_length, e_value, bitscore, line in iterate_m8(
+                input_m8, "call_hits_m8_emit_deduped_and_summarized_hits"):
+            if read_id in emitted:
+                continue
 
-                # Read the fields from the summary level info
-                best_e_value, (hit_level, taxid,
-                               best_accession_id) = summary[read_id]
-                if best_e_value == e_value and best_accession_id in (
-                        None, accession_id):
-                    # Read out the hit with the best value that provides the
-                    # most specific taxonomy information.
-                    emitted.add(read_id)
+            # Read the fields from the summary level info
+            best_e_value, (hit_level, taxid,
+                           best_accession_id) = summary[read_id]
+            if best_e_value == e_value and best_accession_id in (
+                    None, accession_id):
+                # Read out the hit with the best value that provides the
+                # most specific taxonomy information.
+                emitted.add(read_id)
+                species_taxid, genus_taxid, family_taxid = (-1, -1, -1)
+                if best_accession_id != None:
+                    (species_taxid, genus_taxid, family_taxid) = get_lineage(best_accession_id)
+
+                if should_flag_as_human(species_taxid, genus_taxid, family_taxid):
+                    hf.write(f"{read_id}\n")
+                else:
                     outf.write(line)
-                    species_taxid = -1
-                    genus_taxid = -1
-                    family_taxid = -1
-                    if best_accession_id != None:
-                        (species_taxid, genus_taxid, family_taxid) = get_lineage(best_accession_id)
-
                     msg = f"{read_id}\t{hit_level}\t{taxid}\t{best_accession_id}"
                     msg += f"\t{species_taxid}\t{genus_taxid}\t{family_taxid}\n"
                     outf_sum.write(msg)
@@ -325,45 +334,23 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
 def generate_taxon_count_json_from_m8(
         m8_file, hit_level_file, e_value_type, count_type, lineage_map_path,
         deuterostome_path, output_json_file):
-    # Parse through hit file and m8 input file and format a JSON file with
-    # our desired attributes, including aggregated statistics.
-
+    """ Parse through hit file and m8 input file and format a JSON file with
+    our desired attributes, including aggregated statistics.
+    """
 
     if deuterostome_path:
         taxids_to_remove = read_file_into_set(deuterostome_path)
 
-    human_taxids = {
-        "9606", # Homo sapiens (species)
-        "9605", # Homo (genus)
-        "9604",  # Hominidae (family)
-    }
-
     def any_hits_to_remove(hits):
-        """ Returns a tuple:
-        (should drop line, should flag read as human)
-        """
+        if not deuterostome_path:
+            return False
         for taxid in hits:
-            if taxid in human_taxids:
-                return True, True
             if int(taxid) >= 0 and taxid in taxids_to_remove:
-                return True, False
-        return False, False
-
-    human_taxids = {
-        "9606", # Homo sapiens (species)
-        "9605", # Homo (genus)
-        "9604",  # Hominidae (family)
-    }
-
-    def should_flag_as_human(hits):
-        for taxid in hits:
-            if taxid in human_taxids:
                 return True
         return False
 
     # Setup
     aggregation = {}
-    human_reads = set()
     hit_f = open(hit_level_file, 'r', encoding='utf-8')
     m8_f = open(m8_file, 'r', encoding='utf-8')
     # Lines in m8_file and hit_level_file correspond (same read_id)
@@ -377,7 +364,7 @@ def generate_taxon_count_json_from_m8(
     while hit_line and m8_line:
         # Retrieve data values from files
         hit_line_columns = hit_line.rstrip("\n").split("\t")
-        read_id = hit_line_columns[0]
+        _read_id = hit_line_columns[0]
         hit_level = hit_line_columns[1]
         hit_taxid = hit_line_columns[2]
         if int(hit_level) < 0:  # Skip negative levels and continue
@@ -424,11 +411,7 @@ def generate_taxon_count_json_from_m8(
             hit_taxids_all_levels, hit_taxid, hit_level)
         assert num_ranks == len(cleaned_hit_taxids_all_levels)
 
-        drop_line, flag_as_human = any_hits_to_remove(cleaned_hit_taxids_all_levels)
-        if flag_as_human:
-            human_reads.add(read_id)
-
-        if not drop_line:
+        if not any_hits_to_remove(cleaned_hit_taxids_all_levels):
             # Aggregate each level and collect statistics
             agg_key = tuple(cleaned_hit_taxids_all_levels)
             while agg_key:

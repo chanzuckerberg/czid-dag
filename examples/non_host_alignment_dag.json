@@ -14,7 +14,8 @@
       "gsnap.m8",
       "gsnap.deduped.m8",
       "gsnap.hitsummary.tab",
-      "gsnap_counts.json"
+      "gsnap_counts.json",
+      "gsnap.human.txt"
     ],
     "refined_gsnap_out": [
       "gsnap.blast.m8",
@@ -27,7 +28,8 @@
       "rapsearch2.m8",
       "rapsearch2.deduped.m8",
       "rapsearch2.hitsummary.tab",
-      "rapsearch2_counts.json"
+      "rapsearch2_counts.json",
+      "rapsearch2.human.txt"
     ],
     "refined_rapsearch2_out": [
       "rapsearch2.blast.m8",

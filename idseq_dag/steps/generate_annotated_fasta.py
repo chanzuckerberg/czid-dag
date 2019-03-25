@@ -10,11 +10,11 @@ class PipelineStepGenerateAnnotatedFasta(PipelineStep):
     def run(self):
         ''' annotate fasta '''
         merged_fasta = self.input_files_local[0][-1]
-        gsnap_m8 = self.input_files_local[1][1]
-        rapsearch2_m8 = self.input_files_local[2][1]
+        gsnap_m8, gsnap_human = self.input_files_local[1][1], self.input_files_local[1][4]
+        rapsearch2_m8, rapsearch2_human = self.input_files_local[2][1], self.input_files_local[2][4]
         annotated_fasta = self.output_files_local()[0]
         unidentified_fasta = self.output_files_local()[1]
-        self.annotate_fasta_with_accessions(merged_fasta, gsnap_m8, rapsearch2_m8, annotated_fasta)
+        self.annotate_fasta_with_accessions(merged_fasta, gsnap_m8, gsnap_human, rapsearch2_m8, rapsearch2_human, annotated_fasta)
         self.generate_unidentified_fasta(annotated_fasta, unidentified_fasta)
 
     def count_reads(self):
@@ -23,7 +23,7 @@ class PipelineStepGenerateAnnotatedFasta(PipelineStep):
         self.counts_dict["unidentified_fasta"] = count.reads_in_group([self.output_files_local()[1]])
 
     @staticmethod
-    def annotate_fasta_with_accessions(merged_input_fasta, nt_m8, nr_m8, output_fasta):
+    def annotate_fasta_with_accessions(merged_input_fasta, nt_m8, nt_human, nr_m8, nr_human, output_fasta):
         def get_map(m8_file):
             return dict((read_id, accession_id)
                         for read_id, accession_id, _percent_id,
@@ -32,6 +32,8 @@ class PipelineStepGenerateAnnotatedFasta(PipelineStep):
 
         nt_map = get_map(nt_m8)
         nr_map = get_map(nr_m8)
+        nt_human_reads = m8.read_file_into_set(nt_human)
+        nr_human_reads = m8.read_file_into_set(nr_human)
 
         with open(merged_input_fasta, 'r', encoding='utf-8') as input_fasta_f:
             with open(output_fasta, 'w') as output_fasta_f:
@@ -45,8 +47,9 @@ class PipelineStepGenerateAnnotatedFasta(PipelineStep):
                         nr_accession=nr_map.get(read_id, ''),
                         nt_accession=nt_map.get(read_id, ''),
                         read_id=read_id)
-                    output_fasta_f.write(">%s\n" % new_read_name)
-                    output_fasta_f.write(sequence_data)
+                    if read_id not in nt_human_reads and read_id not in nr_human_reads:
+                        output_fasta_f.write(">%s\n" % new_read_name)
+                        output_fasta_f.write(sequence_data)
                     sequence_name = input_fasta_f.readline()
                     sequence_data = input_fasta_f.readline()
     @staticmethod
