@@ -61,7 +61,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                                             self.ref_dir_local, allow_s3mi=True)
         m8.generate_taxon_count_json_from_m8(
             deduped_output_m8, output_hitsummary, evalue_type, db_type,
-            lineage_db, deuterostome_db, output_counts_json, human_json_file)
+            lineage_db, deuterostome_db, output_counts_json)
 
 
     def run_remotely(self, input_fas, output_m8, service):
