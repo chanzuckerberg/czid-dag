@@ -225,9 +225,13 @@ IDseq DAGs require the use of several indices prepared from files in NCBI. If yo
 TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
-- 3.5.0
+- 3.5.0 ... 3.5.1
    - Add ability to run STAR further downstream from input validation. This can be used to filter human reads
      after the host has been filtered out (if host is non-human).
+   - Drop reads identified as human from:
+       - deduped_output_m8 and output_hitsummary of PipelineStepRunAlignmentRemotely
+       - annotated_fasta and unidentified_fasta of PipelineStepGenerateAnnotatedFasta.
+     Emit a list of read IDs flagged as human from PipelineStepRunAlignmentRemotely as an additional output.
 
 - 3.4.0
    - switch from shelve to sqlite3 for all the lookup tables
