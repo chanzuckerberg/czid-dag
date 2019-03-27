@@ -247,9 +247,9 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
 
     def should_flag_as_human(species_taxid, genus_taxid, family_taxid):
         return (
-            family_taxid == 9604 # Hominidae
-            or genus_taxid == 9605 # Homo 
-            or species_taxid == 9606 # Homo sapiens
+            family_taxid == "9604" # Hominidae
+            or genus_taxid == "9605" # Homo 
+            or species_taxid == "9606" # Homo sapiens
         )
 
     # Read input_m8 and group hits by read id
