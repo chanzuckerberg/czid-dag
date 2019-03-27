@@ -19,7 +19,7 @@
     }
   ],
   "given_targets": {
-    "nt_db": {
+    "nr_db": {
       "s3_dir":  "s3://idseq-database/ncbi-sources/<NCBI_DATE>", "count_reads": 0
     }
   }
