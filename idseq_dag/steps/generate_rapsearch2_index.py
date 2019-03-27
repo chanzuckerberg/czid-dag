@@ -16,7 +16,7 @@ class PipelineStepGenerateRapsearch2Index(PipelineStep):
         output_nr_index = self.output_files_local()[0]
         output_nr_info_file = output_nr_index + '.info'
         log.write(f"input: {nr_db} output: {output_nr_index}")
-        command.execute("prerapsearch -d {nr_db} -n {output_nr_index} ")
+        command.execute(f"prerapsearch -d {nr_db} -n {output_nr_index} ")
         self.additional_files_to_upload.append(output_nr_info_file)
 
     def count_reads(self):
