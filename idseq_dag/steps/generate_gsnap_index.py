@@ -7,7 +7,7 @@ import idseq_dag.util.command as command
 import idseq_dag.util.count as count
 
 class PipelineStepGenerateGsnapIndex(PipelineStep):
-    ''' Generate  '''
+    ''' Generate  gsnap index '''
     def run(self):
         """
           Generate GSNAP index. To be called from
