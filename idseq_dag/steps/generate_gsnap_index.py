@@ -10,7 +10,7 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
     ''' Generate  gsnap index '''
     def run(self):
         """
-          Generate GSNAP index. To be called from
+          Generate GSNAP index. To be called from idseq-infra
 
         """
         nt_db = self.input_files_local[0][0]
