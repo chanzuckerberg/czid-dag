@@ -5,6 +5,8 @@ import json
 import traceback
 import xml.etree.ElementTree as ET
 
+from collections import defaultdict
+
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.steps.generate_alignment_viz import PipelineStepGenerateAlignmentViz
 import idseq_dag.util.command as command
@@ -192,7 +194,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
 
     def get_accession_sequences(self, dest_dir, n=10):
         '''
-        Retrieve NCBI NT references for the most-matched accession in each alignment viz file, up to a maximum of n references.
+        Retrieve NCBI NT references for the most-matched accession in each hitsummary2 file, up to a maximum of n references.
         Write each reference to a separate fasta file.
         '''
         if n == 0:
@@ -204,40 +206,31 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             self.additional_files["nt_loc_db"],
             self.ref_dir_local,
             allow_s3mi=True)
-        s3_align_viz_files = self.additional_attributes["align_viz_files"].values()
-        local_align_viz_files = []
-        for s3_file in s3_align_viz_files:
-            local_basename = s3_file.replace("/", "-").replace(":", "-") # needs to be unique locally
+
+        s3_hitsummary2_files = self.additional_attributes["hitsummary2_files"].values()
+        local_hitsummary2_files = []
+        for s3_file in s3_hitsummary2_files:
+            local_basename = s3_file.replace("/", "-").replace(":", "-")
             local_file = s3.fetch_from_s3(
                 s3_file,
                 os.path.join(self.ref_dir_local, local_basename))
             if local_file != None:
-                local_align_viz_files.append(local_file)
+                local_hitsummary2_files.append(local_file)
 
         # Choose accessions to process.
-        # align_viz files are a bit brittle, so we just log exceptions rather than failing the job.
-        accessions = set()
-        for local_file in local_align_viz_files:
-            try:
-                with open(local_file, 'rb') as f:
-                    align_viz_dict = json.load(f)
-                most_matched_accession = None
-                max_num_reads = 0
-                flat_align_viz_dict = {}
-                self.parse_tree(align_viz_dict, flat_align_viz_dict)
-                for acc, info in flat_align_viz_dict.items():
-                    num_reads = info["coverage_summary"]["num_reads"]
-                    if num_reads > max_num_reads:
-                        max_num_reads = num_reads
-                        most_matched_accession = acc
-                accessions.add(most_matched_accession)
-                if len(accessions) >= n:
-                    break
-            except:
-                log.write(f"Warning: couldn't get accession from {local_file}!")
-                traceback.print_exc()
+        accessions = defaultdict(lambda: 0)
+        for local_file in local_hitsummary2_files:
+            tally = defaultdict(lambda: 0)
+            with open(local_file, 'rb') as f:
+                for line in f:
+                    acc, species_taxid, genus_taxid, family_taxid = line.rstrip().split("\t")[3:7]
+                    if any(int(hit_taxid) == taxid for hit_taxid in [species_taxid, genus_taxid, family_taxid]):
+                        tally[acc] += 1
+            best_acc, max_count = max(tally.items(), key=lambda x: x[1])
+            accessions[best_acc] += max_count
         if len(accessions) > n:
-            accessions = set(list(accessions)[0:n])
+            accessions = dict(sorted(accessions.items(), key=lambda x: x[1], reverse=True)[:n])
+        accessions = set(accessions.keys())
 
         # Make map of accession to sequence file
         accession2info = dict((acc, {}) for acc in accessions)
