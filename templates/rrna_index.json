@@ -1,0 +1,26 @@
+{
+  "output_dir_s3": "s3://idseq-database/alignment_indexes/<NCBI_DATE>",
+  "targets": {
+    "nt_db": [
+      "nt"
+    ],
+    "rrna_index_tar": [ 
+       "nt_rrna_k16.tar"
+    ]
+  },
+  "steps": [
+    {
+      "in": ["nt_db"],
+      "out": "rrna_index_tar",
+      "class": "PipelineStepGenerateRRnaDB",
+      "module": "idseq_dag.steps.generate_rrna_db",
+      "additional_files": {},
+      "additional_attributes": {"k": 16}
+    }
+  ],
+  "given_targets": {
+    "nt_db": {
+      "s3_dir":  "s3://idseq-database/ncbi-sources/<NCBI_DATE>", "count_reads": 0
+    }
+  }
+}
