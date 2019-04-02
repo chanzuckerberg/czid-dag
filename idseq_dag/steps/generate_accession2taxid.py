@@ -115,37 +115,6 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
         taxid2wgs_accession_dict.batch_inserts(taxid2accession_dict.items())
 
 
-    def output_dicts_to_db_old(self, mapping_files, wgs_accessions,
-                               accession2taxid_db, taxid2wgs_accession_db,
-                               output_gz, output_wgs_gz):
-        # generate the accession2taxid db and file
-        accession_dict = shelve.Shelf(dbm.ndbm.open(accession2taxid_db.replace(".db", ""), 'c'))
-        with gzip.open(output_gz, "wt") as gzf:
-            for partition_list in mapping_files:
-                for partition in partition_list:
-                    with open(partition, 'r', encoding="utf-8") as pf:
-                        for line in pf:
-                            if len(line) <= 1:
-                                break
-                            fields = line.rstrip().split("\t")
-                            accession_dict[fields[0]] = fields[2]
-                            gzf.write(line)
-
-        # generate taxid2 accession
-        with shelve.Shelf(dbm.ndbm.open(taxid2wgs_accession_db.replace(".db", ""), 'c')) as taxid2accession_dict:
-            with gzip.open(output_wgs_gz, "wt") as gzf:
-                with open(wgs_accessions, 'r', encoding="utf-8") as wgsf:
-                    for line in wgsf:
-                        accession = line[1:].split(".")[0]
-                        taxid = accession_dict.get(accession)
-                        if taxid:
-                            current_match = taxid2accession_dict.get(taxid, "")
-                            taxid2accession_dict[taxid] = f"{current_match},{accession}"
-                            gzf.write(line)
-
-        accession_dict.close()
-
-
     def grab_accession_names(self, source_file, dest_file):
         command.execute(f"grep '^>' {source_file} |cut -f 1 -d' ' > {dest_file}")
 

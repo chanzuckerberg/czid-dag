@@ -52,34 +52,6 @@ class PipelineStepGenerateLocDB(PipelineStep):
                 batch_list.append((accession_id, [seq_offset, header_len, seq_len]))
             loc_db.batch_inserts(batch_list)
 
-    @run_in_subprocess
-    def generate_loc_db_old(self, db_file, loc_db_file):
-        # TODO: To be deprecated. Using shelve
-        loc_dict = shelve.Shelf(dbm.ndbm.open(loc_db_file.replace(".db", ""), 'c'))
-        with open(db_file) as dbf:
-            seq_offset = 0
-            seq_len = 0
-            header_len = 0
-            lines = 0
-            accession_id = ""
-            for line in dbf:
-                lines += 1
-                if lines % 100000 == 0:
-                    log.write(f"{lines/1000000.0}M lines")
-                if line[0] == '>':  # header line
-                    if seq_len > 0 and len(accession_id) > 0:
-                        loc_dict[accession_id] = (seq_offset, header_len, seq_len)
-                    seq_offset = seq_offset + header_len + seq_len
-                    header_len = len(line)
-                    seq_len = 0
-                    s = re.match('^>([^ ]*).*', line)
-                    if s:
-                        accession_id = s.group(1)
-                else:
-                    seq_len += len(line)
-            if seq_len > 0 and len(accession_id) > 0:
-                loc_dict[accession_id] = (seq_offset, header_len, seq_len)
-        loc_dict.close()
 
     def count_reads(self):
         ''' Count reads '''
