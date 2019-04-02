@@ -19,6 +19,7 @@ class PipelineStepGenerateRRnaDB(PipelineStep):
         nt_file = self.input_files_local[0][0]
         output_fasta = self.output_files_local()[0]
         output_gsnap_index = self.output_files_local()[1]
+        assert(len(self.output_files_local()) == 2)
         k = self.additional_attributes.get("k", 16) # kmer k
         self.generate_rrna_db(nt_file, output_fasta, k, output_gsnap_index)
 

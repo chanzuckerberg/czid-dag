@@ -5,6 +5,7 @@
       "nt"
     ],
     "rrna_index_tar": [ 
+       "nt_rrna.fasta",
        "nt_rrna_k16.tar"
     ]
   },
