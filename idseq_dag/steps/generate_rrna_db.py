@@ -35,7 +35,7 @@ class PipelineStepGenerateRRnaDB(PipelineStep):
                     log.write(f"{lines/1000000.0}M lines")
                 if line[0] == '>':  # header line
                     output_current_seq = False
-                    if re.search("rrna", line, flags=re.IGNORECASE):
+                    if re.search("rrna|ribosomal RNA", line, flags=re.IGNORECASE):
                         outf.write(line)
                         output_current_seq = True
                 else:
