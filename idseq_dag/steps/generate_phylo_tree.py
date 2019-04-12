@@ -22,7 +22,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
     Generate a phylogenetic tree from the input fasta files using kSNP3:
     http://gensoft.pasteur.fr/docs/kSNP3/01/kSNP3.01%20User%20Guide%20.pdf
     Augment the inputs with
-      (a) NCBI sequences for the accession IDs specified in align_viz_json
+      (a) NCBI sequences for the top accession IDs found in hitsummary2_files
     and/or
       (b) Genbank full reference genomes from the same taxid.
     '''
@@ -230,6 +230,8 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         if len(accessions) > n:
             accessions = dict(sorted(accessions.items(), key=lambda x: x[1], reverse=True)[:n])
         accessions = set(accessions.keys())
+
+        print(f"CHARLES: accessions: {accessions}")
 
         # Make map of accession to sequence file
         accession2info = dict((acc, {}) for acc in accessions)
