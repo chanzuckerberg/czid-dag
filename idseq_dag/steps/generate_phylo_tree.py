@@ -50,7 +50,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Retrieve NCBI NT references for the accessions in the alignment viz files.
         # These are the accessions (not necessarily full genomes) that were actually matched
         # by the sample's reads during GSNAP alignment.
-        accession_fastas = self.get_accession_sequences(input_dir_for_ksnp3, 10)
+        accession_fastas = self.get_accession_sequences(input_dir_for_ksnp3, taxid, 10)
 
         # Retrieve NCBI metadata for the accessions
         metadata_by_node = self.get_metadata_by_tree_node({**accession_fastas, **genbank_fastas})
@@ -192,7 +192,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             for key2, sub_dict in current_dict.items():
                 PipelineStepGeneratePhyloTree.parse_tree(sub_dict, results, key2)
 
-    def get_accession_sequences(self, dest_dir, n=10):
+    def get_accession_sequences(self, dest_dir, taxid, n=10):
         '''
         Retrieve NCBI NT references for the most-matched accession in each hitsummary2 file, up to a maximum of n references.
         Write each reference to a separate fasta file.
