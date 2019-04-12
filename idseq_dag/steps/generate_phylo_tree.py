@@ -224,6 +224,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                         acc, species_taxid, genus_taxid, family_taxid = line.rstrip().split("\t")[3:7]
                         if any(int(hit_taxid) == taxid for hit_taxid in [species_taxid, genus_taxid, family_taxid]):
                             tally[acc] += 1
+
+            print(f"CHARLES: tally: {tally}")
+
             if tally:
                 best_acc, max_count = max(tally.items(), key=lambda x: x[1])
                 accessions[best_acc] += max_count
