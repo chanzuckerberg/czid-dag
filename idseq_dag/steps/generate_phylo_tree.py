@@ -207,27 +207,26 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             self.ref_dir_local,
             allow_s3mi=True)
 
-        s3_hitsummary2_files = self.additional_attributes["hitsummary2_files"].values()
-        local_hitsummary2_files = []
-        for s3_file in s3_hitsummary2_files:
-            local_basename = s3_file.replace("/", "-").replace(":", "-")
-            local_file = s3.fetch_from_s3(
-                s3_file,
-                os.path.join(self.ref_dir_local, local_basename))
-            if local_file != None:
-                local_hitsummary2_files.append(local_file)
-
         # Choose accessions to process.
+        s3_hitsummary2_files = self.additional_attributes["hitsummary2_files"].values()
         accessions = defaultdict(lambda: 0)
-        for local_file in local_hitsummary2_files:
+        for file_list in s3_hitsummary2_files:
             tally = defaultdict(lambda: 0)
-            with open(local_file, 'rb') as f:
-                for line in f:
-                    acc, species_taxid, genus_taxid, family_taxid = line.rstrip().split("\t")[3:7]
-                    if any(int(hit_taxid) == taxid for hit_taxid in [species_taxid, genus_taxid, family_taxid]):
-                        tally[acc] += 1
-            best_acc, max_count = max(tally.items(), key=lambda x: x[1])
-            accessions[best_acc] += max_count
+            for s3_file in file_list:
+                local_basename = s3_file.replace("/", "-").replace(":", "-")
+                local_file = s3.fetch_from_s3(
+                    s3_file,
+                    os.path.join(self.ref_dir_local, local_basename))
+                if local_file is None:
+                    continue
+                with open(local_file, 'rb') as f:
+                    for line in f:
+                        acc, species_taxid, genus_taxid, family_taxid = line.rstrip().split("\t")[3:7]
+                        if any(int(hit_taxid) == taxid for hit_taxid in [species_taxid, genus_taxid, family_taxid]):
+                            tally[acc] += 1
+            if tally:
+                best_acc, max_count = max(tally.items(), key=lambda x: x[1])
+                accessions[best_acc] += max_count
         if len(accessions) > n:
             accessions = dict(sorted(accessions.items(), key=lambda x: x[1], reverse=True)[:n])
         accessions = set(accessions.keys())
