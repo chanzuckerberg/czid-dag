@@ -26,11 +26,27 @@ class PipelineStepRunStar(PipelineStep):
         """Run STAR to filter out host reads."""
         # Setup
         if self.sequence_input_files is not None and self.validated_input_counts_file is not None:
+            # if input and counts files are available, use them
             validated_input_counts_file = self.validated_input_counts_file
             input_files = self.sequence_input_files
         else:
-            validated_input_counts_file = self.input_files_local[0][0]
-            input_files = self.input_files_local[0][1:3]
+            if self.additional_attributes.get('raw_fastq_input'):
+                # make this step not depending on validation
+                validated_input_counts_file = None
+                input_files = self.input_files_local[0][0:2]
+            else:
+                validated_input_counts_file = self.input_files_local[0][0]
+                input_files = self.input_files_local[0][1:3]
+
+        # Decide if we want to run STARLong
+        use_starlong = False
+        if validated_input_counts_file:
+            with open(validated_input_counts_file) as validated_input_counts_f:
+                validated_input_counts = json.load(validated_input_counts_f)
+
+            use_starlong = validated_input_counts[vc.BUCKET_LONG] > 1 or \
+                           validated_input_counts[vc.BUCKET_TOO_LONG] > 1
+
 
         num_inputs = len(input_files)
         scratch_dir = os.path.join(self.output_dir_local, "scratch_star")
@@ -53,11 +69,6 @@ class PipelineStepRunStar(PipelineStep):
         # Run STAR on each partition and save the unmapped read info
         unmapped = input_files
 
-        with open(validated_input_counts_file) as validated_input_counts_f:
-            validated_input_counts = json.load(validated_input_counts_f)
-
-        use_starlong = validated_input_counts[vc.BUCKET_LONG] > 1 or \
-                       validated_input_counts[vc.BUCKET_TOO_LONG] > 1
 
         for part_idx in range(num_parts):
             tmp = f"{scratch_dir}/star-part-{part_idx}"
