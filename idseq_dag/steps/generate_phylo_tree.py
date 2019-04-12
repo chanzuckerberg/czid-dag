@@ -219,7 +219,7 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                     os.path.join(self.ref_dir_local, local_basename))
                 if local_file is None:
                     continue
-                with open(local_file, 'rb') as f:
+                with open(local_file, 'r') as f:
                     for line in f:
                         acc, species_taxid, genus_taxid, family_taxid = line.rstrip().split("\t")[3:7]
                         if any(int(hit_taxid) == taxid for hit_taxid in [species_taxid, genus_taxid, family_taxid]):
