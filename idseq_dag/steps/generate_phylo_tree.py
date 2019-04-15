@@ -240,6 +240,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
         # Put 1 fasta file per accession into the destination directory
         accession_fastas = {}
         for acc, info in accession2info.items():
+            if info['seq_file'] is None:
+                log.write(f"WARNING: No sequence retrieved for {acc}")
+                continue
             clean_accession = self.clean_name_for_ksnp3(acc)
             local_fasta = f"{dest_dir}/NCBI_NT_accession_{clean_accession}.fasta"
             command.execute(f"ln -s {info['seq_file']} {local_fasta}")
