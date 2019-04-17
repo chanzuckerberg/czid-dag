@@ -87,16 +87,16 @@ class PipelineStepRunValidateInput(PipelineStep):
 
                 read_l = input_f.readline()
                 if len(read_l) == 0: # unexpected EOF
-                    raise RuntimeError(f"Invalid input file, unexpected EOF: {file}")
+                    raise RuntimeError(f"Invalid input file, unexpected EOF: {os.path.basename(file}")
 
                 if is_fastq:
                     identifier2_l = input_f.readline()
                     if len(identifier2_l) == 0:
-                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {file}")
+                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {os.path.basename(file}")
 
                     quality_l = input_f.readline()
                     if len(quality_l) == 0:
-                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {file}")
+                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {os.path.basename(file)}")
 
                 if is_fastq:
                     if identifier_l[0] != '@' or identifier2_l[0] != '+':
@@ -153,7 +153,7 @@ class PipelineStepRunValidateInput(PipelineStep):
 
                 read_l = input_f.readline()
                 if len(read_l) == 0:
-                    raise RuntimeError(f"Invalid input file, unexpected EOF: {infile}")
+                    raise RuntimeError(f"Invalid input file, unexpected EOF: {os.path.basename(infile)}")
 
                 read_l = read_l.rstrip()
                 next_line = input_f.readline()
@@ -164,11 +164,11 @@ class PipelineStepRunValidateInput(PipelineStep):
                 if is_fastq:
                     identifier2_l = next_line
                     if len(identifier2_l) == 0:
-                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {infile}")
+                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {os.path.basename(infile)}")
 
                     quality_l = input_f.readline()
                     if len(quality_l) == 0:
-                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {infile}")
+                        raise RuntimeError(f"Invalid FASTQ file, unexpected EOF: {os.path.basename(infile)}")
 
                     quality_l = quality_l.rstrip()
                     next_line = input_f.readline()
@@ -178,14 +178,14 @@ class PipelineStepRunValidateInput(PipelineStep):
 
                 if is_fastq:
                     if identifier_l[0] != '@':
-                        raise RuntimeError(f"Invalid FASTQ file: {infile}, " + \
+                        raise RuntimeError(f"Invalid FASTQ file: {os.path.basename(infile)}, " + \
                             f"invalid identifier: {identifier_l}")
                     if identifier2_l[0] != '+':
-                        raise RuntimeError(f"Invalid FASTQ file: {infile}, " + \
+                        raise RuntimeError(f"Invalid FASTQ file: {os.path.basename(infile)}, " + \
                             f"invalid identifier: {identifier2_l}")
                 else:
                     if identifier_l[0] != '>':
-                        raise RuntimeError(f"Invalid FASTA file: {infile}, " + \
+                        raise RuntimeError(f"Invalid FASTA file: {os.path.basename(infile)}, " + \
                             f"invalid identifier: {identifier_l}")
 
                 # At this point, identifier_l and identifier2_l end in a newline and
