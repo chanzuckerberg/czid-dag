@@ -234,19 +234,17 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             fn = align_viz_name("family", family_id)
             with open(fn, 'w') as out_f:
                 json.dump(family_dict, out_f)
-            self.additional_files_to_upload.append(fn)
 
             for (genus_id, genus_dict) in family_dict.items():
                 fn = align_viz_name("genus", genus_id)
                 with open(fn, 'w') as out_f:
                     json.dump(genus_dict, out_f)
-                self.additional_files_to_upload.append(fn)
 
                 for (species_id, species_dict) in genus_dict.items():
                     fn = align_viz_name("species", species_id)
                     with open(fn, 'w') as out_f:
                         json.dump(species_dict, out_f)
-                    self.additional_files_to_upload.append(fn)
+        self.additional_folders_to_upload.append(output_json_dir)
 
     @staticmethod
     def parse_reads(annotated_fasta, db_type):
