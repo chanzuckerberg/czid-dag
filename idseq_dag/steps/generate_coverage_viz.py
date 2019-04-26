@@ -57,27 +57,27 @@ class PipelineStepGenerateCoverageViz(PipelineStep):
         unassigned_reads_set = coverage_utils.get_unassigned_reads_set(accession_data)
 
         # Extract information about contigs and reads.
-        contigs_map = self.generate_contigs_map(blast_top_m8, valid_contigs_with_read_counts)
-        reads_map = self.generate_reads_map(gsnap_deduped_m8, unassigned_reads_set)
+        contig_data = self.generate_contig_data(blast_top_m8, valid_contigs_with_read_counts)
+        read_data = self.generate_read_data(gsnap_deduped_m8, unassigned_reads_set)
 
         # Add coverage to the contig data.
-        self.augment_contigs_map_with_coverage(contig_coverage_json, contigs_map)
+        self.augment_contig_data_with_coverage(contig_coverage_json, contig_data)
 
         # Add byteranges to the contig data.
-        self.augment_contigs_map_with_byteranges(contigs_fasta, contigs_map)
+        self.augment_contig_data_with_byteranges(contigs_fasta, contig_data)
 
         # Before selecting the best accessions and removing the rest, get the total accession count for each taxon.
         taxons_to_total_accession_count = coverage_utils.get_taxons_to_total_accession_count(taxons_to_accessions)
 
         # Select the best accessions for each taxon.
         (taxons_to_accessions, accession_data) = coverage_utils.select_best_accessions_per_taxon(
-            taxons_to_accessions, accession_data, contigs_map, reads_map, num_accessions_per_taxon
+            taxons_to_accessions, accession_data, contig_data, read_data, num_accessions_per_taxon
         )
 
         # For each accession, generate the JSON that will be sent to the coverage_viz.
-        coverage_viz_obj = coverage_utils.generate_coverage_viz_json(accession_data, contigs_map, reads_map, max_num_bins_coverage)
+        coverage_viz_obj = coverage_utils.generate_coverage_viz_json(accession_data, contig_data, read_data, max_num_bins_coverage)
 
-        # Generate the summary JSON which will get to the report page. JSON contains a map of taxons to valid accessions.
+        # Generate the summary JSON file which is initially loaded on the report page.
         coverage_viz_summary_json = coverage_utils.generate_coverage_viz_summary_json(taxons_to_accessions, accession_data, coverage_viz_obj, taxons_to_total_accession_count)
 
         # Write the summary JSON.
@@ -93,10 +93,12 @@ class PipelineStepGenerateCoverageViz(PipelineStep):
             with open(upload_file, 'w') as uf:
                 json.dump(coverage_viz_obj[accession_id], uf)
 
-            self.additional_files_to_upload.append(upload_file)
+        self.additional_folders_to_upload.append(coverage_viz_dir)
 
-
-    def get_valid_contigs_with_read_counts(self, contig_stats_json, min_contig_size):
+    # Get a dict that maps valid contigs to their read count.
+    # A contig is valid if it is larger than min_contig_size.
+    @staticmethod
+    def get_valid_contigs_with_read_counts(contig_stats_json, min_contig_size):
         valid_contigs_with_read_counts = {}
         with open(contig_stats_json, 'r') as csj:
             contig_read_counts = json.load(csj)
@@ -107,10 +109,13 @@ class PipelineStepGenerateCoverageViz(PipelineStep):
 
         return valid_contigs_with_read_counts
 
-
-    def generate_accession_data(self, hit_summary, valid_contigs_with_read_counts):
+    # Generate a dict that maps accessions to the reads and contigs that were assigned to them.
+    # Also generate a dict that maps taxons to accessions.
+    @staticmethod
+    def generate_accession_data(hit_summary, valid_contigs_with_read_counts):
+        # Use a set for contigs, since multiple lines in the hitsummary can map to the same contig.
         accession_data = defaultdict(lambda: {'reads': [], 'contigs': set() })
-        # We only allow species taxons for now.
+        # Use a set for accessions, since multiple lines in the hitsummary can map to the same accession.
         taxons_to_accessions = defaultdict(set)
 
         line_count = 0
@@ -122,7 +127,7 @@ class PipelineStepGenerateCoverageViz(PipelineStep):
 
                 values = line.rstrip().split("\t")
 
-                # Only add contig if the contig is "valid", i.e. it has 4 or more reads.
+                # Only count the contig if the contig is valid, i.e. it is larger than min_contig_size.
                 if len(values) == 12 and values[7] in valid_contigs_with_read_counts:
                     taxons_to_accessions[values[9]].add(values[8])
                     accession_data[values[8]]["contigs"].add(values[7])
@@ -130,106 +135,105 @@ class PipelineStepGenerateCoverageViz(PipelineStep):
                     taxons_to_accessions[values[4]].add(values[3])
                     accession_data[values[3]]["reads"].append(values[0])
 
+        # Convert the contig set to a list.
         for accession_id, data in accession_data.items():
             accession_data[accession_id]["contigs"] = list(data["contigs"])
 
         return (accession_data, taxons_to_accessions)
 
-
-    def augment_accession_data_with_info(self, info_dict, accession_data):
+    # Augment the accession data dictionary with accession data pulled from the info_db.
+    @staticmethod
+    def augment_accession_data_with_info(info_dict, accession_data):
         for accession_id in accession_data:
             entry = info_dict.get(accession_id)
 
             if entry:
+                # The name of the accession.
                 accession_data[accession_id]["name"] = entry[0]
+                # The total length of the accession in base pairs.
                 accession_data[accession_id]["total_length"] = int(entry[1])
             else:
                 accession_data[accession_id]["name"] = "Unknown accession"
                 accession_data[accession_id]["total_length"] = 0
 
-
-    def generate_contigs_map(self, blast_top_m8, valid_contigs_with_read_counts):
-        contigs = {}
+    # Generate hit data from an m8 file.
+    # Only include hits whose name appears in the valid_hits collection.
+    @staticmethod
+    def generate_hit_data_from_m8(m8_file, valid_hits):
+        hits = {}
 
         # File is empty.
-        if os.path.getsize(blast_top_m8) < MIN_M8_FILE_SIZE:
-            return contigs
+        if os.path.getsize(m8_file) < MIN_M8_FILE_SIZE:
+            return hits
 
         # iterate_m8 automatically removes invalid hits.
-        for _contig_id, _accession_id, _percent_id, _alignment_length, _e_value, _bitscore, line in m8.iterate_m8(blast_top_m8):
-            parts = line.split("\t")
-            name_parts = parts[0].split("_")
+        for (hit_id, accession_id, percent_id, alignment_length, num_mismatches, num_gaps,
+            query_start, query_end, subject_start, subject_end, _e_value, _bitscore, line) in m8.iterate_m8(m8_file, full_line=True):
 
-            if parts[0] in valid_contigs_with_read_counts:
-                contigs[parts[0]] = {
-                    "total_length": int(name_parts[3]),
-                    "accession": parts[1],
-                    "query_start": int(parts[6]),
-                    "query_end": int(parts[7]),
-                    "subject_start": int(parts[8]),
-                    "subject_end": int(parts[9]),
-                    "prop_mismatch": int(parts[4]) / int(parts[3]),
-                    "percent_id": float(parts[2]),
-                    "alignment_length": int(parts[3]),
-                    "num_mismatches": int(parts[4]),
-                    "num_gaps": int(parts[5]),
-                    "num_reads": valid_contigs_with_read_counts[parts[0]]
+            if hit_id in valid_hits:
+                # Map the hit_id to a dict of hit data.
+                hits[hit_id] = {
+                    "accession": accession_id,
+                    "percent_id": percent_id,
+                    "alignment_length": alignment_length,
+                    "num_mismatches": num_mismatches,
+                    "num_gaps": num_gaps,
+                    "query_start": query_start,
+                    "query_end": query_end,
+                    "subject_start": subject_start,
+                    "subject_end": subject_end,
+                    "prop_mismatch": num_mismatches / alignment_length,
                 }
+
+        return hits
+
+    # Generate contig data from blast_top_m8.
+    @staticmethod
+    def generate_contig_data(blast_top_m8, valid_contigs_with_read_counts):
+        contigs = PipelineStepGenerateCoverageViz.generate_hit_data_from_m8(blast_top_m8, valid_contigs_with_read_counts)
+
+        # Include some additional data.
+        for contig_id, contig_obj in contigs.items():
+            name_parts = contig_id.split("_")
+            # Total length of the contig. We extract this from the contig name.
+            contig_obj["total_length"] = int(name_parts[3])
+            # The contig read count.
+            contig_obj["num_reads"] = valid_contigs_with_read_counts[contig_id]
 
         return contigs
 
-
+    # Generate read data from deduped_m8.
     # We process gsnap.deduped.m8 instead of gsnap.reassigned.m8 because we ignore contigs with read_count < 4.
     # However, these contigs still get reassigned in gsnap.reassigned.m8,
-    # and overwrite the original read alignment to the accession, which we want.
-    def generate_reads_map(self, deduped_m8, unassigned_reads_set):
-        reads = {}
+    # and overwrite the original read alignment to the accession, which we need. So we can't use gsnap.reassigned.m8.
+    @staticmethod
+    def generate_read_data(deduped_m8, unassigned_reads_set):
+        return PipelineStepGenerateCoverageViz.generate_hit_data_from_m8(deduped_m8, unassigned_reads_set)
 
-        # File is empty.
-        if os.path.getsize(deduped_m8) < MIN_M8_FILE_SIZE:
-            return contigs
-
-        # iterate_m8 automatically removes invalid hits.
-        for _read_id, _accession_id, _percent_id, _alignment_length, _e_value, _bitscore, line in m8.iterate_m8(deduped_m8):
-            parts = line.split("\t")
-
-            if parts[0] in unassigned_reads_set:
-                reads[parts[0]] = {
-                    # Extract the length from the contig name.
-                    "accession": parts[1],
-                    "query_start": int(parts[6]),
-                    "query_end": int(parts[7]),
-                    "subject_start": int(parts[8]),
-                    "subject_end": int(parts[9]),
-                    "prop_mismatch": int(parts[4]) / int(parts[3]),
-                    "percent_id": float(parts[2]),
-                    "alignment_length": int(parts[3]),
-                    "num_mismatches": int(parts[4]),
-                    "num_gaps": int(parts[5])
-                }
-
-        return reads
-
-
-    def augment_contigs_map_with_coverage(self, contig_coverage_json, contigs_map):
+    # Augment contig data with the contig coverage array.
+    @staticmethod
+    def augment_contig_data_with_coverage(contig_coverage_json, contig_data):
         with open(contig_coverage_json, 'r') as ccj:
             contig_coverage = json.load(ccj)
 
             for contig_name in contig_coverage:
-                if contig_name in contigs_map:
-                    contigs_map[contig_name]["coverage"] = contig_coverage[contig_name]["coverage"]
+                if contig_name in contig_data:
+                    contig_data[contig_name]["coverage"] = contig_coverage[contig_name]["coverage"]
 
-
-    def augment_contigs_map_with_byteranges(self, contigs_fasta, contigs_map):
+    # Augment contig data with the byterange location in the contigs.fasta file for each contig.
+    @staticmethod
+    def augment_contig_data_with_byteranges(contigs_fasta, contig_data):
         with open(contigs_fasta, 'r') as cf:
             seq_offset = 0
             seq_len = 0
             contig_name = ""
 
+            # Process each line in contigs.fasta.
             for line in cf:
+                # If the line is a header file, process the contig we just traversed.
                 if line[0] == '>':  # header line
-                    if seq_len > 0 and contig_name in contigs_map:
-                        contigs_map[contig_name]["byterange"] = [seq_offset, seq_len]
+                    if seq_len > 0 and contig_name in contig_data:
+                        contig_data[contig_name]["byterange"] = [seq_offset, seq_len]
 
                     seq_offset = seq_offset + seq_len
                     seq_len = len(line)
@@ -237,5 +241,6 @@ class PipelineStepGenerateCoverageViz(PipelineStep):
                 else:
                     seq_len += len(line)
 
-            if seq_len > 0 and contig_name in contigs_map:
-                contigs_map[contig_name]["byterange"] = [seq_offset, seq_len]
+            # Process the last contig once we reach the end of the file.
+            if seq_len > 0 and contig_name in contig_data:
+                contig_data[contig_name]["byterange"] = [seq_offset, seq_len]

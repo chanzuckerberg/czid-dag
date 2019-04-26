@@ -10,7 +10,7 @@ class CalculateAccessionStats(unittest.TestCase):
             "reads": []
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 10,
                 "accession": "ACCESSION_1",
@@ -23,10 +23,10 @@ class CalculateAccessionStats(unittest.TestCase):
             }
         }
 
-        reads_map = {}
+        read_data = {}
 
         stats = coverage_utils.calculate_accession_stats(
-          accession_data, contigs_map, {}
+          accession_data, contig_data, {}
         )
 
         self.assertEqual(stats["max_aligned_length"], 10)
@@ -43,7 +43,7 @@ class CalculateAccessionStats(unittest.TestCase):
             "reads": ["READ_1", "READ_2"]
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 100,
                 "accession": "ACCESSION_1",
@@ -66,7 +66,7 @@ class CalculateAccessionStats(unittest.TestCase):
             }
         }
 
-        reads_map = {
+        read_data = {
             "READ_1": {
                 "total_length": 20,
                 "accession": "ACCESSION_1",
@@ -88,7 +88,7 @@ class CalculateAccessionStats(unittest.TestCase):
         }
 
         stats = coverage_utils.calculate_accession_stats(
-          accession_data, contigs_map, reads_map
+          accession_data, contig_data, read_data
         )
 
         self.assertEqual(stats["max_aligned_length"], 40)

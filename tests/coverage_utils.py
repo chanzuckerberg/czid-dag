@@ -14,7 +14,7 @@ class CoverageUtils(unittest.TestCase):
             "reads": ["READS_1", "READS_2", "READS_3", "READS_4"]
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 25,
                 "accession": "ACCESSION_1",
@@ -48,7 +48,7 @@ class CoverageUtils(unittest.TestCase):
             }
         }
 
-        reads_map = {
+        read_data = {
             "READS_1": {
                 "accession": "ACCESSION_1",
                 "subject_start": 1,
@@ -88,7 +88,7 @@ class CoverageUtils(unittest.TestCase):
         }
 
         read_group_json = coverage_utils.generate_hit_group_json(
-          accession_data, accession_id, contigs_map, reads_map, 10
+          accession_data, accession_id, contig_data, read_data, 10
         )
 
         self.assertEqual(len(read_group_json), 4)
@@ -113,7 +113,7 @@ class CoverageUtils(unittest.TestCase):
         }
 
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 6,
                 "accession": "ACCESSION_1",
@@ -149,7 +149,7 @@ class CoverageUtils(unittest.TestCase):
         }
 
         read_group_json = coverage_utils.generate_hit_group_json(
-          accession_data, accession_id, contigs_map, [], 5
+          accession_data, accession_id, contig_data, [], 5
         )
 
         self.assertEqual(len(read_group_json), 1)
@@ -289,7 +289,7 @@ class CoverageUtils(unittest.TestCase):
             "TAXON_3": ["ACCESSION_7"],
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIGS_1": { "alignment_length": 100 },
             "CONTIGS_2": { "alignment_length": 100 },
             "CONTIGS_3": { "alignment_length": 100 },
@@ -299,7 +299,7 @@ class CoverageUtils(unittest.TestCase):
             "CONTIGS_7": { "alignment_length": 200 },
         }
 
-        reads_map = {
+        read_data = {
             "READS_1": { "alignment_length": 150 },
             "READS_2": { "alignment_length": 150 },
             "READS_3": { "alignment_length": 150 },
@@ -338,7 +338,7 @@ class CoverageUtils(unittest.TestCase):
         }
 
         (new_taxons_to_accessions, new_accession_data) = coverage_utils.select_best_accessions_per_taxon(
-            taxons_to_accessions, accession_data, contigs_map, reads_map, 2
+            taxons_to_accessions, accession_data, contig_data, read_data, 2
         )
 
         self.assertEqual(new_taxons_to_accessions, {
@@ -360,14 +360,14 @@ class CoverageUtils(unittest.TestCase):
             "TAXON_2": ["ACCESSION_4", "ACCESSION_5"],
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIGS_1": { "alignment_length": 1 },
             "CONTIGS_2": { "alignment_length": 1 },
             "CONTIGS_3": { "alignment_length": 1 },
             "CONTIGS_4": { "alignment_length": 1 },
         }
 
-        reads_map = {
+        read_data = {
             "READS_1": { "alignment_length": 1 },
             "READS_2": { "alignment_length": 1 },
             "READS_3": { "alignment_length": 1 },
@@ -400,7 +400,7 @@ class CoverageUtils(unittest.TestCase):
         }
 
         (new_taxons_to_accessions, new_accession_data) = coverage_utils.select_best_accessions_per_taxon(
-            taxons_to_accessions, accession_data, contigs_map, reads_map, 2
+            taxons_to_accessions, accession_data, contig_data, read_data, 2
         )
 
         self.assertEqual(new_taxons_to_accessions, {

@@ -14,7 +14,7 @@ class GenerateCoverageVizJson(unittest.TestCase):
             }
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 6,
                 "accession": "ACCESSION_1",
@@ -49,7 +49,7 @@ class GenerateCoverageVizJson(unittest.TestCase):
             }
         }
 
-        reads_map = {
+        read_data = {
             "READS_1": {
                 "accession": "ACCESSION_1",
                 "subject_start": 2,
@@ -73,7 +73,7 @@ class GenerateCoverageVizJson(unittest.TestCase):
         }
 
         coverage_viz_json = coverage_utils.generate_coverage_viz_json(
-          accession_data, contigs_map, reads_map, 5
+          accession_data, contig_data, read_data, 5
         )
 
         self.assertTrue("ACCESSION_1" in coverage_viz_json)

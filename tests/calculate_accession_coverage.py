@@ -11,7 +11,7 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": []
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 4,
                 "accession": "ACCESSION_1",
@@ -23,10 +23,10 @@ class CalculateCoverageViz(unittest.TestCase):
             }
         }
 
-        reads_map = {}
+        read_data = {}
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 4
+            "ACCESSION_1", accession_data, contig_data, read_data, 4
         )
 
         self.assertEqual(coverage, [
@@ -45,7 +45,7 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": []
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 9,
                 "accession": "ACCESSION_1",
@@ -57,10 +57,10 @@ class CalculateCoverageViz(unittest.TestCase):
             }
         }
 
-        reads_map = {}
+        read_data = {}
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 10
+            "ACCESSION_1", accession_data, contig_data, read_data, 10
         )
 
         self.assertEqual(coverage, [
@@ -86,7 +86,7 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": []
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 10,
                 "accession": "ACCESSION_1",
@@ -98,10 +98,10 @@ class CalculateCoverageViz(unittest.TestCase):
             }
         }
 
-        reads_map = {}
+        read_data = {}
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 9
+            "ACCESSION_1", accession_data, contig_data, read_data, 9
         )
 
         self.assertEqual(coverage, [
@@ -125,7 +125,7 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": []
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 7,
                 "accession": "ACCESSION_1",
@@ -137,10 +137,10 @@ class CalculateCoverageViz(unittest.TestCase):
             }
         }
 
-        reads_map = {}
+        read_data = {}
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 10
+            "ACCESSION_1", accession_data, contig_data, read_data, 10
         )
 
         self.assertEqual(coverage, [
@@ -163,7 +163,7 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": []
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 5,
                 "accession": "ACCESSION_1",
@@ -175,10 +175,10 @@ class CalculateCoverageViz(unittest.TestCase):
             }
         }
 
-        reads_map = {}
+        read_data = {}
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 10
+            "ACCESSION_1", accession_data, contig_data, read_data, 10
         )
 
         self.assertEqual(coverage, [
@@ -200,7 +200,7 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": []
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 5,
                 "accession": "ACCESSION_1",
@@ -212,10 +212,10 @@ class CalculateCoverageViz(unittest.TestCase):
             }
         }
 
-        reads_map = {}
+        read_data = {}
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 10
+            "ACCESSION_1", accession_data, contig_data, read_data, 10
         )
 
         self.assertEqual(coverage, [
@@ -237,7 +237,7 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": []
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 5,
                 "accession": "ACCESSION_1",
@@ -249,10 +249,10 @@ class CalculateCoverageViz(unittest.TestCase):
             }
         }
 
-        reads_map = {}
+        read_data = {}
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 9
+            "ACCESSION_1", accession_data, contig_data, read_data, 9
         )
 
         self.assertEqual(coverage, [
@@ -277,7 +277,7 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": []
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 5,
                 "accession": "ACCESSION_1",
@@ -289,10 +289,10 @@ class CalculateCoverageViz(unittest.TestCase):
             }
         }
 
-        reads_map = {}
+        read_data = {}
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 9
+            "ACCESSION_1", accession_data, contig_data, read_data, 9
         )
 
         self.assertEqual(coverage, [
@@ -317,7 +317,7 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": []
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 6,
                 "accession": "ACCESSION_1",
@@ -329,10 +329,10 @@ class CalculateCoverageViz(unittest.TestCase):
             }
         }
 
-        reads_map = {}
+        read_data = {}
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 5
+            "ACCESSION_1", accession_data, contig_data, read_data, 5
         )
 
         # The coverage is reduced (e.g. divided by 2) for bins with 0.5 and 2.0.
@@ -352,9 +352,9 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": ["READS_1", "READS_2"]
         }
 
-        contigs_map = {}
+        contig_data = {}
 
-        reads_map = {
+        read_data = {
             "READS_1": {
                 "accession": "ACCESSION_1",
                 "subject_start": 4,
@@ -368,7 +368,7 @@ class CalculateCoverageViz(unittest.TestCase):
         }
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 10
+            "ACCESSION_1", accession_data, contig_data, read_data, 10
         )
 
         self.assertEqual(coverage, [
@@ -390,7 +390,7 @@ class CalculateCoverageViz(unittest.TestCase):
             "reads": ["READS_1", "READS_2"]
         }
 
-        contigs_map = {
+        contig_data = {
             "CONTIG_1": {
                 "total_length": 6,
                 "accession": "ACCESSION_1",
@@ -402,7 +402,7 @@ class CalculateCoverageViz(unittest.TestCase):
             }
         }
 
-        reads_map = {
+        read_data = {
             "READS_1": {
                 "accession": "ACCESSION_1",
                 "subject_start": 2,
@@ -416,7 +416,7 @@ class CalculateCoverageViz(unittest.TestCase):
         }
 
         (coverage, bin_size) = coverage_utils.calculate_accession_coverage(
-            "ACCESSION_1", accession_data, contigs_map, reads_map, 5
+            "ACCESSION_1", accession_data, contig_data, read_data, 5
         )
 
         # [0.5, 0.5] from READS_1.
