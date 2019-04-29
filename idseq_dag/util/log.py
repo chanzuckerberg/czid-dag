@@ -12,14 +12,14 @@ def configure_logger(log_file=None):
 
     if log_file:
         handler = logging.FileHandler(log_file)
-        formatter = logging.Formatter("%(asctime)s: %(message)s")
+        formatter = logging.Formatter("%(asctime)s: [%(threadName)12s] %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
     # Echo to stdout so they get to CloudWatch
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s: %(message)s")
+    formatter = logging.Formatter("%(asctime)s: [%(threadName)12s] %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
