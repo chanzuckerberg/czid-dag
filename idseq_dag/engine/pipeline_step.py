@@ -1,14 +1,15 @@
 import json
-import sys
 import os
 import threading
 import time
-import idseq_dag.util.command as command
-import idseq_dag.util.log as log
 from abc import abstractmethod
 from enum import IntEnum
 
+import idseq_dag.util.command as command
+import idseq_dag.util.log as log
 import idseq_dag.util.s3
+from idseq_dag.engine.file_system import File
+
 
 class StepStatus(IntEnum):
     INITIALIZED = 0
@@ -26,7 +27,7 @@ class PipelineStep(object):
         self.input_files = input_files # list of list files
         self.output_files = output_files # s3 location
         self.output_dir_local = output_dir_local
-        self.output_dir_s3 = output_dir_s3.rstrip('/')
+        self.output_dir_s3 = output_dir_s3
         self.ref_dir_local = ref_dir_local
         self.create_local_dirs()
 
@@ -78,17 +79,12 @@ class PipelineStep(object):
         files_to_upload = self.output_files_local() + self.additional_files_to_upload + [f for f in self.optional_files_to_upload if os.path.isfile(f)]
         for f in files_to_upload:
             # upload to S3 - TODO(Boris): parallelize the following with better calls
-            s3_path = self.s3_path(f)
-            idseq_dag.util.s3.upload_with_retries(f, s3_path)
+            s3_path = File(self.s3_path(f))
+            s3_path.copyFrom(f)
         for f in self.additional_folders_to_upload:
+            # TODO: This needs to change to work with file:// (use Dir or File class)
             idseq_dag.util.s3.upload_folder_with_retries(f, self.s3_path(f))
         self.status = StepStatus.UPLOADED
-
-    def s3_path(self, local_path):
-        relative_path = os.path.relpath(local_path, self.output_dir_local)
-        s3_path = os.path.join(self.output_dir_s3, relative_path)
-        return s3_path
-
 
     @staticmethod
     def done_file(filename):
@@ -164,5 +160,5 @@ class PipelineStep(object):
 
     def s3_path(self, local_path):
         relative_path = os.path.relpath(local_path, self.output_dir_local)
-        s3_path = os.path.join(self.output_dir_s3, relative_path)
+        s3_path = os.path.join(self.output_dir_s3.url.scheme + ":" + self.output_dir_s3.path, relative_path)
         return s3_path

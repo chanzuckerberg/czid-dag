@@ -1,15 +1,15 @@
 import importlib
 import json
-import sys
 import os
 import threading
 import traceback
 
 import idseq_dag
-import idseq_dag.util.s3
 import idseq_dag.util.command as command
-import idseq_dag.util.log as log
 import idseq_dag.util.count as count
+import idseq_dag.util.log as log
+import idseq_dag.util.s3
+from idseq_dag.engine.file_system import Dir, File
 from idseq_dag.engine.pipeline_step import PipelineStep
 
 DEFAULT_OUTPUT_DIR_LOCAL = '/mnt/idseq/results/%d' % os.getpid()
@@ -26,9 +26,11 @@ class PipelineFlow(object):
         self.targets = dag["targets"]
         self.steps = dag["steps"]
         self.given_targets = dag["given_targets"]
-        self.output_dir_s3 = dag["output_dir_s3"]
+        self.output_dir = Dir(dag["output_dir_s3"])
         if versioned_output:
-            self.output_dir_s3 = os.path.join(self.output_dir_s3, self.parse_output_version(idseq_dag.__version__))
+            self.output_dir = self.output_dir.withNewPath(
+                os.path.join(self.output_dir.path, self.parse_output_version(idseq_dag.__version__))
+            )
 
         self.output_dir_local = dag.get("output_dir_local", DEFAULT_OUTPUT_DIR_LOCAL).rstrip('/')
         self.ref_dir_local = dag.get("ref_dir_local", DEFAULT_REF_DIR_LOCAL)
@@ -79,7 +81,7 @@ class PipelineFlow(object):
             covered_targets.add(target_name)
             for file_name in targets[target_name]:
                 s3_file = os.path.join(s3_path, file_name)
-                if not idseq_dag.util.s3.check_s3_presence(s3_file):
+                if not File(s3_file).exist():
                     raise ValueError("%s file doesn't exist" % s3_file)
         # Check that all targets are covered
         # ALL Inputs Outputs VALIDATED
@@ -120,7 +122,7 @@ class PipelineFlow(object):
                     if step_can_be_run: # All the input is satisfied
                         steps_complete.add(step["out"])
                         file_list= self.targets[step["out"]]
-                        if lazy_run and idseq_dag.util.s3.check_s3_presence_for_file_list(self.output_dir_s3, file_list):
+                        if lazy_run and self.output_dir.check_files_exist(file_list):
                             # output can be lazily generated. touch the output
                             #idseq_dag.util.s3.touch_s3_file_list(self.output_dir_s3, file_list)
                             s3_downloadable = True
@@ -138,19 +140,19 @@ class PipelineFlow(object):
 
     @staticmethod
     def fetch_input_files_from_s3(input_files, input_dir_s3, result_dir_local):
-        for f in input_files:
-            s3_file = os.path.join(input_dir_s3, f)
-            local_file = os.path.join(result_dir_local, f)
-            local_dir = os.path.dirname(local_file)
-            command.execute("mkdir -p %s" % local_dir)
-            # copy the file over
-            output_file = idseq_dag.util.s3.fetch_from_s3(s3_file, local_dir, allow_s3mi=True)
-            if output_file:
-                # write the done_file
-                done_file = PipelineStep.done_file(local_file)
-                command.execute("date > %s" % done_file)
-            else:
-                raise RuntimeError(f"{s3_file} likely doesn't exist")
+        if isinstance(input_dir_s3, Dir):
+            for f in input_files:
+                input_file = File(os.path.join(input_dir_s3.url.geturl(), f))
+                output_file = input_file.copyTo(result_dir_local)
+                print("output_file -> " + str(output_file))
+                if output_file:
+                    # write the done_file
+                    done_file = PipelineStep.done_file(output_file)
+                    command.execute("date > %s" % done_file)
+                else:
+                    raise RuntimeError(f"{input_file} likely doesn't exist")
+        else:
+            PipelineFlow.fetch_input_files_from_s3(input_files, Dir(input_dir_s3), result_dir_local)
 
     @staticmethod
     def count_input_reads(input_files, result_dir_local, result_dir_s3, target_name, max_fragments=None):
@@ -182,12 +184,14 @@ class PipelineFlow(object):
         PipelineFlow.fetch_input_files_from_s3(input_files=self.targets[target],
                                                input_dir_s3=input_path_s3,
                                                result_dir_local=self.output_dir_local)
+
+        # TODO: fix (allow non s3 destinations)
         if target in self.given_targets and self.given_targets[target].get("count_reads"):
-            PipelineFlow.count_input_reads(input_files=self.targets[target],
-                                           result_dir_local=self.output_dir_local,
-                                           result_dir_s3=self.output_dir_s3,
-                                           target_name=target,
-                                           max_fragments=self.given_targets[target]["max_fragments"])
+           PipelineFlow.count_input_reads(input_files=self.targets[target],
+                                          result_dir_local=self.output_dir_local,
+                                          result_dir_s3=self.output_dir_s3,
+                                          target_name=target,
+                                          max_fragments=self.given_targets[target]["max_fragments"])
 
 
     def start(self):
@@ -212,7 +216,7 @@ class PipelineFlow(object):
             step_output = self.targets[step["out"]]
             step_inputs = [self.targets[itarget] for itarget in step["in"]]
             step_instance = StepClass(step["out"], step_inputs, step_output,
-                                      self.output_dir_local, self.output_dir_s3, self.ref_dir_local,
+                                      self.output_dir_local, self.output_dir, self.ref_dir_local,
                                       step["additional_files"], step["additional_attributes"])
             step_instance.start()
             step_instances.append(step_instance)

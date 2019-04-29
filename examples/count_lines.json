@@ -1,0 +1,22 @@
+{
+  "output_dir_s3": "file://tmp/count_lines",
+  "targets": {
+    "files_to_count": ["passwd", "group"],
+    "result": ["line_count.txt"]
+  },
+  "steps": [
+    {
+      "in": ["files_to_count"],
+      "out": "result",
+      "class": "CountLines",
+      "module": "idseq_dag.steps.line_count",
+      "additional_files": { },
+      "additional_attributes": { }
+    }
+  ],
+  "given_targets": {
+    "files_to_count": {
+      "s3_dir": "file://etc"
+    }  
+  }
+}
