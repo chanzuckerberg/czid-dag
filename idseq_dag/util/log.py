@@ -4,7 +4,7 @@ import os
 import sys
 import json
 import datetime
-import functools
+import math
 
 from contextlib import contextmanager
 
@@ -39,7 +39,7 @@ def write(message, warning=False, flush=True):
         if flush:
             sys.stdout.flush()
 
-def log_event(event_name, values=None, start_time=None, warning=False, flush=True):
+def log_event(event_name, values=None, start_time=None, warning=False, flush=True, extra_fields={}):
     '''
     Write a new log event.
 
@@ -47,6 +47,7 @@ def log_event(event_name, values=None, start_time=None, warning=False, flush=Tru
     event_name (str): name of the event
     values(dict): Optional. Values associated to that event. Will be logged in json format.
     start_time(datetime): Optional. If given, it will calc the elapsed time from this datetime to now and write it to the log line.
+    extra_fields(datetime): Optional. If given, they will be merged to the main event hash.
 
     Returns:
     datetime: Now. It can be used to pass to parameter start_time in a future log_event call.
@@ -56,12 +57,15 @@ def log_event(event_name, values=None, start_time=None, warning=False, flush=Tru
     # ... download your file here ...
     log_event("downloaded_completed", {"file":"abc"}, start_time=start)
     '''
-    fmt_values = "{}" if values is None else json.dumps(values)
+    log_line = {"event": event_name, **extra_fields}
+    if values is not None:
+        log_line["values"] = values
     if start_time is None:
-        fmt_message = "Event '%s' %s" % (event_name, fmt_values)
+        fmt_message = json.dumps(log_line)
     else:
         duration = (datetime.datetime.now()-start_time).total_seconds()
-        fmt_message = "Event '%s' %s (%.1f seconds)" % (event_name, fmt_values, duration)
+        log_line["duration_ms"] = math.floor(duration * 1000)
+        fmt_message = "%s (%.1f seconds)" % (json.dumps(log_line), duration)
     write(fmt_message, warning, flush)
     return datetime.datetime.now()
 
@@ -85,23 +89,21 @@ def log_context(context_name, values=None, log_caller_info=True):
             # ... your code goes here ...
 
     The code above will generate two log entries:
-    Event ctx_start {"n": "sub_step", "v": {abc": 123}, "caller": {"f": ["some_file.py", "some_method"]}
-    Event ctx_end {"n": "sub_step", "v": {abc": 123}, "caller": {"f": ["some_file.py", "some_method"]} (0.3 sec)
+    {"event": "ctx_start", "context_name": "sub_step", "caller": {"filename": "some_file.py", "method": "some_method"}, "values": {abc": 123}}
+    {"event": "ctx_end", "context_name": "sub_step", "caller": {"filename": "some_file.py", "method": "some_method"}, "values": {abc": 123}, "duration_ms": 5006} (5.0 seconds)
     '''
-    val = {"n": context_name}
-    if values is not None:
-        val["v"] = values
+    extra_fields = {"context_name": context_name}
     if log_caller_info:
         f_code = sys._getframe(2).f_code
-        val["caller"] = {"f": [os.path.basename(f_code.co_filename), f_code.co_name]}
-    start = log_event("ctx_start", val)
+        extra_fields["caller"] = {"filename": os.path.basename(f_code.co_filename), "method": f_code.co_name}
+    start = log_event("ctx_start", values, extra_fields=extra_fields)
     try:
         yield
-        log_event("ctx_end", val, start_time=start)
+        log_event("ctx_end", values, start_time=start, extra_fields=extra_fields)
     except Exception as e:
-        val["error_type"] = type(e).__name__
-        val["error_args"] = e.args
-        log_event("ctx_error", val, start_time=start)
+        extra_fields["error_type"] = type(e).__name__
+        extra_fields["error_args"] = e.args
+        log_event("ctx_error", values, start_time=start, extra_fields=extra_fields)
         raise e
 
 def set_up_stdout():
