@@ -15,22 +15,21 @@ class TestTraceLock(unittest.TestCase):
     @patch('idseq_dag.util.log.log_event')
     def test_aquire_free_lock(mock_log_event):
         '''Test lock acquiring when lock is free'''
-        lock = TraceLock('free')
+        lock = TraceLock('lock1')
 
         with lock:
             pass
 
         mock_log_event.assert_has_calls([
-            call('trace_lock', values={'state': 'acquiring', 'lock_name': 'free', 'thread_name': 'MainThread'}),
-            call('trace_lock', values={'state': 'acquired', 'lock_name': 'free', 'thread_name': 'MainThread'}),
-            call('trace_lock', values={'state': 'release', 'lock_name': 'free', 'thread_name': 'MainThread'})
+            call('trace_lock', values={'state': 'acquired', 'lock_name': 'lock1', 'thread_name': 'MainThread'}),
+            call('trace_lock', values={'state': 'released', 'lock_name': 'lock1', 'thread_name': 'MainThread'})
         ])
 
     @staticmethod
     @patch('idseq_dag.util.log.log_event')
     def test_aquire_lock(mock_log_event):
         '''Test waiting to acquire lock'''
-        lock = TraceLock('busy') # object under test
+        lock = TraceLock('lock2') # object under test
         event = threading.Event()
         def thread_run():
             with lock: # lock acquired
@@ -46,11 +45,9 @@ class TestTraceLock(unittest.TestCase):
             pass
 
         mock_log_event.assert_has_calls([
-            call('trace_lock', values={'lock_name': 'busy', 'thread_name': 'Thread-1', 'state': 'acquiring'}),
-            call('trace_lock', values={'lock_name': 'busy', 'thread_name': 'Thread-1', 'state': 'acquired'}),
-            call('trace_lock', values={'lock_name': 'busy', 'thread_name': 'MainThread', 'state': 'acquiring'}),
-            call('trace_lock', values={'lock_name': 'busy', 'thread_name': 'MainThread', 'state': 'waiting'}),
-            call('trace_lock', values={'lock_name': 'busy', 'thread_name': 'Thread-1', 'state': 'release'}),
-            call('trace_lock', values={'lock_name': 'busy', 'thread_name': 'MainThread', 'state': 'acquired_after_wait'}),
-            call('trace_lock', values={'lock_name': 'busy', 'thread_name': 'MainThread', 'state': 'release'})
+            call('trace_lock', values={'lock_name': 'lock2', 'thread_name': 'Thread-1', 'state': 'acquired'}),
+            call('trace_lock', values={'lock_name': 'lock2', 'thread_name': 'MainThread', 'state': 'waiting'}),
+            call('trace_lock', values={'lock_name': 'lock2', 'thread_name': 'Thread-1', 'state': 'released'}),
+            call('trace_lock', values={'lock_name': 'lock2', 'thread_name': 'MainThread', 'state': 'acquired_after_wait'}),
+            call('trace_lock', values={'lock_name': 'lock2', 'thread_name': 'MainThread', 'state': 'released'})
         ])
