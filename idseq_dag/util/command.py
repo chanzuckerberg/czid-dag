@@ -222,8 +222,7 @@ def execute(command,
     execution with logging.
     """
     with CommandTracker() as ct:
-        with log.print_lock:
-            log.write("Command {}: {}".format(ct.id, command))
+        log.write("Command {}: {}".format(ct.id, command))
         with ProgressFile(progress_file):
             if timeout:
                 ct.timeout = timeout
@@ -245,6 +244,8 @@ def execute(command,
                 ct.proc = subprocess.Popen(command, shell=True)
                 ct.proc.wait()
                 stdout = None
+
+            log.write("Command {} completed. Return code {}".format(ct.id, ct.proc.returncode))
 
             if ct.proc.returncode:
                 raise subprocess.CalledProcessError(ct.proc.returncode,
