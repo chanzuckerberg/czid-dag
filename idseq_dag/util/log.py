@@ -9,8 +9,7 @@ import functools
 
 from contextlib import contextmanager
 
-print_lock = multiprocessing.RLock()
-
+__print_lock = multiprocessing.RLock()
 
 def configure_logger(log_file=None):
     logger = logging.getLogger()
@@ -31,8 +30,8 @@ def configure_logger(log_file=None):
 
 
 def write(message, warning=False, flush=True):
-    logger = logging.getLogger()
-    with print_lock:
+    with __print_lock:
+        logger = logging.getLogger()
         if warning:
             logger.warning(message)
         else:
