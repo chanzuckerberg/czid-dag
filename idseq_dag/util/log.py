@@ -132,8 +132,9 @@ def log_context(context_name, values=None, log_caller_info=True):
     '''
     extra_fields = {"context_name": context_name}
     if log_caller_info:
-        f_code = sys._getframe(2).f_code
-        extra_fields["caller"] = {"filename": os.path.basename(f_code.co_filename), "method": f_code.co_name}
+        frame = sys._getframe(2)
+        f_code = frame.f_code
+        extra_fields["caller"] = {"filename": os.path.basename(f_code.co_filename), "method": f_code.co_name, "f_lineno": frame.f_lineno}
     start = log_event("ctx_start", values, extra_fields=extra_fields)
     try:
         yield

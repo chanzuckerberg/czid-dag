@@ -2,6 +2,7 @@ import multiprocessing
 import random
 import subprocess
 import sys
+import os
 import threading
 import time
 from functools import wraps
@@ -162,11 +163,15 @@ def run_in_subprocess(target):
 
     @wraps(target)
     def wrapper(*args, **kwargs):
-        with log.log_context("run_in_subprocess", {"substep": "start", "target": target.__qualname__}):
-            p = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
-            p.start()
-        with log.log_context("run_in_subprocess", {"substep": "join", "target": target.__qualname__}):
-            p.join()
+        frame = sys._getframe(2)
+        f_code = frame.f_code
+        original_caller = {"filename": os.path.basename(f_code.co_filename), "method": f_code.co_name, "f_lineno": frame.f_lineno}
+        def subprocess_scope(*args, **kwargs):
+            with log.log_context("subprocess_scope", {"target": target.__qualname__, "original_caller": original_caller}):
+                target(*args, **kwargs)
+        p = multiprocessing.Process(target=subprocess_scope, args=args, kwargs=kwargs)
+        p.start()
+        p.join()
         if p.exitcode != 0:
             raise RuntimeError("Failed {} on {}, {}".format(
                 target.__name__, args, kwargs))
