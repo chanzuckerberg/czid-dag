@@ -162,9 +162,11 @@ def run_in_subprocess(target):
 
     @wraps(target)
     def wrapper(*args, **kwargs):
-        p = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
-        p.start()
-        p.join()
+        with log.log_context("run_in_subprocess", {"substep": "start", "target": target.__qualname__}):
+            p = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
+            p.start()
+        with log.log_context("run_in_subprocess", {"substep": "join", "target": target.__qualname__}):
+            p.join()
         if p.exitcode != 0:
             raise RuntimeError("Failed {} on {}, {}".format(
                 target.__name__, args, kwargs))
