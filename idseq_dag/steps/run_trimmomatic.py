@@ -49,7 +49,7 @@ class PipelineStepRunTrimmomatic(PipelineStep):
             # allowing maximally *2* mismatches. These seeds will be extended and clipped if in the case of paired end
             # reads a score of *30* is reached, or in the case of single ended reads a
             # score of *10*.
-            "MINLEN:75"
+            "MINLEN:35"
             # Discard reads which are less than *75* bases long after these steps.
         ])
         command.execute(cmd)
