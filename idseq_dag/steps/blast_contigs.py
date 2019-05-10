@@ -195,7 +195,7 @@ class PipelineStepBlastContigs(PipelineStep):
             blast_type = 'prot'
             blast_command = 'blastx'
         command.execute(f"makeblastdb -in {reference_fasta} -dbtype {blast_type} -out {blast_index_path}")
-        command.execute(f"nice -n 1 {blast_command} -query {assembled_contig} -db {blast_index_path} -out {blast_m8} -outfmt 6 -num_alignments 5 -num_threads 16")
+        command.execute(f"{blast_command} -query {assembled_contig} -db {blast_index_path} -out {blast_m8} -outfmt 6 -num_alignments 5 -num_threads 16")
         # further processing of getting the top m8 entry for each contig.
         PipelineStepBlastContigs.get_top_m8(blast_m8, blast_top_m8)
 
