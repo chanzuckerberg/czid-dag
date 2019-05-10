@@ -25,28 +25,29 @@ class IdSeqDict(object):
         self.uri_db_path = pathlib.Path(self.db_path).as_uri()
         if self.read_only:
             self.uri_db_path += "?mode=ro"
-
         with log.log_context(f"open db", {"db_path": self.db_path, "read_only": self.read_only}):
             self.db_conn = sqlite3.connect(self.uri_db_path, check_same_thread=False, uri=True) # make it thread safe
         self._open = True
         with log.log_context(f"assert_db_table", {"db_path": self.db_path, "read_only": self.read_only}):
-            with self.db_conn.cursor() as cursor:
-                if not self.read_only:
-                    res = cursor.execute(f"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='{SQLITE_TABLE_NAME}';")
-                    v = res.fetchone()
-                    if v[0] == 0:
-                        raise Exception(f"table {SQLITE_TABLE_NAME} doesn't exist in db {self.db_path}")
-                else:
-                    cursor.execute(f"CREATE TABLE IF NOT EXISTS {SQLITE_TABLE_NAME} (dict_key VARCHAR(255) PRIMARY KEY, dict_value text)")
-                    self.db_conn.commit()
+            cursor = self.db_conn.cursor()
+            if not self.read_only:
+                res = cursor.execute(f"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='{SQLITE_TABLE_NAME}';")
+                v = res.fetchone()
+                if v[0] == 0:
+                    raise Exception(f"table {SQLITE_TABLE_NAME} doesn't exist in db {self.db_path}")
+            else:
+                cursor.execute(f"CREATE TABLE IF NOT EXISTS {SQLITE_TABLE_NAME} (dict_key VARCHAR(255) PRIMARY KEY, dict_value text)")
+                self.db_conn.commit()
+            cursor.close()
 
     def __enter__(self):
         ''' context manager enter '''
         return self
 
-    def __exit__(self):
+    def __exit__(self, type, value, traceback):
         ''' context manager exit '''
         self.close()
+        return False
 
     def __del__(self):
         ''' destructor '''
@@ -64,11 +65,12 @@ class IdSeqDict(object):
 
     def update(self, key, value):
         ''' Update a particular key value pair '''
-        with self.db_conn.cursor() as cursor:
-            val = value
-            if self.value_type == IdSeqDictValue.VALUE_TYPE_ARRAY:
-                val = DICT_DELIMITER.join([str(v) for v in value])
-            cursor.execute(f"INSERT OR REPLACE INTO {SQLITE_TABLE_NAME} VALUES ('{key}', '{val}')")
+        cursor = self.db_conn.cursor()
+        val = value
+        if self.value_type == IdSeqDictValue.VALUE_TYPE_ARRAY:
+            val = DICT_DELIMITER.join([str(v) for v in value])
+        cursor.execute(f"INSERT OR REPLACE INTO {SQLITE_TABLE_NAME} VALUES ('{key}', '{val}')")
+        cursor.close()
 
     def batch_inserts(self, tuples):
         ''' Insert multiple records at a time '''
@@ -93,18 +95,20 @@ class IdSeqDict(object):
         cursor = self.db_conn.cursor()
         cursor.execute(f"INSERT OR REPLACE INTO {SQLITE_TABLE_NAME} VALUES {parameter_str}", value_arr)
         self.db_conn.commit()
+        cursor.close()
 
     def get(self, key, default_value=None):
         ''' Emulate get as a python dictionary  '''
-        with self.db_conn.cursor() as cursor:
-            res = cursor.execute(f"SELECT dict_value FROM idseq_dict where dict_key = '{key}'")
-            v = res.fetchone()
-            if v is None:
-                return default_value
-            value = v[0]
-            if self.value_type == IdSeqDictValue.VALUE_TYPE_ARRAY:
-                return value.split(DICT_DELIMITER)
-            return value
+        cursor = self.db_conn.cursor()
+        res = cursor.execute(f"SELECT dict_value FROM idseq_dict where dict_key = '{key}'")
+        v = res.fetchone()
+        if v is None:
+            return default_value
+        value = v[0]
+        if self.value_type == IdSeqDictValue.VALUE_TYPE_ARRAY:
+            return value.split(DICT_DELIMITER)
+        cursor.close()
+        return value
 
 def open_file_db_by_extension(db_path, value_type=IdSeqDictValue.VALUE_TYPE_SCALAR, read_only=True):
     ''' if extension is .sqlite3 open it as an IdSeqDict, otherwise, open as shelve in read mode '''
