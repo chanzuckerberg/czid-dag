@@ -22,6 +22,7 @@ class TestLog(unittest.TestCase):
     def test_log_event_2(mock_log_write):
         '''Test log event with a non serializable field'''
         invalid_field = bytes()
+
         log.log_event('fake_event_name', values={"name_a": invalid_field, "name_b": "fake_string", "name_c": 3.1415})
 
         mock_log_write.assert_has_calls([
