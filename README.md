@@ -227,6 +227,10 @@ TODO: Move this code over to the idseq-dag repo.
 ## Release notes
 
 <<<<<<< HEAD
+- 3.7.0
+   - Modify trimmomatic command to reduce MINLEN parameter to 35 and allow reads from fragments with small 
+     insert sizes (where R1 and R2 are reverse complements of each other) through the QC steps. 
+
 - 3.6.3
    - Extra logs to help detecting potential deadlocks in the pipeline
 
