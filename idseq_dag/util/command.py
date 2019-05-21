@@ -127,6 +127,7 @@ class ProgressFile(object):
             # TODO: Do we need to join the tail subproc after killing it?
             self.tail_subproc.kill()
 
+
 def run_in_subprocess(target):
     """
     Decorator that executes a function synchronously in a subprocess.
