@@ -226,17 +226,18 @@ TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
 
-<<<<<<< HEAD
 - 3.7.0
    - Modify trimmomatic command to reduce MINLEN parameter to 35 and allow reads from fragments with small 
      insert sizes (where R1 and R2 are reverse complements of each other) through the QC steps. 
 
-- 3.6.3
-   - Extra logs to help detecting potential deadlocks in the pipeline
+- 3.6.6
+   - Another fix related to sqlite3 concurrency
 
-- 3.6.0 .. 3.6.2
+- 3.6.0 .. 3.6.5
+   - Fix an issue with the log event function when trying to log non json serializable fields.
+   - A possible fix to some hanging issues in the pipeline that seem to be related to sqlite3 concurrency.
    - Address array index rounding error in coverage viz.
-   - Extra logs to help detecting potential deadlocks in the pipeline (#144).
+   - Extra logs to help detecting potential deadlocks in the pipeline
    - Add pipeline step to generate data for coverage visualization for IDseq report page. Data includes an index
      file that maps taxons to accessions with available coverage data, as well as data files for each accession
      that list various metrics including the coverage of the accession.
