@@ -227,7 +227,7 @@ TODO: Move this code over to the idseq-dag repo.
 ## Release notes
 
 - 3.7.2
-  - Invoke db_hack only once. Standadize db_open/db_assert_table/db_close log entries.
+  - Invoke db_hack only once. Standardize db_open/db_assert_table/db_close log entries.
 
 - 3.7.0 .. 3.7.1
    - Fix division by zero error in coverage viz step.
