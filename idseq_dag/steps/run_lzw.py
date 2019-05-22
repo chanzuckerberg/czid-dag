@@ -1,6 +1,7 @@
 from multiprocessing import cpu_count
 from typing import Iterator
 import os
+import functools
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
@@ -75,6 +76,18 @@ class PipelineStepRunLZW(PipelineStep):
         return score
 
     @staticmethod
+    def lzw_compute_slice(input_files, threshold_readlength, slice_step, slice_start):
+        """For each read, or read pair, in input_files, such that read_index % slice_step == slice_start,
+        output the lzw score for the read, or the min lzw score for the pair."""
+        lzw_score = PipelineStepRunLZW.lzw_score
+        temp_file_name = f"lzwslice_{slice_step}_{slice_start}.txt"
+        with open(temp_file_name, "a") as slice_output:
+            for i, reads in enumerate(fasta.synchronized_iterator(input_files)):
+                if i % slice_step == slice_start:
+                    lzw_min_score = min(lzw_score(r.sequence, threshold_readlength) for r in reads)
+                    slice_output.write(str(lzw_min_score) + "\n")
+
+    @staticmethod
     def lzw_compute(input_files, threshold_readlength, slice_step=NUM_SLICES):
         """Spawn subprocesses on NUM_SLICES of the input files, then coalesce the
         scores into a temp file, and return that file's name."""
@@ -83,18 +96,8 @@ class PipelineStepRunLZW(PipelineStep):
         for tfn in temp_file_names:
             assert not os.path.exists(tfn)
 
-        def lzw_compute_slice(slice_start):
-            """For each read, or read pair, in input_files, such that read_index % slice_step == slice_start,
-            output the lzw score for the read, or the min lzw score for the pair."""
-            lzw_score = PipelineStepRunLZW.lzw_score
-            with open(temp_file_names[slice_start], "a") as slice_output:
-                for i, reads in enumerate(fasta.synchronized_iterator(input_files)):
-                    if i % slice_step == slice_start:
-                        lzw_min_score = min(lzw_score(r.sequence, threshold_readlength) for r in reads)
-                        slice_output.write(str(lzw_min_score) + "\n")
-
         # slices run in parallel
-        mt_map(command.run_in_subprocess(lzw_compute_slice), range(slice_step))
+        mt_map(command.run_in_subprocess(functools.partial(PipelineStepRunLZW.lzw_compute_slice, input_files, threshold_readlength, slice_step)), range(slice_step))
 
         slice_outputs = temp_file_names[:-1]
         coalesced_score_file = temp_file_names[-1]
