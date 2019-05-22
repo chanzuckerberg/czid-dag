@@ -1,11 +1,7 @@
 import os
 import json
 import math
-import time
 import random
-import threading
-import traceback
-import multiprocessing
 from collections import defaultdict
 from collections import Counter
 
@@ -120,7 +116,6 @@ def read_file_into_set(file_name):
         S.discard('')
     return S
 
-@command.run_in_subprocess
 def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
                  output_m8, output_summary, taxon_blacklist=None):
     """
@@ -332,7 +327,7 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
                     msg += f"\t{species_taxid}\t{genus_taxid}\t{family_taxid}\n"
                     outf_sum.write(msg)
 
-@command.run_in_subprocess
+
 def generate_taxon_count_json_from_m8(
         m8_file, hit_level_file, e_value_type, count_type, lineage_map_path,
         deuterostome_path, output_json_file):

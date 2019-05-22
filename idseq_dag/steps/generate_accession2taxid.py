@@ -4,7 +4,6 @@ import shelve
 import dbm
 import threading
 from idseq_dag.engine.pipeline_step import PipelineStep
-from idseq_dag.util.command import run_in_subprocess
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
@@ -61,7 +60,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
             for p in range(NUM_PARTITIONS):
                 part_file = f"{accession_mapping_file}-{p}"
                 partition_list.append(part_file)
-                thread = threading.Thread(target=self.grab_accession_mapping_list,
+                thread = threading.Thread(target=command.run_in_subprocess(self.grab_accession_mapping_list),
                                           args=[accession_mapping_file, NUM_PARTITIONS, p,
                                                 accessions, part_file])
                 accessions_files.append(accession_file)
@@ -152,7 +151,6 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
     def grab_wgs_accessions(self, source_file, dest_file):
         command.execute(f"grep '^>' {source_file} | grep 'complete genome' | cut -f 1 -d' ' > {dest_file}")
 
-    @run_in_subprocess
     def grab_accession_mapping_list(self, source_gz, num_partitions, partition_id,
                                     accessions, output_file):
         num_lines = 0

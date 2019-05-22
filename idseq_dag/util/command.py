@@ -130,7 +130,7 @@ class ProgressFile(object):
 
 def run_in_subprocess(target):
     """
-    Decorator that executes a function synchronously in a subprocess.
+    Executes a function synchronously in a subprocess.
     Use case:
 
         thread 1:
@@ -147,14 +147,20 @@ def run_in_subprocess(target):
     this problem without changing the above code, simply decorate the definition
     of compute_something() like so:
 
-         @run_in_subprocess
-         def compute_something(x, y, z):
-             ...
+        thread 1:
+             command.run_in_subprocess(compute_something)(x1, y1, z1)
+
+        thread 2:
+             command.run_in_subprocess(compute_something)(x2, y2, z2)
+
+        thread 3:
+             command.run_in_subprocess(compute_something)(x3, y3, z3)
 
     Typical subprocess limitations or caveats apply:
        a. The caller can't see any value returned by the decorated function.
           It should output to a file, a pipe, or a multiprocessing queue.
-       b. Changes made to global variables won't be seen by parent process.
+       b. You cannot make reference to global variables, class variables or object instances. 
+          It runs in a separated process, and trying to access such variables gives you a segmentation fault.
        c. Use multiprocessing semaphores/locks/etc, not their threading versions.
 
     Tip: If input from the same file is needed in all invocations of the
@@ -170,7 +176,7 @@ def run_in_subprocess(target):
         def subprocess_scope(*args, **kwargs):
             with log.log_context("subprocess_scope", {"target": target.__qualname__, "original_caller": original_caller}):
                 target(*args, **kwargs)
-        p = multiprocessing.Process(target=subprocess_scope, args=args, kwargs=kwargs)
+        p = multiprocessing.get_context("spawn").Process(target=target, args=args, kwargs=kwargs)
         p.start()
         p.join()
         if p.exitcode != 0:

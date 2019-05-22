@@ -3,7 +3,6 @@ from typing import Iterator
 import os
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
-from idseq_dag.util.command import run_in_subprocess
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
 import idseq_dag.util.fasta as fasta
@@ -84,7 +83,6 @@ class PipelineStepRunLZW(PipelineStep):
         for tfn in temp_file_names:
             assert not os.path.exists(tfn)
 
-        @run_in_subprocess
         def lzw_compute_slice(slice_start):
             """For each read, or read pair, in input_files, such that read_index % slice_step == slice_start,
             output the lzw score for the read, or the min lzw score for the pair."""
@@ -96,7 +94,7 @@ class PipelineStepRunLZW(PipelineStep):
                         slice_output.write(str(lzw_min_score) + "\n")
 
         # slices run in parallel
-        mt_map(lzw_compute_slice, range(slice_step))
+        mt_map(command.run_in_subprocess(lzw_compute_slice), range(slice_step))
 
         slice_outputs = temp_file_names[:-1]
         coalesced_score_file = temp_file_names[-1]

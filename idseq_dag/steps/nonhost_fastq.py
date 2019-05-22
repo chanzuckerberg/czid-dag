@@ -1,6 +1,5 @@
 import os
 from idseq_dag.engine.pipeline_step import PipelineStep
-from idseq_dag.util.command import run_in_subprocess
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count

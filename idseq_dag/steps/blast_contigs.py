@@ -69,9 +69,9 @@ class PipelineStepBlastContigs(PipelineStep):
             deuterostome_db = s3.fetch_from_s3(self.additional_files["deuterostome_db"],
                                                self.ref_dir_local, allow_s3mi=True)
         with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_count_json_from_m8", "db_type": db_type, "refined_counts": refined_counts}):
-            m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
-                                                evalue_type, db_type.upper(),
-                                                lineage_db, deuterostome_db, refined_counts)
+            command.run_in_subprocess(m8.generate_taxon_count_json_from_m8)(refined_m8, refined_hit_summary,
+                                                                            evalue_type, db_type.upper(),
+                                                                            lineage_db, deuterostome_db, refined_counts)
 
         # generate contig stats at genus/species level
         with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_summary"}):
