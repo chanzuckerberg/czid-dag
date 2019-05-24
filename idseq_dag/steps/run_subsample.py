@@ -9,6 +9,19 @@ class PipelineStepRunSubsample(PipelineStep):
     '''
     Subsample the input data to max_fragments
     '''
+
+    def get_input_file_validation_errors(self):
+        # Return errors if either input file is empty.
+        errors = PipelineStep.validate_input_files_min_reads(self.input_files_local[0][0:2], 1)
+
+        if errors:
+            return {
+                "errors": errors,
+                "error_type": InputErrorType.INSUFFICIENT_READS
+            }
+
+        return None
+
     def run(self):
         ''' Invoking subsampling '''
         input_fas = self.input_files_local[0]

@@ -25,6 +25,18 @@ class PipelineStepRunLZW(PipelineStep):
 
     NUM_SLICES = min(MAX_SUBPROCS, REAL_CORES)
 
+    def get_input_file_validation_errors(self):
+        # Return errors if either input file is empty.
+        errors = PipelineStep.validate_input_files_min_reads(self.input_files_local[0], 1)
+
+        if errors:
+            return {
+                "errors": errors,
+                "error_type": InputErrorType.INSUFFICIENT_READS
+            }
+
+        return None
+
     def run(self):
         input_fas = self.input_files_local[0]
         output_fas = self.output_files_local()
@@ -69,7 +81,7 @@ class PipelineStepRunLZW(PipelineStep):
 
         if seq_length > threshold_readlength:
             # Make sure longer reads don't get excessively penalized
-            adjustment_heuristic = (1 + (seq_length - threshold_readlength) / 1000) # TODO: revisit 
+            adjustment_heuristic = (1 + (seq_length - threshold_readlength) / 1000) # TODO: revisit
             score = lzw_fraction * adjustment_heuristic
         else:
             score = lzw_fraction

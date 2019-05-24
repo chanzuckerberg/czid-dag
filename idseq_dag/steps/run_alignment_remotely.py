@@ -5,7 +5,7 @@ import random
 import traceback
 import multiprocessing
 
-from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.engine.pipeline_step import PipelineStep, InputErrorType
 
 import idseq_dag.util.command as command
 import idseq_dag.util.server as server
@@ -21,6 +21,18 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     '''
     Run gsnap/rapsearch2 remotely
     '''
+
+    def get_input_file_validation_errors(self):
+        # Return errors if either input file is empty.
+        errors = PipelineStep.validate_input_files_min_reads(self.get_input_fas(), 1)
+
+        if errors:
+            return {
+                "errors": errors,
+                "error_type": InputErrorType.INSUFFICIENT_READS
+            }
+
+        return None
 
     def __init__(self, *args, **kwrds):
         PipelineStep.__init__(self, *args, **kwrds)
