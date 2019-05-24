@@ -1,5 +1,5 @@
 ''' Run Trimmomatic '''
-from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.engine.pipeline_step import PipelineStep, InputFileErrors
 import idseq_dag.util.command as command
 import idseq_dag.util.count as count
 import idseq_dag.util.s3 as s3
@@ -8,18 +8,11 @@ import idseq_dag.util.fasta as fasta
 
 class PipelineStepRunTrimmomatic(PipelineStep):
     ''' Trimmomatic PipelineStep implementation '''
+    def validate_input_files(self):
+        if not PipelineStep.validate_input_files_min_reads(self.input_files_local[0][0:2], 1):
+            self.input_file_error = InputFileErrors.INSUFFICIENT_READS
 
-    def get_input_file_validation_errors(self):
-        # Return errors if either input file is empty.
-        errors = PipelineStep.validate_input_files_min_reads(self.input_files_local[0][0:2], 1)
-
-        if errors:
-            return {
-                "errors": errors,
-                "error_type": InputErrorType.INSUFFICIENT_READS
-            }
-
-        return None
+        super().validate_input_files()
 
     def run(self):
         """

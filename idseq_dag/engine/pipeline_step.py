@@ -16,11 +16,15 @@ class StepStatus(IntEnum):
     STARTED = 1 # step.start() called
     FINISHED = 2 # step.run() finished
     UPLOADED = 3 # all results uploaded to s3
+    INVALID_INPUT = 4 # an error occurred when validating the input file
 
-class InputErrorType(Enum):
-    ''' This error type will be used by the front-end to display a user-friendly error message '''
-    NO_ERROR =  "NO_ERROR" # Placeholder value.
+class InputFileErrors(Enum):
+    ''' This error will be used by the front-end to display a user-friendly error message '''
     INSUFFICIENT_READS = "INSUFFICIENT_READS"
+
+class InvalidInputFileError(Exception):
+    def __init__(self, json):
+        self.json = json
 
 class PipelineStep(object):
     ''' Each Pipeline Run Step i.e. run_star, run_bowtie2, etc '''
@@ -49,6 +53,8 @@ class PipelineStep(object):
         self.counts_dict = {}
         self.should_terminate = False
         self.should_count_reads = False
+
+        self.input_file_error = None
 
     @abstractmethod
     def run(self):
@@ -117,38 +123,11 @@ class PipelineStep(object):
             self.input_files_local.append(flist)
 
     def validate_input_files(self):
-        ''' Validate input files before running the step '''
-        errors = self.get_input_file_validation_errors()
-        if errors and "error_type" in errors and errors["error_type"] != InputErrorType.NO_ERROR:
-            log.write("Invalid input detected for step %s" % self.name)
-            self.write_input_errors_json({
-                "step": self.name,
-                "errors": errors["errors"] if "errors" in errors else [],
-                "error_type": errors["error_type"].name
-            })
-            raise RuntimeError("input files for step %s were not valid" % self.name)
-
-    def get_input_file_validation_errors(self):
-        ''' Return any input file validation errors'''
-        # Steps should overwrite this method if necessary.
-        return {
-            # Step-specific error messages.
-            "errors": [],
-            # The broad type of error that occurred.
-            "error_type": InputErrorType.NO_ERROR
-        }
-
-    def write_input_errors_json(self, error_json):
-        ''' Write an input_file_errors.json file to the output_dir_s3 for this step, which can be detected by other services like idseq-web. '''
-        log.write("Writing input_file_errors.json for step %s" % self.name)
-        input_errors_file_basename = "input_file_errors.json"
-        local_input_errors_file = "%s/%s" % (self.output_dir_local, input_errors_file_basename)
-        s3_input_errors_file = "%s/%s" % (self.output_dir_s3, input_errors_file_basename)
-
-        with open(local_input_errors_file, 'w') as input_errors_file:
-            json.dump(error_json, input_errors_file)
-
-        idseq_dag.util.s3.upload_with_retries(local_input_errors_file, s3_input_errors_file)
+        '''
+            Validate input files before running the step
+            Should assign any error encountered to self.input_file_error
+        '''
+        pass
 
     @staticmethod
     def validate_input_files_min_reads(input_files, min_reads):
@@ -156,14 +135,13 @@ class PipelineStep(object):
             Checks whether input files (fa, fasta, fq, fastq) have the minimum number of reads.
             Useful helper method that pipeline steps can use for validation.
         '''
-        errors = []
 
         for index, input_file in enumerate(input_files):
-            num_reads = count.reads(input_file)
+            num_reads = count.reads(input_file, max_reads=min_reads)
             if num_reads < min_reads:
-                errors.append("Input file %s requires at least %s reads (%s found)" % (index + 1, min_reads, num_reads))
+                return False
 
-        return errors
+        return True
 
     def save_progress(self):
         ''' save progress after step run '''
@@ -184,6 +162,12 @@ class PipelineStep(object):
 
     def wait_until_finished(self):
         self.exec_thread.join()
+        if self.status == StepStatus.INVALID_INPUT:
+            raise InvalidInputFileError({
+                "error": self.input_file_error.name,
+                "step": self.name
+            })
+
         if self.status < StepStatus.FINISHED:
             raise RuntimeError("step %s run failed" % self.name)
 
@@ -201,8 +185,15 @@ class PipelineStep(object):
         with log.log_context("dag_step", v):
             with log.log_context("substep_wait_for_input_files", v):
                 self.wait_for_input_files()
-            with log.log_context("validate_input_files", v):
+            with log.log_context("substep_validate_input_files", v):
                 self.validate_input_files()
+
+            # If an input file error was detected, stop execution.
+            if self.input_file_error:
+                log.write("Invalid input detected for step %s" % self.name)
+                self.status = StepStatus.INVALID_INPUT
+                return
+
             with log.log_context("substep_run", v):
                 self.run()
             with log.log_context("substep_validate", v):

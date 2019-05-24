@@ -1,7 +1,7 @@
 from multiprocessing import cpu_count
 from typing import Iterator
 import os
-from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.engine.pipeline_step import PipelineStep, InputFileErrors
 import idseq_dag.util.command as command
 from idseq_dag.util.command import run_in_subprocess
 import idseq_dag.util.log as log
@@ -25,17 +25,11 @@ class PipelineStepRunLZW(PipelineStep):
 
     NUM_SLICES = min(MAX_SUBPROCS, REAL_CORES)
 
-    def get_input_file_validation_errors(self):
-        # Return errors if either input file is empty.
-        errors = PipelineStep.validate_input_files_min_reads(self.input_files_local[0], 1)
+    def validate_input_files(self):
+        if not PipelineStep.validate_input_files_min_reads(self.input_files_local[0], 1):
+            self.input_file_error = InputFileErrors.INSUFFICIENT_READS
 
-        if errors:
-            return {
-                "errors": errors,
-                "error_type": InputErrorType.INSUFFICIENT_READS
-            }
-
-        return None
+        super().validate_input_files()
 
     def run(self):
         input_fas = self.input_files_local[0]

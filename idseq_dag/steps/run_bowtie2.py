@@ -1,6 +1,6 @@
 import os
 import multiprocessing
-from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.engine.pipeline_step import PipelineStep, InputFileErrors
 import idseq_dag.util.command as command
 import idseq_dag.util.convert as convert
 import idseq_dag.util.log as log
@@ -9,17 +9,11 @@ from idseq_dag.util.s3 import fetch_from_s3
 
 
 class PipelineStepRunBowtie2(PipelineStep):
-    def get_input_file_validation_errors(self):
-        # Return errors if either input file is empty.
-        errors = PipelineStep.validate_input_files_min_reads(self.input_files_local[0][0:2], 1)
+    def validate_input_files(self):
+        if not PipelineStep.validate_input_files_min_reads(self.input_files_local[0][0:2], 1):
+            self.input_file_error = InputFileErrors.INSUFFICIENT_READS
 
-        if errors:
-            return {
-                "errors": errors,
-                "error_type": InputErrorType.INSUFFICIENT_READS
-            }
-
-        return None
+        super().validate_input_files()
 
     def run(self):
         input_fas = self.input_files_local[0][0:2]
