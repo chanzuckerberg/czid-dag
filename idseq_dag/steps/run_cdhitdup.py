@@ -9,10 +9,8 @@ class PipelineStepRunCDHitDup(PipelineStep):
     See: http://weizhongli-lab.org/cd-hit/
     '''
     def validate_input_files(self):
-        if not PipelineStep.validate_input_files_min_reads(self.input_files_local[0], 2):
+        if not count.files_have_min_reads(self.input_files_local[0], 2):
             self.input_file_error = InputFileErrors.INSUFFICIENT_READS
-
-        super().validate_input_files()
 
     def run(self):
         ''' Invoking cd-hit-dup '''

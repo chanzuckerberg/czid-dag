@@ -8,6 +8,7 @@ import multiprocessing
 from idseq_dag.engine.pipeline_step import PipelineStep, InputFileErrors
 
 import idseq_dag.util.command as command
+import idseq_dag.util.count as count
 import idseq_dag.util.server as server
 import idseq_dag.util.log as log
 import idseq_dag.util.m8 as m8
@@ -23,10 +24,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     '''
 
     def validate_input_files(self):
-        if not PipelineStep.validate_input_files_min_reads(self.input_files_local[0][0:2], 1):
+        if not count.files_have_min_reads(self.input_files_local[0][0:2], 1):
             self.input_file_error = InputFileErrors.INSUFFICIENT_READS
-
-        super().validate_input_files()
 
     def __init__(self, *args, **kwrds):
         PipelineStep.__init__(self, *args, **kwrds)
