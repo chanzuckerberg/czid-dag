@@ -128,6 +128,12 @@ def log_execution(values: dict = None):
     return decorator_fn
 
 
+def get_caller_info(frame_depth):
+    frame = sys._getframe(frame_depth)
+    f_code = frame.f_code
+    return {"filename": os.path.basename(f_code.co_filename), "method": f_code.co_name, "f_lineno": frame.f_lineno}
+
+
 def parse_exception(e):
     return {"error_type": type(e).__name__, "error_args": e.args}
 
@@ -157,9 +163,7 @@ def log_context(context_name: str, values: dict = None, log_caller_info: bool = 
     '''
     extra_fields = {"context_name": context_name, "uid": secrets.token_hex(6)}
     if log_caller_info:
-        frame = sys._getframe(2)
-        f_code = frame.f_code
-        extra_fields["caller"] = {"filename": os.path.basename(f_code.co_filename), "method": f_code.co_name, "f_lineno": frame.f_lineno}
+        extra_fields["caller"] = get_caller_info(3)
     start = log_event("ctx_start", values, extra_fields=extra_fields)
     try:
         yield
