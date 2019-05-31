@@ -192,16 +192,14 @@ class PipelineFlow(object):
                                                max_fragments=self.given_targets[target]["max_fragments"])
 
     def write_invalid_input_json(self, error_json):
-        ''' Upload an invalid_input.json file for this step, which can be detected by other services like idseq-web. '''
-        log.write("Writing invalid_input.json")
-        input_errors_file_basename = "invalid_input.json"
-        local_input_errors_file = "%s/%s" % (self.output_dir_local, input_errors_file_basename)
-        s3_input_errors_file = "%s/%s" % (self.output_dir_s3, input_errors_file_basename)
+        ''' Upload an invalid_step_input.json file for this step, which can be detected by other services like idseq-web. '''
+        log.write("Writing invalid_step_input.json")
+        local_input_errors_file = f"{self.output_dir_local}/invalid_step_input.json"
 
         with open(local_input_errors_file, 'w') as input_errors_file:
             json.dump(error_json, input_errors_file)
 
-        idseq_dag.util.s3.upload_with_retries(local_input_errors_file, s3_input_errors_file)
+        idseq_dag.util.s3.upload_with_retries(local_input_errors_file, self.output_dir_s3 + "/")
 
     def start(self):
         # Come up with the plan
@@ -233,11 +231,10 @@ class PipelineFlow(object):
         for step in step_instances:
             try:
                 step.wait_until_all_done()
-            except InvalidInputFileError as e:
-                self.write_invalid_input_json(e.json)
-                raise e
             except Exception as e:
                 # Some exception thrown by one of the steps
+                if isinstance(e, InvalidInputFileError):
+                    self.write_invalid_input_json(e.json)
                 traceback.print_exc()
                 for s in step_instances:
                     # notify the waiting step instances to self destruct

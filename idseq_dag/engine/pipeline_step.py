@@ -123,25 +123,10 @@ class PipelineStep(object):
             self.input_files_local.append(flist)
 
     def validate_input_files(self):
-        '''
-            Validate input files before running the step
-            Should assign any error encountered to self.input_file_error
+        ''' Validate input files before running the step.
+        Should assign any error encountered to self.input_file_error
         '''
         pass
-
-    @staticmethod
-    def validate_input_files_min_reads(input_files, min_reads):
-        '''
-            Checks whether input files (fa, fasta, fq, fastq) have the minimum number of reads.
-            Useful helper method that pipeline steps can use for validation.
-        '''
-
-        for index, input_file in enumerate(input_files):
-            num_reads = count.reads(input_file, max_reads=min_reads)
-            if num_reads < min_reads:
-                return False
-
-        return True
 
     def save_progress(self):
         ''' save progress after step run '''

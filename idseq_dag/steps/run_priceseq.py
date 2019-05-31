@@ -10,10 +10,8 @@ import idseq_dag.util.fasta as fasta
 class PipelineStepRunPriceSeq(PipelineStep):
     ''' PriceSeq PipelineStep implementation '''
     def validate_input_files(self):
-        if not PipelineStep.validate_input_files_min_reads(self.input_files_local[0][0:2], 1):
+        if not count.files_have_min_reads(self.input_files_local[0][0:2], 1):
             self.input_file_error = InputFileErrors.INSUFFICIENT_READS
-
-        super().validate_input_files()
 
     def run(self):
         """PriceSeqFilter is used to filter input data based on quality. Two FASTQ
