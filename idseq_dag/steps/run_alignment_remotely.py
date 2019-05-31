@@ -19,7 +19,7 @@ MAX_CONCURRENT_CHUNK_UPLOADS = 4
 DEFAULT_BLACKLIST_S3 = 's3://idseq-database/taxonomy/2018-04-01-utc-1522569777-unixtime__2018-04-04-utc-1522862260-unixtime/taxon_blacklist.txt'
 CORRECT_NUMBER_OF_OUTPUT_COLUMNS = 12
 CHUNK_MAX_TRIES = 2
-CHUNK_DONT_RETRY_AFTER_SECONDS = 4000
+CHUNK_DONT_RETRY_AFTER_SECONDS = 60 * 30 # 30 minutes
 EXPONENTIAL_BACKOFF_MINIMUM_SECONDS = 3
 EXPONENTIAL_BACKOFF_JITTER_SECONDS = 4
 
@@ -281,6 +281,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             max_tries = CHUNK_MAX_TRIES
             try_number = 1
             instance_ip = ""
+            timer = self._start_timer()
 
             # Check if every row has correct number of columns (12) in the output
             # file on the remote machine
@@ -320,10 +321,12 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                             command.scp(key_path, remote_username, instance_ip,
                                         multihit_remote_outfile, multihit_local_outfile))
                 except Exception as e:
+                    elapsed = self._elapsed_seconds(timer)
                     log.log_event('alignment_remote_error', values={"chunk": chunk_id,
                                                                     "try_number": try_number,
+                                                                    "elapsed": elapsed,
                                                                     "exception": log.parse_exception(e)})
-                    if try_number >= max_tries:
+                    if try_number >= max_tries or elapsed > CHUNK_DONT_RETRY_AFTER_SECONDS:
                         raise e
                     self._exponential_backoff(try_number)
                     try_number += 1
