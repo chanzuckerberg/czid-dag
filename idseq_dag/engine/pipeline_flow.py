@@ -231,16 +231,10 @@ class PipelineFlow(object):
         for step in step_instances:
             try:
                 step.wait_until_all_done()
-            except InvalidInputFileError as e:
-                self.write_invalid_input_json(e.json)
-                traceback.print_exc()
-                for s in step_instances:
-                    # notify the waiting step instances to self destruct
-                    s.stop_waiting()
-                log.write("An exception was thrown. Stage failed.")
-                raise e
             except Exception as e:
                 # Some exception thrown by one of the steps
+                if isinstance(e, InvalidInputFileError):
+                    self.write_invalid_input_json(e.json)
                 traceback.print_exc()
                 for s in step_instances:
                     # notify the waiting step instances to self destruct
