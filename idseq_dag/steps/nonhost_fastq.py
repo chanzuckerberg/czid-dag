@@ -9,6 +9,10 @@ class PipelineStepNonhostFastq(PipelineStep):
   # Either one or two input read files can be supplied.
   # Works for both FASTA and FASTQ, although non-host FASTQ is more useful.
   def run(self):
+    self.run_with_taxids(None, None)
+    self.run_with_taxids([12721, 11676, 11709], "hiv_reads")
+
+  def run_with_taxids(self, taxids, file_name):
     scratch_dir = os.path.join(self.output_dir_local, "scratch_nonhost_fastq")
     command.execute("mkdir -p %s" % scratch_dir)
     self.nonhost_headers = [
@@ -20,13 +24,19 @@ class PipelineStepNonhostFastq(PipelineStep):
     fastqs = self.input_files_local[0]
 
     nonhost_fasta = self.input_files_local[1][0]
-    output_fastqs = self.output_files_local()
+    if file_name is None:
+      output_fastqs = self.output_files_local()
+    else:
+      output_fastqs = [f"{os.path.dirname(fastq)}/{file_name}__{os.path.basename(fastq)}" for fastq in fastqs]
     fastqs = self.unzip_files(fastqs)
 
-    self.generate_nonhost_headers(nonhost_fasta)
+    self.generate_nonhost_headers(nonhost_fasta, taxids)
 
     for i in range(len(fastqs)):
       self.generate_nonhost_fastq(self.nonhost_headers[i], fastqs[i], output_fastqs[i])
+
+    if file_name is not None:
+      self.additional_files_to_upload.extend(output_fastqs)
 
     # Clean up scratch files.
     for nonhost_headers in self.nonhost_headers:
@@ -71,12 +81,14 @@ class PipelineStepNonhostFastq(PipelineStep):
     nt_index = fragments.index("NT")
     header = ":".join(fragments[nt_index + 2:])
 
+    annot_taxids = [fragments[fragments.index(annot_type) + 1] for annot_type in ["species_nt", "species_nr"]]
+
     return {
       "header": header,
       "read_index": read_index
-    }
+    }, annot_taxids
 
-  def generate_nonhost_headers(self, nonhost_fasta_file):
+  def generate_nonhost_headers(self, nonhost_fasta_file, taxids):
     nonhost_headers = [[], []]
     with open(nonhost_fasta_file, "r") as input_file:
       num = 0
@@ -84,8 +96,9 @@ class PipelineStepNonhostFastq(PipelineStep):
         num += 1
         # Assumes that the header line in the nonhost_fasta starts with ">"
         if line[0] == ">":
-          header = PipelineStepNonhostFastq.extract_header_from_line(line)
-          nonhost_headers[header["read_index"]].append(header["header"] + "\n")
+          header, annot_taxids = PipelineStepNonhostFastq.extract_header_from_line(line)
+          if taxids is None or any(str(taxid) in annot_taxids for taxid in taxids):
+            nonhost_headers[header["read_index"]].append(header["header"] + "\n")
 
     with open(self.nonhost_headers[0], "w") as output_file:
       output_file.writelines(nonhost_headers[0])
