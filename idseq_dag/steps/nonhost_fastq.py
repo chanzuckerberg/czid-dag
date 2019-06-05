@@ -27,7 +27,7 @@ class PipelineStepNonhostFastq(PipelineStep):
     if file_name is None:
       output_fastqs = self.output_files_local()
     else:
-      output_fastqs = [f"{os.path.dirname(fastq)}/{file_name}__{os.path.basename(fastq)}" for fastq in fastqs]
+      output_fastqs = [f"{os.path.dirname(fastq)}/{file_name}__{os.path.basename(fastq.rstrip('.gz'))}" for fastq in fastqs]
     fastqs = self.unzip_files(fastqs)
 
     self.generate_nonhost_headers(nonhost_fasta, taxids)
