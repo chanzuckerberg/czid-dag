@@ -22,7 +22,7 @@ CORRECT_NUMBER_OF_OUTPUT_COLUMNS = 12
 CHUNK_MAX_TRIES = 3
 
 # Please override this with gsnap_chunk_timeout or rapsearch_chunk_timeout in DAG json.
-# Default 30 minutes is several sigmas beyond the pale and indicates the data has to be QC-ed better.
+# Default 60 minutes is several sigmas beyond the pale and indicates the data has to be QC-ed better.
 DEFAULT_CHUNK_TIMEOUT = 60*60
 
 class PipelineStepRunAlignmentRemotely(PipelineStep):
@@ -227,7 +227,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             result = target(*args)
         except:
             with mutex:
-                traceback.print_exc()
+                log.write(traceback.format_exc())
         finally:
             with mutex:
                 chunk_output_files[n] = result
@@ -288,7 +288,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         """
         assert service in ("gsnap", "rapsearch2")
 
-        chunk_id = input_files[0].split(part_suffix)[-1]
+        chunk_id = int(input_files[0].split(part_suffix)[-1])
         multihit_basename = f"multihit-{service}-out{part_suffix}{chunk_id}.m8"
         multihit_local_outfile = os.path.join(self.chunks_result_dir_local, multihit_basename)
         multihit_remote_outfile = os.path.join(remote_work_dir, multihit_basename)

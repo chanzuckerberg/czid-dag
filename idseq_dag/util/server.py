@@ -8,6 +8,7 @@ import multiprocessing
 
 from contextlib import contextmanager
 from collections import defaultdict
+from copy import deepcopy
 
 from idseq_dag.util.periodic_thread import PeriodicThread
 
@@ -32,7 +33,7 @@ class ServiceUnreliable(RuntimeError):
     ''' Raised when the probability and cost of failures become too high relative to success. '''
 
     def __init__(self, service, chunk_id):
-        super().__init__(f"Service {_duct_tape(service)} is unreliable, giving up for {chunk_id}.")
+        super().__init__(f"Service {_duct_tape(service)} is unreliable, giving up for chunk {chunk_id}.")
 
 
 class ChunkStatus:
@@ -154,6 +155,7 @@ class ChunkStatusTracker:
         elapsed_failure = 0.0
         server_successes = defaultdict(int)
         server_failures = defaultdict(int)
+        num_failures = 0
         for status, outcomes in self.outcome_data.items():
             for instance_ip, instance_outcomes in outcomes.items():
                 for chunk_id, elapsed, try_number in instance_outcomes:
@@ -168,13 +170,14 @@ class ChunkStatusTracker:
                     else:
                         elapsed_failure += elapsed
                         server_failures[instance_ip] += 1
+                        num_failures += 1
         failed = attempted - succeeded_first_try - succeeded_retry
         elapsed_avg_success = 0.0
         elapsed_avg_failure = 0.0
         if succeeded_first_try or succeeded_retry:
             elapsed_avg_success = elapsed_succcess / (len(succeeded_first_try) + len(succeeded_retry))
-        if failed:
-            elapsed_avg_failure = elapsed_failure / len(failed)
+        if num_failures:
+            elapsed_avg_failure = elapsed_failure / num_failures
         server_stats = {}
         for instance_ip in sorted(set(server_successes.keys()) | set(server_failures.keys())):
             server_stats[instance_ip] = {
@@ -198,13 +201,12 @@ class ChunkStatusTracker:
     def log_stats(self, total_chunks):
         # This happens after the last call to tracker.note_outcome(), making it
         # safe to access tracker.outcome_data directly without holding a lock.
-        # But, why not.
+        # But, to be safe...
         with self.lock:
             report = self.status_report(total_chunks)
-            report_text = json.dumps(report, indent=4)
-            outcomes_text = json.dumps(self.outcome_data, indent=4)
-        log.write(f"STATUS REPORT FOR {self.service}: " + report_text)
-        log.write(f"FULL OUTCOME DATA FOR {self.service}: " + outcomes_text)
+            outcomes = deepcopy(self.outcome_data)
+        log.log_event(f"STATUS REPORT FOR {self.service}", values=report)
+        log.log_event(f"FULL OUTCOME DATA FOR {self.service}", values=outcomes)
 
 
 def chunk_status_tracker(service, #pylint: disable=dangerous-default-value
@@ -431,7 +433,7 @@ def ASGInstance(service, key_path, remote_username, environment, chunk_id, try_n
         while not tracker.chunk_has_try_priority(chunk_id, try_number):
             if time.time() - t_print >= 60:
                 t_print = time.time()
-                log.write(f"try {try_number} for chunk {chunk_id} has been waiting for {t_print - t_start} seconds for other chunks' prior tries to complete")
+                log.write(f"try {try_number} for chunk {chunk_id} has been waiting for {(t_print - t_start):3.1f} seconds for other chunks' prior tries to complete")
             time.sleep(15.0)
         instance_ip, instance_iD = wait_for_server_ip(service, key_path, remote_username, environment, max_concurrent, chunk_id,
                                                       max_interval_between_describe_instances, draining_tag)
