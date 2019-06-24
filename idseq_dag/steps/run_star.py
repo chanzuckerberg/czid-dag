@@ -10,7 +10,7 @@ import idseq_dag.util.s3 as s3
 import idseq_dag.util.count as count
 import idseq_dag.util.validate_constants as vc
 
-RE_SPLIT = re.compile('[/\t]')
+RE_SPLIT = re.compile('(/[12])?\t')
 
 class PipelineStepRunStar(PipelineStep):
     """ Implements the step for running STAR.
