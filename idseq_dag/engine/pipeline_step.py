@@ -200,3 +200,21 @@ class PipelineStep(object):
         relative_path = os.path.relpath(local_path, self.output_dir_local)
         s3_path = os.path.join(self.output_dir_s3, relative_path)
         return s3_path
+
+    def step_description(self):
+        ''' Retrieves description for the given step.
+        By default, it pulls the docstring of the class but
+        should be overridden for more dynamic descriptions
+        that depends on the inputs. If no docstring is provided,
+        it throws an exception.
+        '''
+        docstring = self.__doc__.strip()
+        if not docstring:
+            raise TypeError('No docstring for step')
+        return docstring
+
+    def step_name(self):
+        ''' Retrieves name of step if provided in instance,
+        or name of class if not set.
+        '''
+        return self.name or self.__class__.__name__
