@@ -3,7 +3,7 @@ import os
 import json
 import re
 
-from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.engine.pipeline_step import PipelineStep, StepStatus, InputFileErrors
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.s3 as s3
@@ -69,8 +69,13 @@ class PipelineStepRunStar(PipelineStep):
             count_genes = part_idx == 0
             self.run_star_part(tmp, genome_part, unmapped, count_genes, use_starlong)
 
-            unmapped = PipelineStepRunStar.sync_pairs(
+            unmapped, too_discrepant = PipelineStepRunStar.sync_pairs(
                 PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
+
+            if too_discrepant:
+               self.input_file_error = InputFileErrors.BROKEN_PAIRS
+               self.status = StepStatus.INVALID_INPUT
+               return
 
             # Run part 0 in gene-counting mode:
             # (a) ERCCs are doped into part 0 and we want their counts.
@@ -197,7 +202,6 @@ class PipelineStepRunStar(PipelineStep):
             log.write(msg)
 
         discrepancies_count = len(outstanding_r0) + len(outstanding_r1)
-        max_discrepancies = 0.5 * total
         if discrepancies_count:
             msg = "WARNING: Found {dc} broken pairs in {fqf}, e.g., " \
                               "{example}.".format(
@@ -205,8 +209,8 @@ class PipelineStepRunStar(PipelineStep):
                 fqf=fastq_files,
                 example=(outstanding_r0 or outstanding_r1).popitem()[0])
             log.write(msg)
-            assert discrepancies_count <= max_discrepancies, msg
-        return output_fnames
+        too_discrepant = (discrepancies_count > 0.5 * total)
+        return output_fnames, too_discrepant
 
     @staticmethod
     def extract_rid(s):
