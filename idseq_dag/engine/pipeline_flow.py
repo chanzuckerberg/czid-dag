@@ -221,7 +221,7 @@ class PipelineFlow(object):
 
         with open(local_pipeline_status_file, 'w') as pipeline_status_file:
             json.dump(status_json_framework, pipeline_status_file)
-        idseq_dag.util.s3.upload_with_retries(pipeline_status_file, self.output_dir_s3 + "/")
+        idseq_dag.util.s3.upload_with_retries(local_pipeline_status_file, self.output_dir_s3 + "/")
 
     def start(self):
         # Come up with the plan
