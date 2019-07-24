@@ -96,7 +96,7 @@ class PipelineStep(object):
         self.status = StepStatus.UPLOADED
 
     def update_pipeline_status_json(self):
-        local_pipeline_status_file = f"{self.output_dir_local}/pipeline_status.json"
+        local_pipeline_status_file = os.path.join(self.output_dir_local, "pipeline_status.json")
         with open(local_pipeline_status_file, "w+") as current_pipeline_status_json:
             current_pipeline_status = json.load(current_pipeline_status_json)
         
@@ -114,7 +114,7 @@ class PipelineStep(object):
                 current_pipeline_status["current_errors"]  = self.input_file_error.name
             
             json.dump(current_pipeline_status, current_pipeline_status_json)
-        idseq_dag.util.s3.upload_with_retries(pipeline_status_file, self.output_dir_s3 + "/")
+        idseq_dag.util.s3.upload_with_retries(pipeline_status_file, self.s3_path("pipeline_status.json"))
 
     def s3_path(self, local_path):
         relative_path = os.path.relpath(local_path, self.output_dir_local)
@@ -237,4 +237,3 @@ class PipelineStep(object):
         if not docstring:
             raise TypeError('No docstring for step')
         return docstring
-        
