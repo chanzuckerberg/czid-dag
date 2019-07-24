@@ -179,13 +179,14 @@ class PipelineStepRunStar(PipelineStep):
         return outstanding_r0, outstanding_r1, max_mem, total
 
     @staticmethod
-    def sync_pairs(fastq_files):
+    def sync_pairs(fastq_files, max_discrepant_fraction=0):
         """The given fastq_files contain the same read IDs but in different order.
-        Output the same data in synchronized order. Omit up to max_discrepancies
-        if necessary. If more must be suppressed, raise assertion.
+        Output the same data in synchronized order. Omit any reads missing their mate
+        up to max_discrepant_fraction if necessary. If more must be suppressed,
+        indicate it in the second value of the returned tuple.
         """
         if len(fastq_files) != 2:
-            return fastq_files
+            return fastq_files, False
 
         output_fnames = [ifn + ".synchronized_pairs.fq" for ifn in fastq_files]
         with open(fastq_files[0], "rb") as if_0, open(fastq_files[1],
@@ -209,7 +210,7 @@ class PipelineStepRunStar(PipelineStep):
                 fqf=fastq_files,
                 example=(outstanding_r0 or outstanding_r1).popitem()[0])
             log.write(msg)
-        too_discrepant = (discrepancies_count > 0.5 * total)
+        too_discrepant = (discrepancies_count > max_discrepant_fraction * total)
         return output_fnames, too_discrepant
 
     @staticmethod

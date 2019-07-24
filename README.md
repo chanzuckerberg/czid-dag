@@ -227,9 +227,7 @@ TODO: Move this code over to the idseq-dag repo.
 ## Release notes
 
 - 3.7.6
-   - Allow up to 50% of read pairs to be fixed by the pair synchronizer after STAR.
-     Fail with an informative user error if more than 50% of pairs are broken,
-     since there is clearly something wrong with the input files in that case.
+   - Fail with an informative user error if the input contains broken read pairs.
 
 - 3.7.0 .. 3.7.5
    - Validate whether input files to a pipeline step contain a sufficient number of reads.
