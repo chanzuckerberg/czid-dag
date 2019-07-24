@@ -202,7 +202,7 @@ class PipelineStepRunStar(PipelineStep):
                 fqf=fastq_files,
                 example=(outstanding_r0 or outstanding_r1).popitem()[0])
             log.write(msg)
-            assert discrepancies_count <= max_discrepancies, msg
+            # assert discrepancies_count <= max_discrepancies, msg
         return output_fnames
 
     @staticmethod
