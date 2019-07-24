@@ -152,11 +152,13 @@ class PipelineStepRunStar(PipelineStep):
         outstanding_r1 = {}
         mem = 0
         max_mem = 0
+        total = 0
         while True:
             r0, r0id = PipelineStepRunStar.get_read(if0)
             r1, r1id = PipelineStepRunStar.get_read(if1)
             if not r0 and not r1:
                 break
+            total += 1
             if r0id == r1id:
                 # If the input pairs are already synchronized, we take this
                 # branch on every iteration.
@@ -169,10 +171,10 @@ class PipelineStepRunStar(PipelineStep):
                 mem, max_mem = PipelineStepRunStar.handle_outstanding_read(
                     r1, r1id, outstanding_r1, outstanding_r0, of1, of0, mem,
                     max_mem)
-        return outstanding_r0, outstanding_r1, max_mem
+        return outstanding_r0, outstanding_r1, max_mem, total
 
     @staticmethod
-    def sync_pairs(fastq_files, max_discrepancies=0):
+    def sync_pairs(fastq_files):
         """The given fastq_files contain the same read IDs but in different order.
         Output the same data in synchronized order. Omit up to max_discrepancies
         if necessary. If more must be suppressed, raise assertion.
@@ -185,7 +187,7 @@ class PipelineStepRunStar(PipelineStep):
                                                       "rb") as if_1:
             with open(output_fnames[0], "wb") as of_0, open(
                     output_fnames[1], "wb") as of_1:
-                outstanding_r0, outstanding_r1, max_mem = PipelineStepRunStar.sync_pairs_work(
+                outstanding_r0, outstanding_r1, max_mem, total = PipelineStepRunStar.sync_pairs_work(
                     of_0, of_1, if_0, if_1)
         if max_mem:
             # This will be printed if some pairs were out of order.
@@ -195,6 +197,7 @@ class PipelineStepRunStar(PipelineStep):
             log.write(msg)
 
         discrepancies_count = len(outstanding_r0) + len(outstanding_r1)
+        max_discrepancies = 0.5 * total
         if discrepancies_count:
             msg = "WARNING: Found {dc} broken pairs in {fqf}, e.g., " \
                               "{example}.".format(
@@ -202,7 +205,7 @@ class PipelineStepRunStar(PipelineStep):
                 fqf=fastq_files,
                 example=(outstanding_r0 or outstanding_r1).popitem()[0])
             log.write(msg)
-            # assert discrepancies_count <= max_discrepancies, msg
+            assert discrepancies_count <= max_discrepancies, msg
         return output_fnames
 
     @staticmethod

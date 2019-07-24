@@ -226,11 +226,13 @@ TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
 
-- 3.7.5
+- 3.7.6
+   - Allow up to 50% of read pairs to be fixed by the pair synchronizer after STAR.
+     Fail if the order of more than 50% of pairs is broken.
+
+- 3.7.0 .. 3.7.5
    - Validate whether input files to a pipeline step contain a sufficient number of reads.
      Output invalid_step_input.json file if validation fails.
-
-- 3.7.0 .. 3.7.4
    - Log output in JSON format. Change TraceLock log level to DEBUG.
    - Upgrade to python 3.7.3
    - Remove db_hack. Standardize db_open/db_assert_table/db_close log entries.
