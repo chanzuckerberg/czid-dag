@@ -163,7 +163,7 @@ class PipelineStepRunStar(PipelineStep):
             r1, r1id = PipelineStepRunStar.get_read(if1)
             if not r0 and not r1:
                 break
-            total += 1
+            total += 2
             if r0id == r1id:
                 # If the input pairs are already synchronized, we take this
                 # branch on every iteration.
