@@ -209,7 +209,7 @@ class PipelineStepRunStar(PipelineStep):
                 fqf=fastq_files,
                 example=(outstanding_r0 or outstanding_r1).popitem()[0])
             log.write(msg)
-        too_discrepant = (discrepancies_count > 0.01 * total)
+        too_discrepant = (discrepancies_count > 0.5 * total)
         return output_fnames, too_discrepant
 
     @staticmethod
