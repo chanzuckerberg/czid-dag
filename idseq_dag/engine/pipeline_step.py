@@ -95,6 +95,27 @@ class PipelineStep(object):
             idseq_dag.util.s3.upload_folder_with_retries(f, self.s3_path(f))
         self.status = StepStatus.UPLOADED
 
+    def update_pipeline_status_json(self):
+        local_pipeline_status_file = f"{self.output_dir_local}/pipeline_status.json"
+        with open(local_pipeline_status_file, "w+") as current_pipeline_status_json:
+            current_pipeline_status = json.load(current_pipeline_status_json)
+        
+            # Create step info for current step if it doesn't exist yet.
+            if not self.name in current_pipeline_status["all_step_info"]:
+                current_pipeline_status["all_step_info"][self.name] = {
+                    "description": self.step_description()
+                }
+
+            current_pipeline_status["all_step_info"][self.name]["status"] = self.status
+
+            if self.status == StepStatus.STARTED or self.status == StepStatus.INVALID_INPUT:
+                current_pipeline_status["current_step"] = self.name
+                current_pipeline_status["current_status"] = self.status
+                current_pipeline_status["current_errors"]  = self.input_file_error.name
+            
+            json.dump(current_pipeline_status, current_pipeline_status_json)
+        idseq_dag.util.s3.upload_with_retries(pipeline_status_file, self.output_dir_s3 + "/")
+
     def s3_path(self, local_path):
         relative_path = os.path.relpath(local_path, self.output_dir_local)
         s3_path = os.path.join(self.output_dir_s3, relative_path)
@@ -166,6 +187,8 @@ class PipelineStep(object):
     def thread_run(self):
         ''' Actually running the step '''
         self.status = StepStatus.STARTED
+        self.update_pipeline_status_json()
+
         v = {"step": self.name}
         with log.log_context("dag_step", v):
             with log.log_context("substep_wait_for_input_files", v):
@@ -177,6 +200,7 @@ class PipelineStep(object):
             if self.input_file_error:
                 log.write("Invalid input detected for step %s" % self.name)
                 self.status = StepStatus.INVALID_INPUT
+                self.update_pipeline_status_json()
                 return
 
             with log.log_context("substep_run", v):
@@ -190,6 +214,7 @@ class PipelineStep(object):
         self.upload_thread = threading.Thread(target=self.uploading_results)
         self.upload_thread.start()
         self.status = StepStatus.FINISHED
+        self.update_pipeline_status_json()
 
     def start(self):
         ''' function to be called after instantiation to start running the step '''
@@ -212,9 +237,4 @@ class PipelineStep(object):
         if not docstring:
             raise TypeError('No docstring for step')
         return docstring
-
-    def step_name(self):
-        ''' Retrieves name of step if provided in instance,
-        or name of class if not set.
-        '''
-        return self.name or self.__class__.__name__
+        

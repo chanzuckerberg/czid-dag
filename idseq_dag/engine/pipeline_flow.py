@@ -206,6 +206,23 @@ class PipelineFlow(object):
 
         idseq_dag.util.s3.upload_with_retries(local_input_errors_file, self.output_dir_s3 + "/")
 
+    def create_pipeline_status_json_file(self):
+        ''' Create pipeline_status.json, which will include step-level job status updates to be used in idseq-web. '''
+        log.write("Creating pipeline_status.json")
+        local_pipeline_status_file = f"{self.output_dir_local}/pipeline_status.json"
+
+        status_json_framework = {
+            "current_step": None,
+            "current_status": None,
+            "current_errors": None,
+            # all_step_info maps step name to description and step status
+            "all_step_info": {}
+        }
+
+        with open(local_pipeline_status_file, 'w') as pipeline_status_file:
+            json.dump(status_json_framework, pipeline_status_file)
+        idseq_dag.util.s3.upload_with_retries(pipeline_status_file, self.output_dir_s3 + "/")
+
     def start(self):
         # Come up with the plan
         (step_list, self.large_file_list, covered_targets) = self.plan()
@@ -220,6 +237,7 @@ class PipelineFlow(object):
         threading.Thread(target=self.prefetch_large_files).start()
 
 
+        self.create_pipeline_status_json_file()
         # Start initializing all the steps and start running them and wait until all of them are done
         step_instances = []
         for step in step_list:
