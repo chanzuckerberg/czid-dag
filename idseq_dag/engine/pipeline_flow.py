@@ -26,6 +26,7 @@ class PipelineFlow(object):
         self.steps = dag["steps"]
         self.given_targets = dag["given_targets"]
         self.output_dir_s3 = dag["output_dir_s3"]
+        self.name = dag["name"]
         if versioned_output:
             self.output_dir_s3 = os.path.join(self.output_dir_s3, self.parse_output_version(idseq_dag.__version__))
 
@@ -54,13 +55,14 @@ class PipelineFlow(object):
           "targets": lists of files that are given or would be generated
           "steps": steps that species actions to generate input and output
           "given_targets": input files that are given
-
+          "name": the name of the stage running
         '''
         dag = json.loads(open(dag_json).read())
         output_dir = dag["output_dir_s3"]
         targets = dag["targets"]
         steps = dag["steps"]
         given_targets = dag["given_targets"]
+        name = dag["name"]
         covered_targets = set()
         for s in steps:
             # validate each step in/out are valid targets
@@ -85,6 +87,9 @@ class PipelineFlow(object):
         for target_name in targets.keys():
             if target_name not in covered_targets:
                 raise ValueError("%s couldn't be generated from the steps" % target_name)
+        # Check that name exists
+        if not name:
+            raise ValueError("Name does not exist for given dag_json")
 
         return dag
 
@@ -206,22 +211,16 @@ class PipelineFlow(object):
 
         idseq_dag.util.s3.upload_with_retries(local_input_errors_file, self.output_dir_s3 + "/")
 
-    def create_pipeline_status_json_file(self):
-        ''' Create pipeline_status.json, which will include step-level job status updates to be used in idseq-web. '''
-        log.write("Creating pipeline_status.json")
-        local_pipeline_status_file = f"{self.output_dir_local}/pipeline_status.json"
+    def create_status_json_file(self):
+        ''' Create [stage name]_status.json, which will include step-level job status updates to be used in idseq-web. '''
+        log.write(f"Creating {self.name}_status.json")
+        local_status_file = f"{self.output_dir_local}/{self.name}_status.json"
 
-        status_json_framework = {
-            "current_step": None,
-            "current_status": None,
-            "current_errors": None,
-            # all_step_info maps step name to description and step status
-            "all_step_info": {}
-        }
+        status_json_framework = {} # maps out_target to step info
 
-        with open(local_pipeline_status_file, 'w') as pipeline_status_file:
-            json.dump(status_json_framework, pipeline_status_file)
-        idseq_dag.util.s3.upload_with_retries(local_pipeline_status_file, self.output_dir_s3 + "/")
+        with open(local_status_file, 'w') as status_file:
+            json.dump(status_json_framework, status_file)
+        idseq_dag.util.s3.upload_with_retries(local_status_file, self.output_dir_s3 + "/")
 
     def start(self):
         # Come up with the plan
@@ -237,7 +236,7 @@ class PipelineFlow(object):
         threading.Thread(target=self.prefetch_large_files).start()
 
 
-        self.create_pipeline_status_json_file()
+        self.create_status_json_file()
         # Start initializing all the steps and start running them and wait until all of them are done
         step_instances = []
         for step in step_list:
@@ -247,7 +246,7 @@ class PipelineFlow(object):
             step_inputs = [self.targets[itarget] for itarget in step["in"]]
             step_instance = StepClass(step["out"], step_inputs, step_output,
                                       self.output_dir_local, self.output_dir_s3, self.ref_dir_local,
-                                      step["additional_files"], step["additional_attributes"])
+                                      step["additional_files"], step["additional_attributes"], self.name)
             step_instance.start()
             step_instances.append(step_instance)
         # Collecting stats files
