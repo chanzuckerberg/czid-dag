@@ -100,18 +100,18 @@ class PipelineStep(object):
     def update_stage_status_json(self):
         local_stage_status_file = f"{self.output_dir_local}/{self.stage_name}_status.json"
         log.write(f"Updating {self.stage_name}_status.json with step {self.name}: {local_stage_status_file}")
-        with open(local_stage_status_file, "w+") as current_stage_status_json:
+        with open(local_stage_status_file, 'r', encoding='utf-8') as current_stage_status_json:
             current_stage_status = json.load(current_stage_status_json)
-        
-            # Create step info for current step if it doesn't exist yet.
-            if not self.name in current_stage_status:
-                current_stage_status[self.name] = {
-                    "description": self.step_description(),
-                }
 
-            current_stage_status[self.name]["status"] = self.status
-            if self.input_file_error:
-                current_stage_status[self.name]["error"] = self.input_file_error.name
+        if not self.name in current_stage_status:
+            current_stage_status[self.name] = {
+                "description": self.step_description(),
+            }
+        current_stage_status[self.name]["status"] = self.status
+        if self.input_file_error:
+            current_stage_status[self.name]["error"] = self.input_file_error.name
+
+        with open(local_stage_status_file, "w") as current_stage_status_json:
             json.dump(current_stage_status, current_stage_status_json)
         idseq_dag.util.s3.upload_with_retries(local_stage_status_file, self.s3_path(local_stage_status_file))
 
