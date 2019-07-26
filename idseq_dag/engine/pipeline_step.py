@@ -99,6 +99,10 @@ class PipelineStep(object):
 
     def update_stage_status_json(self):
         log.write(f"Updating {self.stage_name}_status.json with step {self.name}")
+
+        # Fetch file from s3, open, and load as a json
+        s3_stage_status_file = f"{self.output_dir_s3}/{self.stage_name}_status.json"
+        stage_status_file = idseq_dag.util.s3.fetch_from_s3(s3_stage_status_file, self.output_dir_local)
         local_stage_status_file = f"{self.output_dir_local}/{self.stage_name}_status.json"
         with open(local_stage_status_file, 'r', encoding='utf-8') as current_stage_status_json:
             current_stage_status = json.load(current_stage_status_json)
@@ -113,7 +117,7 @@ class PipelineStep(object):
 
         with open(local_stage_status_file, "w") as current_stage_status_json:
             json.dump(current_stage_status, current_stage_status_json)
-        idseq_dag.util.s3.upload_with_retries(local_stage_status_file, self.s3_path(local_stage_status_file))
+        idseq_dag.util.s3.upload_with_retries(local_stage_status_file, s3_stage_status_file)
 
     def s3_path(self, local_path):
         relative_path = os.path.relpath(local_path, self.output_dir_local)
