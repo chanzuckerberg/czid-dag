@@ -99,7 +99,7 @@ class PipelineStep(object):
 
     def update_stage_status_json(self):
         log.write(f"Updating {self.stage_name}_status.json with step {self.name}")
-        local_stage_status_file = os.path.join(self.output_dir_local, f"{self.stage_name}_status.json")
+        local_stage_status_file = f"{self.output_dir_local}/{self.stage_name}_status.json"
         with open(local_stage_status_file, "w+") as current_stage_status_json:
             current_stage_status = json.load(current_stage_status_json)
         
