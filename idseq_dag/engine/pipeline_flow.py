@@ -213,8 +213,8 @@ class PipelineFlow(object):
 
     def create_status_json_file(self):
         ''' Create [stage name]_status.json, which will include step-level job status updates to be used in idseq-web. '''
+        log.write(f"Creating {self.name}_status.json")
         local_status_file = f"{self.output_dir_local}/{self.name}_status.json"
-        log.write(f"Creating {self.name}_status.json: {local_status_file}")
 
         status_json_framework = {} # maps out_target to step info
 

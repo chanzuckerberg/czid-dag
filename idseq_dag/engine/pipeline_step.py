@@ -98,8 +98,8 @@ class PipelineStep(object):
         self.status = StepStatus.UPLOADED
 
     def update_stage_status_json(self):
+        log.write(f"Updating {self.stage_name}_status.json with step {self.name}")
         local_stage_status_file = f"{self.output_dir_local}/{self.stage_name}_status.json"
-        log.write(f"Updating {self.stage_name}_status.json with step {self.name}: {local_stage_status_file}")
         with open(local_stage_status_file, 'r', encoding='utf-8') as current_stage_status_json:
             current_stage_status = json.load(current_stage_status_json)
 
@@ -225,14 +225,14 @@ class PipelineStep(object):
         s3_path = os.path.join(self.output_dir_s3, relative_path)
         return s3_path
 
-    def step_description(self):
+    def step_description(self, require_docstrings=false):
         ''' Retrieves description for the given step.
         By default, it pulls the docstring of the class but
         should be overridden for more dynamic descriptions
         that depends on the inputs. If no docstring is provided,
         it throws an exception.
         '''
-        docstring = self.__doc__.strip()
-        if not docstring:
-            raise TypeError('No docstring for step')
-        return docstring
+        docstring = self.__doc__
+        if not docstring and require_docstrings:
+            raise TypeError(f"No docstring for step {self.name}")
+        return docstring.strip()
