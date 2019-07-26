@@ -236,7 +236,7 @@ class PipelineStep(object):
         that depends on the inputs. If no docstring is provided,
         it throws an exception.
         '''
-        docstring = self.__doc__
+        docstring = self.__doc__ or ""
         if not docstring and require_docstrings:
             raise TypeError(f"No docstring for step {self.name}")
         return docstring.strip()
