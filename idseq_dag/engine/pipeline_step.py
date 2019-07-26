@@ -225,7 +225,7 @@ class PipelineStep(object):
         s3_path = os.path.join(self.output_dir_s3, relative_path)
         return s3_path
 
-    def step_description(self, require_docstrings=false):
+    def step_description(self, require_docstrings=False):
         ''' Retrieves description for the given step.
         By default, it pulls the docstring of the class but
         should be overridden for more dynamic descriptions
