@@ -112,9 +112,8 @@ class PipelineStep(object):
             current_stage_status[self.name]["status"] = self.status
             if self.input_file_error:
                 current_stage_status[self.name]["error"] = self.input_file_error.name
-            
             json.dump(current_stage_status, current_stage_status_json)
-        idseq_dag.util.s3.upload_with_retries(local_stage_status_file, self.s3_path(f"{self.stage_name}_status.json"))
+        idseq_dag.util.s3.upload_with_retries(local_stage_status_file, self.s3_path(local_stage_status_file))
 
     def s3_path(self, local_path):
         relative_path = os.path.relpath(local_path, self.output_dir_local)
