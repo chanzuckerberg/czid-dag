@@ -9,10 +9,13 @@ import idseq_dag.util.s3
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
+from idseq_dag.util.trace_lock import TraceLock
 from idseq_dag.engine.pipeline_step import PipelineStep, InvalidInputFileError
 
-DEFAULT_OUTPUT_DIR_LOCAL = '/mnt/idseq/results/%d' % os.getpid()
-DEFAULT_REF_DIR_LOCAL = '/mnt/idseq/ref'
+# DEFAULT_OUTPUT_DIR_LOCAL = '/mnt/idseq/results/%d' % os.getpid()
+# DEFAULT_REF_DIR_LOCAL = '/mnt/idseq/ref'
+DEFAULT_OUTPUT_DIR_LOCAL = '~/data/results'
+DEFAULT_REF_DIR_LOCAL = '~/data/ref'
 
 class PipelineFlow(object):
     def __init__(self, lazy_run, dag_json, versioned_output):
@@ -34,6 +37,7 @@ class PipelineFlow(object):
         self.ref_dir_local = dag.get("ref_dir_local", DEFAULT_REF_DIR_LOCAL)
         self.large_file_list = []
 
+        self.step_status_local = f"{self.output_dir_local}/{self.name}_status.json"
         command.execute("mkdir -p %s %s" % (self.output_dir_local, self.ref_dir_local))
 
     @staticmethod
@@ -214,13 +218,10 @@ class PipelineFlow(object):
     def create_status_json_file(self):
         ''' Create [stage name]_status.json, which will include step-level job status updates to be used in idseq-web. '''
         log.write(f"Creating {self.name}_status.json")
-        local_status_file = f"{self.output_dir_local}/{self.name}_status.json"
 
-        status_json_framework = {} # maps out_target to step info
-
-        with open(local_status_file, 'w') as status_file:
-            json.dump(status_json_framework, status_file)
-        idseq_dag.util.s3.upload_with_retries(local_status_file, self.output_dir_s3 + "/")
+        with open(self.step_status_local, 'w') as status_file:
+            json.dump({}, status_file)
+        idseq_dag.util.s3.upload_with_retries(self.step_status_local, self.output_dir_s3 + "/")
 
     def start(self):
         # Come up with the plan
@@ -237,6 +238,7 @@ class PipelineFlow(object):
         self.create_status_json_file()
         # Start initializing all the steps and start running them and wait until all of them are done
         step_instances = []
+        step_status_lock = TraceLock(f"Step-level status updates for stage {self.name}",threading.RLock())
         for step in step_list:
             log.write("Initializing step %s" % step["out"])
             StepClass = getattr(importlib.import_module(step["module"]), step["class"])
@@ -244,7 +246,8 @@ class PipelineFlow(object):
             step_inputs = [self.targets[itarget] for itarget in step["in"]]
             step_instance = StepClass(step["out"], step_inputs, step_output,
                                       self.output_dir_local, self.output_dir_s3, self.ref_dir_local,
-                                      step["additional_files"], step["additional_attributes"], self.name)
+                                      step["additional_files"], step["additional_attributes"],
+                                      self.step_status_local, step_status_lock)
             step_instance.start()
             step_instances.append(step_instance)
         # Collecting stats files
