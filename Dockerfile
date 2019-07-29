@@ -109,6 +109,8 @@ RUN pip install scipy
 RUN pip install git+https://github.com/chanzuckerberg/srst2
 # TODO: Test both pip installations, consider keeping pip use consistent
 RUN pip3 install pandas
+RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.28.0/bedtools
+RUN mv bedtools /usr/local/bin/
 
 # Blast command line
 RUN wget -N ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-1.x86_64.rpm

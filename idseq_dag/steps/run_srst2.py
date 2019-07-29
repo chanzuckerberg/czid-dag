@@ -32,6 +32,7 @@ class PipelineStepRunSRST2(PipelineStep):
                 PipelineStepRunSRST2.fill_file_path(f)
         else:
             # Post processing of amr data
+            self.generate_rpm_table()
             results_full = os.path.join(self.output_dir_local, OUTPUT_FULL_GENES)
             results_full_dest = self.output_files_local()[2]
             shutil.move(results_full, results_full_dest)
@@ -69,6 +70,28 @@ class PipelineStepRunSRST2(PipelineStep):
         return ['--min_coverage', min_cov,'--threads', n_threads,
                 '--output',  os.path.join(self.output_dir_local, 'output'), '--log', '--gene_db', db_file_path]
 
+    def generate_rpm_table(self):
+        """moo"""
+        bed_file_path = fetch_from_s3(self.additional_files["resist_genome_bed"], self.output_dir_local, allow_s3mi=False)
+        bedtools_params = ['bedtools', 'coverage', '-b', self.output_files_local()[5], '-a', bed_file_path, '>>', os.path.join(self.output_dir_local, 'rpm.tsv')]
+        command.execute(" ".join(bedtools_params))
+
+    @staticmethod
+    def _append_rpm_to_results(rpm_raw_path, proc_amr_results):
+        """meow"""
+        rpm_results = pd.read_csv(rpm_raw_path, delimiter="\t", names=["allele", "rpm"], usecols=[0,3])
+        rpm_results["allele"] = rpm_results.apply(lambda row: "_".join(row["allele"].split("__")[2:]), axis=1)
+        proc_amr_results["rpm"] = PipelineStepRunSRST2._match_rpms(rpm_results, proc_amr_results)
+        return proc_amr_results
+
+    @staticmethod
+    def _match_rpms(rpm_df, amr_df):
+        matched_list = []
+        for row in amr_df.itertuples():
+            rpm_for_allele = rpm_df[rpm_df["allele"] == row.allele]["rpm"].values[0]
+            matched_list.append(rpm_for_allele)
+        return matched_list
+
     @staticmethod
     def fill_file_path(file_path):
         """Helper function to open an "empty" file at a given file location.
@@ -93,6 +116,7 @@ class PipelineStepRunSRST2(PipelineStep):
         amr_results = pd.read_csv(amr_raw_path, delimiter="\t")
         # Parse out gene family as substring after '_', e.g. Aph_AGly's gene family would be AGly
         amr_results['gene_family'] = amr_results.apply(lambda row: row.gene.split('_', 1)[1], axis=1)
+        # amr_results['rpm'] = amr_results.apply()
         return amr_results
 
     @staticmethod
@@ -117,7 +141,8 @@ class PipelineStepRunSRST2(PipelineStep):
             encoding='utf-8')
         sorted_amr = amr_results.sort_values(by=['gene_family'])
         proc_amr = pd.merge_ordered(sorted_amr, amr_summary, fill_method='ffill', left_by=['gene_family'])
-        proc_amr.to_csv(
+        proc_amr_with_rpm = PipelineStepRunSRST2._append_rpm_to_results(os.path.join(self.output_dir_local, 'rpm.tsv'), proc_amr)
+        proc_amr_with_rpm.to_csv(
             self.output_files_local()[3],
             mode='w',
             index=False,
