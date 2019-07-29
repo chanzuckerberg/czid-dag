@@ -12,10 +12,8 @@ import idseq_dag.util.count as count
 from idseq_dag.util.trace_lock import TraceLock
 from idseq_dag.engine.pipeline_step import PipelineStep, InvalidInputFileError
 
-# DEFAULT_OUTPUT_DIR_LOCAL = '/mnt/idseq/results/%d' % os.getpid()
-# DEFAULT_REF_DIR_LOCAL = '/mnt/idseq/ref'
-DEFAULT_OUTPUT_DIR_LOCAL = '~/data/results'
-DEFAULT_REF_DIR_LOCAL = '~/data/ref'
+DEFAULT_OUTPUT_DIR_LOCAL = '/mnt/idseq/results/%d' % os.getpid()
+DEFAULT_REF_DIR_LOCAL = '/mnt/idseq/ref'
 
 class PipelineFlow(object):
     def __init__(self, lazy_run, dag_json, versioned_output):
