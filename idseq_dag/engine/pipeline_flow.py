@@ -231,10 +231,8 @@ class PipelineFlow(object):
                 target_info = covered_targets[target]
                 if target_info['s3_downloadable']:
                     threading.Thread(target=self.fetch_target_from_s3, args=(target,)).start()
-
         # TODO(boris): check the following implementation
         threading.Thread(target=self.prefetch_large_files).start()
-
 
         self.create_status_json_file()
         # Start initializing all the steps and start running them and wait until all of them are done
