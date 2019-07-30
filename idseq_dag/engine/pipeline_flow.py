@@ -214,8 +214,8 @@ class PipelineFlow(object):
         idseq_dag.util.s3.upload_with_retries(local_input_errors_file, self.output_dir_s3 + "/")
 
     def create_status_json_file(self):
-        ''' Create [stage name]_status.json, which will include step-level job status updates to be used in idseq-web. '''
-        log.write(f"Creating {self.name}_status.json")
+        """Create [stage name]_status.json, which will include step-level job status updates to be used in idseq-web."""
+        log.write(f"Creating {self.step_status_local}")
 
         with open(self.step_status_local, 'w') as status_file:
             json.dump({}, status_file)
@@ -236,7 +236,7 @@ class PipelineFlow(object):
         self.create_status_json_file()
         # Start initializing all the steps and start running them and wait until all of them are done
         step_instances = []
-        step_status_lock = TraceLock(f"Step-level status updates for stage {self.name}",threading.RLock())
+        step_status_lock = TraceLock(f"Step-level status updates for stage {self.name}", threading.RLock())
         for step in step_list:
             log.write("Initializing step %s" % step["out"])
             StepClass = getattr(importlib.import_module(step["module"]), step["class"])
