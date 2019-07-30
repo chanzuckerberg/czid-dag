@@ -110,12 +110,12 @@ class PipelineStep(object):
         if self.input_file_error:
             self.status_dict["error"] = self.input_file_error.name
 
-        # Then, update file
+        # Then, update file by reading the json, modifying, and overwriting.
         self.step_status_lock.acquire()
-        with open(self.step_status_local, 'r+') as status_file:
+        with open(self.step_status_local, 'r') as status_file:
             status = json.load(status_file)
-            status.update({ self.name: self.status_dict })
-            status_file.seek(0)
+        status.update({ self.name: self.status_dict })
+        with open(self.step_status_local, 'w') as status_file:
             json.dump(status, status_file)
         idseq_dag.util.s3.upload_with_retries(self.step_status_local, self.output_dir_s3 + "/")
         self.step_status_lock.release()
