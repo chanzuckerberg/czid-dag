@@ -83,7 +83,7 @@ class PipelineStepRunSRST2(PipelineStep):
         return int(total_reads)
 
     @staticmethod
-    def _appened_dpm_to_results(amr_results, total_reads):
+    def _append_dpm_to_results(amr_results, total_reads):
         amr_results["dpm"] = amr_results.apply(lambda row: row["depth"] * 1000000 / total_reads, axis=1)
         return amr_results
 
