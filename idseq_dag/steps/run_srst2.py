@@ -76,8 +76,19 @@ class PipelineStepRunSRST2(PipelineStep):
         bedtools_params = ['bedtools', 'coverage', '-b', self.output_files_local()[5], '-a', bed_file_path, '>>', os.path.join(self.output_dir_local, 'rpm.tsv')]
         command.execute(" ".join(bedtools_params))
 
+    def get_total_reads(self):
+        samtools_params = ['samtools', 'view', '-c', self.output_files_local()[5]]
+        samtools_output = command.execute(" ".join(samtools_params), capture_stdout=True)
+        total_reads = ''.join(filter(lambda x: x.isdigit(), samtools_output))
+        return int(total_reads)
+
     @staticmethod
-    def _append_rpm_to_results(rpm_raw_path, proc_amr_results):
+    def _appened_dpm_to_results(amr_results, total_reads):
+        amr_results["dpm"] = amr_results.apply(lambda row: row["depth"] * 1000000 / total_reads, axis=1)
+        return amr_results
+
+    @staticmethod
+    def _append_rpm_to_results(proc_amr_results, rpm_raw_path):
         """meow"""
         rpm_results = pd.read_csv(rpm_raw_path, delimiter="\t", names=["allele", "rpm"], usecols=[0,3])
         rpm_results["allele"] = rpm_results.apply(lambda row: "_".join(row["allele"].split("__")[2:]), axis=1)
@@ -141,8 +152,9 @@ class PipelineStepRunSRST2(PipelineStep):
             encoding='utf-8')
         sorted_amr = amr_results.sort_values(by=['gene_family'])
         proc_amr = pd.merge_ordered(sorted_amr, amr_summary, fill_method='ffill', left_by=['gene_family'])
-        proc_amr_with_rpm = PipelineStepRunSRST2._append_rpm_to_results(os.path.join(self.output_dir_local, 'rpm.tsv'), proc_amr)
-        proc_amr_with_rpm.to_csv(
+        proc_amr_with_rpm = PipelineStepRunSRST2._append_rpm_to_results(proc_amr, os.path.join(self.output_dir_local, 'rpm.tsv'))
+        proc_amr_with_rpm_and_dpm = PipelineStepRunSRST2._append_dpm_to_results(proc_amr_with_rpm, self.get_total_reads())
+        proc_amr_with_rpm_and_dpm.to_csv(
             self.output_files_local()[3],
             mode='w',
             index=False,
