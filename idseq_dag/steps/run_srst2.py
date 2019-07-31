@@ -78,8 +78,8 @@ class PipelineStepRunSRST2(PipelineStep):
 
     def get_total_reads(self):
         samtools_params = ['samtools', 'view', '-c', self.output_files_local()[5]]
-        samtools_output = command.execute(" ".join(samtools_params), capture_stdout=True)
-        # total_reads = ''.join(filter(lambda x: x.isdigit(), samtools_output))
+        samtools_output = command.execute_with_output(" ".join(samtools_params))
+        total_reads = ''.join(filter(lambda x: x.isdigit(), samtools_output))
         return samtools_output
 
     @staticmethod
