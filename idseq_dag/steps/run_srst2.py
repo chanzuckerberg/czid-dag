@@ -79,8 +79,8 @@ class PipelineStepRunSRST2(PipelineStep):
     def get_total_reads(self):
         samtools_params = ['samtools', 'view', '-c', self.output_files_local()[5]]
         samtools_output = command.execute(" ".join(samtools_params), capture_stdout=True)
-        total_reads = ''.join(filter(lambda x: x.isdigit(), samtools_output))
-        return int(total_reads)
+        # total_reads = ''.join(filter(lambda x: x.isdigit(), samtools_output))
+        return samtools_output
 
     @staticmethod
     def _append_dpm_to_results(amr_results, total_reads):
