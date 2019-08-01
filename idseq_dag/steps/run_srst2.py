@@ -156,7 +156,7 @@ class PipelineStepRunSRST2(PipelineStep):
             encoding='utf-8')
         sorted_amr = amr_results.sort_values(by=['gene_family'])
         proc_amr = pd.merge_ordered(sorted_amr, amr_summary, fill_method='ffill', left_by=['gene_family'])
-        proc_amr_with_rpm = PipelineStepRunSRST2._append_rpm_to_results(proc_amr, os.path.join(self.output_dir_local, 'matched_reads.tsv'))
+        proc_amr_with_rpm = PipelineStepRunSRST2._append_rpm_to_results(proc_amr, os.path.join(self.output_dir_local, 'matched_reads.tsv'), self.get_total_reads())
         proc_amr_with_rpm_and_dpm = PipelineStepRunSRST2._append_dpm_to_results(proc_amr_with_rpm, self.get_total_reads())
         proc_amr_with_rpm_and_dpm.to_csv(
             self.output_files_local()[3],
