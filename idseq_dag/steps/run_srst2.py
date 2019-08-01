@@ -34,10 +34,11 @@ class PipelineStepRunSRST2(PipelineStep):
         else:
             # Post processing of amr data
             self.generate_mapped_reads_table()
+            total_reads = self.get_total_reads(isZipped, isFasta)
             results_full = os.path.join(self.output_dir_local, OUTPUT_FULL_GENES)
             results_full_dest = self.output_files_local()[2]
             shutil.move(results_full, results_full_dest)
-            self.process_amr_results(results_full_dest)
+            self.process_amr_results(results_full_dest, total_reads)
 
     # Inherited method
     def count_reads(self):
@@ -77,13 +78,24 @@ class PipelineStepRunSRST2(PipelineStep):
         bedtools_params = ['bedtools', 'coverage', '-b', self.output_files_local()[5], '-a', bed_file_path, '>>', os.path.join(self.output_dir_local, 'matched_reads.tsv')]
         command.execute(" ".join(bedtools_params))
 
-    def get_total_reads(self):
-        echo_params = ['echo', str(self.input_files_local), '>>', 'input_files_local.txt']
-        command.execute(" ".join(echo_params))
-        pdb.set_trace()
+    def get_total_reads(self, isZipped, isFasta):
+        input_filenames = self.input_files_local[0]
         if isZipped:
-            gunzip_params = ['gunzip', '-k'].extend(self.input_files_local)
-        return 4000000
+            gunzip_params = ['gunzip', '-k'].extend(input_filenames)
+            command.execute(" ".join(gunzip_params))
+            input_filenames = map(lambda name: name[:len(name)-3], input_filenames)
+        if isFasta:
+            grep_params = ['grep', '-c', '"^>"'].extend(input_filenames) # fastas start reads with "^>"
+            grep_output = command.execute_with_output(" ".join(grep_params))
+            output_lines = grep_output.split("\n")
+            read_counts = map(lambda line: int(line.split(":")[1]), output_lines)
+            return reduce(lambda x, y: x + y, read_counts)
+        else:
+            wc_params = ['wc', '-l'].extend(input_filenames)
+            wc_output = command.execute_with_output(" ".join(wc_params))
+            # take the first set of characters from the last line, which is the total number of lines
+            total_lines = int(wc_output.split("\n")[-1].split(" ")[0])
+            return total_lines / 4 # fastqs have 4 lines for every read
 
     @staticmethod
     def _append_dpm_to_results(amr_results, total_reads):
@@ -93,19 +105,23 @@ class PipelineStepRunSRST2(PipelineStep):
     @staticmethod
     def _append_rpm_to_results(proc_amr_results, matched_reads_path, total_reads):
         """meow"""
-        matched_reads = pd.read_csv(matched_reads_path, delimiter="\t", names=["allele", "rpm"], usecols=[0,3])
+        matched_reads = pd.read_csv(matched_reads_path, delimiter="\t", names=["allele", "reads"], usecols=[0,3])
         matched_reads["allele"] = matched_reads.apply(lambda row: "_".join(row["allele"].split("__")[2:]), axis=1)
-        proc_amr_results["rpm"] = PipelineStepRunSRST2._calculate_rpms(matched_reads, proc_amr_results)
+        rpm_list, total_reads_list = PipelineStepRunSRST2._calculate_rpms(matched_reads, proc_amr_results, total_reads)
+        proc_amr_results["total_reads"] = total_reads_list
+        proc_amr_results["rpm"] = rpm_list
         return proc_amr_results
 
     @staticmethod
     def _calculate_rpms(rpm_df, amr_df, total_reads):
-        matched_list = []
+        rpm_list = []
+        total_reads_list = []
         for row in amr_df.itertuples():
-            reads_for_allele = rpm_df[rpm_df["allele"] == row.allele]["rpm"].values[0]
+            reads_for_allele = rpm_df[rpm_df["allele"] == row.allele]["reads"].values[0]
+            total_reads_list.append(reads_for_allele)
             rpm_for_allele = reads_for_allele * 1000000 / total_reads
-            matched_list.append(rpm_for_allele)
-        return matched_list
+            rpm_list.append(rpm_for_allele)
+        return [rpm_list, total_reads_list]
 
     @staticmethod
     def fill_file_path(file_path):
@@ -143,7 +159,7 @@ class PipelineStepRunSRST2(PipelineStep):
         return amr_summary
 
 
-    def process_amr_results(self, amr_results_path):
+    def process_amr_results(self, amr_results_path, total_reads):
         """ Writes processed amr result table with total_genes_hit, total_coverage,
             and total_depth column values filled in for all genes to output files; and likewise with
             the gene-family level summary of amr results table. """
@@ -156,8 +172,8 @@ class PipelineStepRunSRST2(PipelineStep):
             encoding='utf-8')
         sorted_amr = amr_results.sort_values(by=['gene_family'])
         proc_amr = pd.merge_ordered(sorted_amr, amr_summary, fill_method='ffill', left_by=['gene_family'])
-        proc_amr_with_rpm = PipelineStepRunSRST2._append_rpm_to_results(proc_amr, os.path.join(self.output_dir_local, 'matched_reads.tsv'), self.get_total_reads())
-        proc_amr_with_rpm_and_dpm = PipelineStepRunSRST2._append_dpm_to_results(proc_amr_with_rpm, self.get_total_reads())
+        proc_amr_with_rpm = PipelineStepRunSRST2._append_rpm_to_results(proc_amr, os.path.join(self.output_dir_local, 'matched_reads.tsv'), total_reads)
+        proc_amr_with_rpm_and_dpm = PipelineStepRunSRST2._append_dpm_to_results(proc_amr_with_rpm, total_reads)
         proc_amr_with_rpm_and_dpm.to_csv(
             self.output_files_local()[3],
             mode='w',
