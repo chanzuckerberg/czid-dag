@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import shutil
+import pdb
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.s3 import fetch_from_s3
@@ -32,7 +33,7 @@ class PipelineStepRunSRST2(PipelineStep):
                 PipelineStepRunSRST2.fill_file_path(f)
         else:
             # Post processing of amr data
-            self.generate_rpm_table()
+            self.generate_mapped_reads_table()
             results_full = os.path.join(self.output_dir_local, OUTPUT_FULL_GENES)
             results_full_dest = self.output_files_local()[2]
             shutil.move(results_full, results_full_dest)
@@ -70,17 +71,19 @@ class PipelineStepRunSRST2(PipelineStep):
         return ['--min_coverage', min_cov,'--threads', n_threads,
                 '--output',  os.path.join(self.output_dir_local, 'output'), '--log', '--gene_db', db_file_path]
 
-    def generate_rpm_table(self):
+    def generate_mapped_reads_table(self):
         """moo"""
         bed_file_path = fetch_from_s3(self.additional_files["resist_genome_bed"], self.output_dir_local, allow_s3mi=False)
-        bedtools_params = ['bedtools', 'coverage', '-b', self.output_files_local()[5], '-a', bed_file_path, '>>', os.path.join(self.output_dir_local, 'rpm.tsv')]
+        bedtools_params = ['bedtools', 'coverage', '-b', self.output_files_local()[5], '-a', bed_file_path, '>>', os.path.join(self.output_dir_local, 'matched_reads.tsv')]
         command.execute(" ".join(bedtools_params))
 
     def get_total_reads(self):
-        samtools_params = ['samtools', 'view', '-c', self.output_files_local()[5]]
-        samtools_output = command.execute_with_output(" ".join(samtools_params))
-        total_reads = ''.join(filter(lambda x: x.isdigit(), samtools_output))
-        return int(total_reads)
+        echo_params = ['echo', str(self.input_files_local), '>>', 'input_files_local.txt']
+        command.execute(" ".join(echo_params))
+        pdb.set_trace()
+        if isZipped:
+            gunzip_params = ['gunzip', '-k'].extend(self.input_files_local)
+        return 4000000
 
     @staticmethod
     def _append_dpm_to_results(amr_results, total_reads):
@@ -88,18 +91,19 @@ class PipelineStepRunSRST2(PipelineStep):
         return amr_results
 
     @staticmethod
-    def _append_rpm_to_results(proc_amr_results, rpm_raw_path):
+    def _append_rpm_to_results(proc_amr_results, matched_reads_path, total_reads):
         """meow"""
-        rpm_results = pd.read_csv(rpm_raw_path, delimiter="\t", names=["allele", "rpm"], usecols=[0,3])
-        rpm_results["allele"] = rpm_results.apply(lambda row: "_".join(row["allele"].split("__")[2:]), axis=1)
-        proc_amr_results["rpm"] = PipelineStepRunSRST2._match_rpms(rpm_results, proc_amr_results)
+        matched_reads = pd.read_csv(matched_reads_path, delimiter="\t", names=["allele", "rpm"], usecols=[0,3])
+        matched_reads["allele"] = matched_reads.apply(lambda row: "_".join(row["allele"].split("__")[2:]), axis=1)
+        proc_amr_results["rpm"] = PipelineStepRunSRST2._calculate_rpms(matched_reads, proc_amr_results)
         return proc_amr_results
 
     @staticmethod
-    def _match_rpms(rpm_df, amr_df):
+    def _calculate_rpms(rpm_df, amr_df, total_reads):
         matched_list = []
         for row in amr_df.itertuples():
-            rpm_for_allele = rpm_df[rpm_df["allele"] == row.allele]["rpm"].values[0]
+            reads_for_allele = rpm_df[rpm_df["allele"] == row.allele]["rpm"].values[0]
+            rpm_for_allele = reads_for_allele * 1000000 / total_reads
             matched_list.append(rpm_for_allele)
         return matched_list
 
@@ -152,7 +156,7 @@ class PipelineStepRunSRST2(PipelineStep):
             encoding='utf-8')
         sorted_amr = amr_results.sort_values(by=['gene_family'])
         proc_amr = pd.merge_ordered(sorted_amr, amr_summary, fill_method='ffill', left_by=['gene_family'])
-        proc_amr_with_rpm = PipelineStepRunSRST2._append_rpm_to_results(proc_amr, os.path.join(self.output_dir_local, 'rpm.tsv'))
+        proc_amr_with_rpm = PipelineStepRunSRST2._append_rpm_to_results(proc_amr, os.path.join(self.output_dir_local, 'matched_reads.tsv'))
         proc_amr_with_rpm_and_dpm = PipelineStepRunSRST2._append_dpm_to_results(proc_amr_with_rpm, self.get_total_reads())
         proc_amr_with_rpm_and_dpm.to_csv(
             self.output_files_local()[3],
