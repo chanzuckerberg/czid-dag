@@ -81,17 +81,20 @@ class PipelineStepRunSRST2(PipelineStep):
     def get_total_reads(self, isZipped, isFasta):
         input_filenames = self.input_files_local[0]
         if isZipped:
-            gunzip_params = ['gunzip', '-k'].extend(input_filenames)
+            gunzip_params = ['gunzip', '-k']
+            gunzip_params.extend(input_filenames)
             command.execute(" ".join(gunzip_params))
             input_filenames = map(lambda name: name[:len(name)-3], input_filenames)
         if isFasta:
-            grep_params = ['grep', '-c', '"^>"'].extend(input_filenames) # fastas start reads with "^>"
+            grep_params = ['grep', '-c', '"^>"'] # fastas start reads with "^>"
+            grep_params.extend(input_filenames) 
             grep_output = command.execute_with_output(" ".join(grep_params))
             output_lines = grep_output.split("\n")
             read_counts = map(lambda line: int(line.split(":")[1]), output_lines)
             return reduce(lambda x, y: x + y, read_counts)
         else:
-            wc_params = ['wc', '-l'].extend(input_filenames)
+            wc_params = ['wc', '-l']
+            wc_params.extend(input_filenames)
             wc_output = command.execute_with_output(" ".join(wc_params))
             # take the first set of characters from the last line, which is the total number of lines
             total_lines = int(wc_output.split("\n")[-1].split(" ")[0])
