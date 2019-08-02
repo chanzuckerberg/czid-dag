@@ -208,11 +208,8 @@ class PipelineStep(object):
                 return
 
             with log.log_context("substep_run", v):
-                try:
-                    self.update_status_json_file("running")
-                    self.run()
-                finally:
-                    self.update_status_json_file("finished_running")
+                self.update_status_json_file("running")
+                self.run()
             with log.log_context("substep_validate", v):
                 self.validate()
             with log.log_context("substep_save_progress", v):
@@ -222,6 +219,7 @@ class PipelineStep(object):
         self.upload_thread = threading.Thread(target=self.uploading_results)
         self.upload_thread.start()
         self.status = StepStatus.FINISHED
+        self.update_status_json_file("finished_running")
 
     def start(self):
         ''' function to be called after instantiation to start running the step '''
