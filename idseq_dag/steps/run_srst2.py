@@ -96,10 +96,11 @@ class PipelineStepRunSRST2(PipelineStep):
             wc_params = ['wc', '-l']
             wc_params.extend(input_filenames)
             wc_output = command.execute_with_output(" ".join(wc_params))
-            # take the first set of characters from the last line, which is the total number of lines
-            total_line_string = [line for line in wc_output.split("\n") if "total" in line]
-            total_line_count = ''.join(filter(lambda x: x.isdigit(), str(total_line_string)))
-            return total_line_count / 4 # fastqs have 4 lines for every read
+            # take the set of characters from the last line, which is the total number of lines
+            # for paired reads or the only line for unpaired reads
+            wc_lines = [line for line in wc_output.split("\n") if line != '']
+            total_line_count = ''.join(filter(lambda x: x.isdigit(), str(wc_lines[-1])))
+            return int(total_line_count) / 4 # fastqs have 4 lines for every read
 
     @staticmethod
     def _append_dpm_to_results(amr_results, total_reads):
