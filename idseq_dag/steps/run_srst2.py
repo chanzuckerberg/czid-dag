@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import shutil
 import pdb
+from functools import reduce
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.s3 import fetch_from_s3
@@ -89,9 +90,12 @@ class PipelineStepRunSRST2(PipelineStep):
             grep_params = ['grep', '-c', '"^>"'] # fastas start reads with "^>"
             grep_params.extend(input_filenames) 
             grep_output = command.execute_with_output(" ".join(grep_params))
-            output_lines = grep_output.split("\n")
-            read_counts = map(lambda line: int(line.split(":")[1]), output_lines)
-            return reduce(lambda x, y: x + y, read_counts)
+            output_lines = [line for line in grep_output.split("\n") if line != '']
+            if ":" in output_lines[0]: # for paired fastas
+                read_counts = map(lambda line: int(line.split(":")[1]), output_lines)
+                return reduce(lambda x, y: x + y, list(read_counts))
+            else:
+                return int(output_lines[0])
         else:
             wc_params = ['wc', '-l']
             wc_params.extend(input_filenames)
