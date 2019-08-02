@@ -100,13 +100,14 @@ class PipelineStep(object):
         for f in self.additional_folders_to_upload:
             idseq_dag.util.s3.upload_folder_with_retries(f, self.s3_path(f))
         self.status = StepStatus.UPLOADED
+        self.update_status_json_file("uploaded")
 
-    def update_status_json_file(self):
+    def update_status_json_file(self, status):
         log.write(f"Updating status file for step {self.name}")
         #  First, update own status dictionary
         if not "description" in self.status_dict:
             self.status_dict["description"] = self.step_description()
-        self.status_dict["status"] = self.status
+        self.status_dict["status"] = status
         if self.input_file_error:
             self.status_dict["error"] = self.input_file_error.name
 
@@ -190,7 +191,7 @@ class PipelineStep(object):
     def thread_run(self):
         ''' Actually running the step '''
         self.status = StepStatus.STARTED
-        self.update_status_json_file()
+        self.update_status_json_file("instantiated")
 
         v = {"step": self.name}
         with log.log_context("dag_step", v):
@@ -203,10 +204,11 @@ class PipelineStep(object):
             if self.input_file_error:
                 log.write("Invalid input detected for step %s" % self.name)
                 self.status = StepStatus.INVALID_INPUT
-                self.update_stage_status_json()
+                self.update_status_json_file("errored")
                 return
 
             with log.log_context("substep_run", v):
+                self.update_status_json_file("running")
                 self.run()
             with log.log_context("substep_validate", v):
                 self.validate()
@@ -217,7 +219,7 @@ class PipelineStep(object):
         self.upload_thread = threading.Thread(target=self.uploading_results)
         self.upload_thread.start()
         self.status = StepStatus.FINISHED
-        self.update_status_json_file()
+        self.update_status_json_file("finished")
 
     def start(self):
         ''' function to be called after instantiation to start running the step '''
