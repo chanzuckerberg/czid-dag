@@ -3,7 +3,6 @@ import sys
 import os
 import threading
 import time
-import datetime
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 from abc import abstractmethod
