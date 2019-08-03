@@ -166,7 +166,6 @@ class PipelineStepRunSRST2(PipelineStep):
         amr_results = pd.read_csv(amr_raw_path, delimiter="\t")
         # Parse out gene family as substring after '_', e.g. Aph_AGly's gene family would be AGly
         amr_results['gene_family'] = amr_results.apply(lambda row: row.gene.split('_', 1)[1], axis=1)
-        # amr_results['rpm'] = amr_results.apply()
         return amr_results
 
     @staticmethod
