@@ -81,6 +81,8 @@ class PipelineStepRunSRST2(PipelineStep):
         command.execute(" ".join(bedtools_params))
 
     def get_total_reads(self, isZipped, isFasta):
+        """Gets the total number of reads in the sample by counting them directly from the
+            fastq or fasta files."""
         input_filenames = self.input_files_local[0]
         if isZipped:
             gunzip_params = ['gunzip', '-k']
@@ -110,6 +112,8 @@ class PipelineStepRunSRST2(PipelineStep):
 
     @staticmethod
     def _append_dpm_to_results(amr_results, total_reads):
+        """Calculates the depth per million for each gene in the result and appends it to the 
+            results dataframe."""
         amr_results["dpm"] = amr_results.apply(lambda row: row["depth"] * 1000000 / total_reads, axis=1)
         return amr_results
 
@@ -126,6 +130,10 @@ class PipelineStepRunSRST2(PipelineStep):
 
     @staticmethod
     def _calculate_rpms(rpm_df, amr_df, total_reads):
+        """Matches each gene in the amr_results dataframe to it's associated number of reads in
+            the matched reads table and calculates the reads per million. Both total reads and
+            reads per million are appended in order in lists and then bulk appended back in
+            _append_rpm_to_results() to the proc_amr_results dataframe."""
         rpm_list = []
         total_reads_list = []
         for row in amr_df.itertuples():
