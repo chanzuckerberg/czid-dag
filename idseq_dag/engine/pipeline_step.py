@@ -3,6 +3,7 @@ import sys
 import os
 import threading
 import time
+import datetime
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
 from abc import abstractmethod
@@ -104,9 +105,12 @@ class PipelineStep(object):
 
     def update_status_json_file(self, status):
         log.write(f"Updating status file for step {self.name} with status {status}")
-        #  First, update own status dictionary
+        # First, update own status dictionary
+        if not "start_time" in self.status_dict:
+            self.status_dict["start_time"] = time.time() # seconds since epoch
         if not "description" in self.status_dict:
             self.status_dict["description"] = self.step_description()
+
         self.status_dict["status"] = status
         if self.input_file_error:
             self.status_dict["error"] = self.input_file_error.name
