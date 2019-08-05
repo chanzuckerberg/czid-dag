@@ -109,6 +109,7 @@ RUN pip install scipy
 RUN pip install git+https://github.com/chanzuckerberg/srst2
 # TODO: Test both pip installations, consider keeping pip use consistent
 RUN pip3 install pandas
+# Bedtools for obtaining total reads for each gene and calculating reads per million
 RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.28.0/bedtools
 RUN mv bedtools /usr/local/bin/
 
