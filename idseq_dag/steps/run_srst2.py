@@ -107,8 +107,8 @@ class PipelineStepRunSRST2(PipelineStep):
             # for paired reads or the only line for unpaired reads
             wc_lines = [line for line in wc_output.split("\n") if line != '']
             wc_target_line = [line for line in wc_lines[-1].split(" ") if line != '']
-            total_line_count = ''.join(filter(lambda x: x.isdigit(), str(wc_target_line[0])))
-            return int(total_line_count) / 4 # fastqs have 4 lines for every read
+            total_line_count = int(wc_target_line[0])
+            return total_line_count / 4 # fastqs have 4 lines for every read
 
     @staticmethod
     def _append_dpm_to_results(amr_results, total_reads):
