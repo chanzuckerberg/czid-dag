@@ -444,7 +444,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def step_description(self, require_docstrings=False):
         if (self.name == "gsnap_out"):
-            return ("""
+            return """
                 Runs gsnap remotely.
 
                 ```
@@ -463,11 +463,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 ```
 
                 GSNAP documentation is available [here](http://research-pub.gene.com/gmap/).
-            """)
+            """
         elif (self.name == "rapsearch2_out"):
             return ("""
-                Runs rapsearch remotely.
-
                 ```
                 rapsearch 
                 -d {remote_index_dir}/nr_rapsearch 
@@ -482,6 +480,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 ```
 
                 Rapsearch2 documentation is available [here](http://omics.informatics.indiana.edu/mg/RAPSearch2/).
-            """)
+                """
         # If neither, then return default step_description method.
         return super(PipelineStepRunAlignmentRemotely, self).step_description()
