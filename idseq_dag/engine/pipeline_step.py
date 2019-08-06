@@ -33,7 +33,7 @@ class PipelineStep(object):
                  output_dir_local, output_dir_s3, ref_dir_local,
                  additional_files, additional_attributes):
         ''' Set up all the input_files and output_files here '''
-        self.name = name
+        self.name = name 
         self.input_files = input_files # list of list files
         self.output_files = output_files # s3 location
         self.output_dir_local = output_dir_local
@@ -201,3 +201,15 @@ class PipelineStep(object):
         relative_path = os.path.relpath(local_path, self.output_dir_local)
         s3_path = os.path.join(self.output_dir_s3, relative_path)
         return s3_path
+
+    def step_description(self, require_docstrings=False):
+        ''' Retrieves description for the given step.
+        By default, it pulls the docstring of the class but
+        should be overridden for more dynamic descriptions
+        that depends on the inputs. If no docstring is provided,
+        it throws an exception.
+        '''
+        docstring = self.__doc__ or ""
+        if not docstring and require_docstrings:
+            raise TypeError(f"No docstring for step {self.name}")
+        return docstring.strip()
