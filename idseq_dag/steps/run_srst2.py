@@ -18,10 +18,10 @@ class PipelineStepRunSRST2(PipelineStep):
         OUTPUT_LOG = 'output.log'
         OUTPUT_GENES = 'output__genes__ARGannot_r2__results.txt'
         OUTPUT_FULL_GENES = 'output__fullgenes__ARGannot_r2__results.txt'
-        isPaired = (len(self.input_files_local[0]) == 2)
-        isFasta = (self.additional_attributes['file_ext'] == 'fasta')
-        isZipped = (self.input_files_local[0][0][-3:] == '.gz')
-        self.execute_srst2(isPaired, isFasta, isZipped)
+        is_paired = (len(self.input_files_local[0]) == 2)
+        is_fasta = (self.additional_attributes['file_ext'] == 'fasta')
+        is_zipped = (self.input_files_local[0][0][-3:] == '.gz')
+        self.execute_srst2(is_paired, is_fasta, is_zipped)
         log = os.path.join(self.output_dir_local, OUTPUT_LOG)
         log_dest = self.output_files_local()[0]
         results = os.path.join(self.output_dir_local, OUTPUT_GENES)
@@ -34,7 +34,7 @@ class PipelineStepRunSRST2(PipelineStep):
         else:
             # Post processing of amr data
             self.generate_mapped_reads_table()
-            total_reads = self.get_total_reads(isZipped, isFasta)
+            total_reads = self.get_total_reads(is_zipped, is_fasta)
             results_full = os.path.join(self.output_dir_local, OUTPUT_FULL_GENES)
             results_full_dest = self.output_files_local()[2]
             shutil.move(results_full, results_full_dest)
@@ -44,22 +44,22 @@ class PipelineStepRunSRST2(PipelineStep):
     def count_reads(self):
         pass
 
-    def execute_srst2(self, isPaired, isFasta, isZipped):
+    def execute_srst2(self, is_paired, is_fasta, is_zipped):
         """Executes srst2 with appropriate parameters based on whether input files are zipped,
            paired reads and on file type."""
         srst2_params = ['srst2']
         srst2_params.extend(self.get_common_params())
-        if isFasta:
-            file_ext = '.fasta.gz' if isZipped else '.fasta'
+        if is_fasta:
+            file_ext = '.fasta.gz' if is_zipped else '.fasta'
             srst2_params.extend(['--read_type', 'f'])
         else:
-            file_ext = '.fastq.gz' if isZipped else '.fastq'
-        if isPaired: srst2_params.extend(['--input_pe'])
+            file_ext = '.fastq.gz' if is_zipped else '.fastq'
+        if is_paired: srst2_params.extend(['--input_pe'])
         else: srst2_params.extend(['--input_se'])
         for i, rd in enumerate(self.input_files_local[0]):
             command.execute(f"ln -sf {rd} _R{i+1}_001"+file_ext)
             srst2_params.extend(['_R'+ str(i+1) + '_001'+file_ext])
-        if isPaired: srst2_params.extend(['--forward', '_R1_001', '--reverse', '_R2_001'])
+        if is_paired: srst2_params.extend(['--forward', '_R1_001', '--reverse', '_R2_001'])
         command.execute(" ".join(srst2_params))
 
 
@@ -79,16 +79,16 @@ class PipelineStepRunSRST2(PipelineStep):
         bedtools_params = ['bedtools', 'coverage', '-b', self.output_files_local()[5], '-a', bed_file_path, '>>', os.path.join(self.output_dir_local, 'matched_reads.tsv')]
         command.execute(" ".join(bedtools_params))
 
-    def get_total_reads(self, isZipped, isFasta):
+    def get_total_reads(self, is_zipped, is_fasta):
         """Gets the total number of reads in the sample by counting them directly from the
             fastq or fasta files."""
         input_filenames = self.input_files_local[0]
-        if isZipped:
+        if is_zipped:
             gunzip_params = ['gunzip', '-k']
             gunzip_params.extend(input_filenames)
             command.execute(" ".join(gunzip_params))
             input_filenames = map(lambda name: name[:len(name)-3], input_filenames)
-        if isFasta:
+        if is_fasta:
             grep_params = ['grep', '-c', '"^>"'] # fastas start reads with "^>"
             grep_params.extend(input_filenames) 
             grep_output = command.execute_with_output(" ".join(grep_params))
