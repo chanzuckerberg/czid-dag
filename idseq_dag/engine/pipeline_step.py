@@ -103,10 +103,13 @@ class PipelineStep(object):
         self.update_status_json_file("uploaded")
 
     def update_status_json_file(self, status):
-        log.write(f"Updating status file for step {self.name}")
-        #  First, update own status dictionary
+        log.write(f"Updating status file for step {self.name} with status {status}")
+        # First, update own status dictionary
+        if not "start_time" in self.status_dict:
+            self.status_dict["start_time"] = time.time() # seconds since epoch
         if not "description" in self.status_dict:
             self.status_dict["description"] = self.step_description()
+
         self.status_dict["status"] = status
         if self.input_file_error:
             self.status_dict["error"] = self.input_file_error.name
@@ -173,12 +176,14 @@ class PipelineStep(object):
     def wait_until_finished(self):
         self.exec_thread.join()
         if self.status == StepStatus.INVALID_INPUT:
+            self.update_status_json_file("errored")
             raise InvalidInputFileError({
                 "error": self.input_file_error.name,
                 "step": self.name
             })
 
         if self.status < StepStatus.FINISHED:
+            self.update_status_json_file("errored")
             raise RuntimeError("step %s run failed" % self.name)
 
     def wait_until_all_done(self):
@@ -186,6 +191,7 @@ class PipelineStep(object):
         # run finished
         self.upload_thread.join()
         if self.status < StepStatus.UPLOADED:
+            self.update_status_json_file("errored")
             raise RuntimeError("step %s uploading failed" % self.name)
 
     def thread_run(self):
@@ -219,7 +225,7 @@ class PipelineStep(object):
         self.upload_thread = threading.Thread(target=self.uploading_results)
         self.upload_thread.start()
         self.status = StepStatus.FINISHED
-        self.update_status_json_file("finished")
+        self.update_status_json_file("finished_running")
 
     def start(self):
         ''' function to be called after instantiation to start running the step '''

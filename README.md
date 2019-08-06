@@ -227,6 +227,11 @@ TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
 
+- 3.8.0
+   - Creates a [status name]_status.json file for each dag_json received, which each step updates with information
+     about itself and its status.
+   - Add number of reads, reads per million, and depth per million to the output of PipelineStepRunSRST2.
+
 - 3.7.6
    - Fail with an informative user error if the input contains broken read pairs.
 
