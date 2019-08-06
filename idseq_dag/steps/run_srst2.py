@@ -29,7 +29,7 @@ class PipelineStepRunSRST2(PipelineStep):
         shutil.move(log, log_dest)
         shutil.move(results, results_dest)
         if not os.path.exists(os.path.join(self.output_dir_local, OUTPUT_FULL_GENES)):
-            for f in self.output_files_local()[2:5]:
+            for f in self.output_files_local()[2:6]:
                 PipelineStepRunSRST2.fill_file_path(f)
         else:
             # Post processing of amr data
