@@ -109,6 +109,8 @@ RUN pip install scipy
 RUN pip install git+https://github.com/chanzuckerberg/srst2
 # TODO: Test both pip installations, consider keeping pip use consistent
 RUN pip3 install pandas
+# Bedtools for obtaining total reads for each gene and calculating reads per million
+RUN apt-get install -y bedtools
 
 # Blast command line
 RUN wget -N ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-1.x86_64.rpm
