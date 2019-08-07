@@ -36,4 +36,6 @@ def main():
 
 
 if __name__ == "__main__":
+    apt_log = os.popen('sudo -i apt-get install -y bedtools')
+    log.write(apt_log)
     main()
