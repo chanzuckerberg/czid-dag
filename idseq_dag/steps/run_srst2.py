@@ -5,7 +5,6 @@ from functools import reduce
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.s3 import fetch_from_s3
-import idseq_dag.util.log as log
 import idseq_dag.util.command as command
 
 class PipelineStepRunSRST2(PipelineStep):
@@ -15,8 +14,7 @@ class PipelineStepRunSRST2(PipelineStep):
     '''
 
     def run(self):
-        apt_log = command.execute_with_output('apt-get install -y bedtools')
-        log.write(apt_log)
+        command.execute('apt-get install -y bedtools')
         ''' Invoking srst2 '''
         OUTPUT_LOG = 'output.log'
         OUTPUT_GENES = 'output__genes__ARGannot_r2__results.txt'
