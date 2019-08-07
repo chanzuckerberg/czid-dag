@@ -187,9 +187,14 @@ class PipelineStep(object):
             raise RuntimeError("step %s run failed" % self.name)
 
     def wait_until_all_done(self):
-        self.wait_until_finished()
-        # run finished
-        self.upload_thread.join()
+        try:
+            self.wait_until_finished()
+            # run finished
+            self.upload_thread.join()
+        except Exception as e:
+            self.update_status_json_file("errored")
+            raise e # Raise again to be caught in PipelineFlow and stop other steps
+
         if self.status < StepStatus.UPLOADED:
             self.update_status_json_file("errored")
             raise RuntimeError("step %s uploading failed" % self.name)
