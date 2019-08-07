@@ -5,6 +5,7 @@ from functools import reduce
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.s3 import fetch_from_s3
+import idseq_dag.util.log as log
 import idseq_dag.util.command as command
 
 class PipelineStepRunSRST2(PipelineStep):
@@ -76,7 +77,9 @@ class PipelineStepRunSRST2(PipelineStep):
         """Use bedtools to generate a table of mapped reads for each genome in the ARG ANNOT database.
             If a new resistance gene db is used, the .bed file will need to be updated manually."""
         bed_file_path = fetch_from_s3(self.additional_files["resist_genome_bed"], self.output_dir_local, allow_s3mi=False)
-        bedtools_params = ['bedtools', 'coverage', '-b', self.output_files_local()[5], '-a', bed_file_path, '>>', os.path.join(self.output_dir_local, 'matched_reads.tsv')]
+        bedtools_params = ['bedtools', 'coverage', '-b', self.output_files_local()[5], '-a', bed_file_path, '>', os.path.join(self.output_dir_local, 'matched_reads.tsv')]
+        bedtools_version = command.execute_with_output("bedtools --version")
+        log.write(bedtools_version)
         command.execute(" ".join(bedtools_params))
 
     def get_total_reads(self, is_zipped, is_fasta):
