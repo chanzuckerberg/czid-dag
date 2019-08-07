@@ -466,6 +466,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             """
         elif (self.name == "rapsearch2_out"):
             return """
+                Runs rapsearch remotely.
+                
                 ```
                 rapsearch 
                 -d {remote_index_dir}/nr_rapsearch 
