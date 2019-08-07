@@ -482,4 +482,4 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 Rapsearch2 documentation is available [here](http://omics.informatics.indiana.edu/mg/RAPSearch2/).
                 """
         # If neither, then return default step_description method.
-        return super(PipelineStepRunAlignmentRemotely, self).step_description()
+        return self.__doc__.strip()
