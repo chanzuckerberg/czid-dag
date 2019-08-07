@@ -113,7 +113,7 @@ RUN pip3 install pandas
 # Strangely, apt-get seems to have a problem installing it
 # RUN apt-get install -y bedtools
 RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.28.0/bedtools
-RUN mv bedtools /usr/local/bin
+RUN mv bedtools /usr/local/bin/
 
 # Blast command line
 RUN wget -N ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-1.x86_64.rpm
