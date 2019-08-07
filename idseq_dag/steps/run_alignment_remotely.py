@@ -465,7 +465,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 GSNAP documentation is available [here](http://research-pub.gene.com/gmap/).
             """
         elif (self.name == "rapsearch2_out"):
-            return ("""
+            return """
                 ```
                 rapsearch 
                 -d {remote_index_dir}/nr_rapsearch 
@@ -480,6 +480,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 ```
 
                 Rapsearch2 documentation is available [here](http://omics.informatics.indiana.edu/mg/RAPSearch2/).
-                """
+            """
         # If neither, then return default step_description method.
-        return self.__doc__.strip()
+        return super(PipelineStepRunAlignmentRemotely, self).step_description()
