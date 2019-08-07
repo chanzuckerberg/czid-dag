@@ -15,7 +15,7 @@ class PipelineStepRunSRST2(PipelineStep):
     '''
 
     def run(self):
-        apt_log = command.execute_with_output('sudo -i apt-get install -y bedtools')
+        apt_log = command.execute_with_output('apt-get install -y bedtools')
         log.write(apt_log)
         ''' Invoking srst2 '''
         OUTPUT_LOG = 'output.log'
