@@ -109,6 +109,8 @@ class PipelineStep(object):
             self.status_dict["start_time"] = time.time() # seconds since epoch
         if not "description" in self.status_dict:
             self.status_dict["description"] = self.step_description()
+        if not "resources" in self.status_dict:
+            self.status_dict["resources"] = self.step_resources()
 
         self.status_dict["status"] = status
         if self.input_file_error:
