@@ -12,7 +12,7 @@ from idseq_dag.util.s3 import fetch_from_s3
 class PipelineStepRunBowtie2(PipelineStep):
     """ Removes remaining host reads.
     
-    While STAR provides an initial, rapid, removal of host sequences,  
+    While STAR provides an initial, rapid removal of host sequences,  
     it is possible that some host sequences will make it past this step. 
     Therefore, to improve filter sensitivity, an additional host removal step is 
     performed using Bowtie2 to clean up any remaining sequences.

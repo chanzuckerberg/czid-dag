@@ -31,11 +31,7 @@ class PipelineStepRunGsnapFilter(PipelineStep):
     Two input FASTAs means paired reads.
     The GSNAP documentation can be found [here](http://research-pub.gene.com/gmap/src/README).
     """
-    # Currently only runs on the human host with a chimp reference genome to increase sensitivity 
-    # to human matches. Two input FASTAs means paired reads.
-
-    # http://research-pub.gene.com/gmap/
-
+    # Two input FASTAs means paired reads.
 
     def validate_input_files(self):
         if not count.files_have_min_reads(self.input_files_local[0][0:2], 1):

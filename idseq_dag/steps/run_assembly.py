@@ -14,7 +14,7 @@ class PipelineStepRunAssembly(PipelineStep):
     The SPADES output loses the information about which contig each individual read belongs to. 
     Therefore, we use  bowtie2 to map the original reads onto their assembled contigs.
 
-    First, the short reads are assembled into contigs using SPADES.
+    1. The short reads are assembled into contigs using SPADES.
 
     ```
     spades.py 
@@ -28,7 +28,7 @@ class PipelineStepRunAssembly(PipelineStep):
 
     SPADES documentation can be found [here](http://cab.spbu.ru/software/spades/)
 
-    The single-read identity of reads merged into each contig are lost by SPADES. 
+    2. The single-read identity of reads merged into each contig are lost by SPADES. 
     To recover this information and identify which contig each read belongs to, 
     the contigs are then used to build a Bowtie2 database:
 
@@ -36,7 +36,7 @@ class PipelineStepRunAssembly(PipelineStep):
     bowtie2-build {assembled_contig} {bowtie_index_path}
     ```
 
-    Finally, the original reads are mapped back to their assembled contigs:
+    3. The original reads are mapped back to their assembled contigs:
 
     ```
     bowtie2 

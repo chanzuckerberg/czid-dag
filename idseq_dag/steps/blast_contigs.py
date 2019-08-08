@@ -16,9 +16,9 @@ MIN_REF_FASTA_SIZE = 25
 MIN_ASEEMBLED_CONTIG_SIZE = 25
 
 class PipelineStepBlastContigs(PipelineStep):
-    """ The BLAST step is run independently for the contigs first against the NT-BLAST database 
+    """ The BLAST step is run independently for the contigs. First against the NT-BLAST database 
     constructed from putative taxa identified from short read alignments to NCBI NT using GSNAP. 
-    Then, against the NR-BLAST database constructed from putative taxa identified short read 
+    Then, against the NR-BLAST database constructed from putative taxa identified from short read 
     alignments to NCBI NR with Rapsearch2.
 
 

@@ -18,9 +18,6 @@ class PipelineStepRunCDHitDup(PipelineStep):
     two reads are > 95% similar they will be considered duplicates. It uses only the 
     first/last 70 bases of each read to do the analysis on sequence similarity. 
     """
-    # CD-HIT-DUP is used to identify duplicates from single or paired reads.
-    # Two FASTA inputs means paired reads.
-    # See: http://weizhongli-lab.org/cd-hit/
     def validate_input_files(self):
         if not count.files_have_min_reads(self.input_files_local[0], 2):
             self.input_file_error = InputFileErrors.INSUFFICIENT_READS

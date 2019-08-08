@@ -8,9 +8,9 @@ import idseq_dag.util.s3 as s3
 import idseq_dag.util.count as count
 
 class PipelineStepBuildCustomBlastIndex(PipelineStep):
-    """ From GSNAP, we know the *best match* from the NT db, for each read. 
+    """ From GSNAP, we know the *best match* from the NT db for each read. 
     All sequences that have accessions in the list of NT matches are downloaded. 
-    A BLAST database is generated from the resulting .fa file via the following command:
+    A BLAST database is generated from the resulting '.fa' file via the following command:
 
     ```
     makeblastdb 
@@ -19,9 +19,9 @@ class PipelineStepBuildCustomBlastIndex(PipelineStep):
     -out {blast_index_path}
     ```
 
-    Similarly, from Rapsearch2, we know the *best match* from the NR db, for each read. 
+    Similarly, from Rapsearch2, we know the *best match* from the NR db for each read. 
     All sequences that have accessions in the list of NR matches are downloaded. 
-    A BLAST database is generated from the resulting .fa file via the following command:
+    A BLAST database is generated from the resulting '.fa' file via the following command:
 
     ```
     makeblastdb 

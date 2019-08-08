@@ -34,7 +34,7 @@ class PipelineStep(object):
                  additional_files, additional_attributes,
                  step_status_local, step_status_lock):
         ''' Set up all the input_files and output_files here '''
-        self.name = name 
+        self.name = name
         self.input_files = input_files # list of list files
         self.output_files = output_files # s3 location
         self.output_dir_local = output_dir_local

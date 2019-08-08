@@ -13,9 +13,9 @@ BATCH_INSERT_SIZE = 300
 NUM_PARTITIONS = 8
 
 class PipelineStepGenerateAccession2Taxid(PipelineStep):
-    """ After alignment, IDseq uses the NCBI accession2taxid database -is used- to map accessions to taxonomic IDs. 
+    """ After alignment, IDseq uses the NCBI accession2taxid database to map accessions to taxonomic IDs. 
     The full database contains billions of entries, but only ~15% of those are found in either NR or NT databases. 
-    Therefore, the full NCBI accession2taxid database is subset to include only the relevant entries and then used 
+    Therefore, the full NCBI accession2taxid database is subsetted to include only the relevant entries and then used 
     to map accessions to taxonomic IDs. 
     Finally, the taxonomic lineage for each read is computed using the [ncbitax2lin](https://github.com/chanzuckerberg/ncbitax2lin) script. 
     For each taxonomic ID this results in the following: taxid → [superkingdom, phylum, class, order ..., species]. 
