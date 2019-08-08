@@ -256,3 +256,13 @@ class PipelineStep(object):
         if not docstring and require_docstrings:
             raise TypeError(f"No docstring for step {self.name}")
         return docstring.strip()
+
+    def step_resources(self):
+        ''' Returns a dictionary of resources in the form of display name => url.
+
+        These will be used on the sidebar of the pipeline visualization on the idseq-web app.
+        By default, show link to idseq-dag documentation.
+        '''
+        return { "IDseq Docs": "https://github.com/chanzuckerberg/idseq-dag/wiki" }
+
+
