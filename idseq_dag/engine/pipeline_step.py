@@ -113,6 +113,8 @@ class PipelineStep(object):
         self.status_dict["status"] = status
         if self.input_file_error:
             self.status_dict["error"] = self.input_file_error.name
+        if status == "uploaded":
+            self.status_dict["end_time"] = time.time()
 
         # Then, update file by reading the json, modifying, and overwriting.
         with self.step_status_lock:
