@@ -89,8 +89,8 @@ class PipelineStepRunSRST2(PipelineStep):
             gunzip_params.extend(input_filenames)
             command.execute(" ".join(gunzip_params))
             input_filenames = map(lambda name: name[:len(name)-3], input_filenames)
-        if is_fasta:
-            grep_params = ['grep', '-c', '"^>"'] # fastas start reads with "^>"
+        if is_fasta: # Number of lines per read can vary, so we use grep
+            grep_params = ['grep', '-c', '"^>"'] # fastas start reads with "^>".
             grep_params.extend(input_filenames) 
             grep_output = command.execute_with_output(" ".join(grep_params))
             output_lines = [line for line in grep_output.split("\n") if line != '']
@@ -103,7 +103,7 @@ class PipelineStepRunSRST2(PipelineStep):
                 return reduce(lambda x, y: x + y, list(read_counts))
             else:
                 return int(output_lines[0])
-        else:
+        else: # fastqs have 4 lines for every read, so we count lines and divide by 4
             wc_params = ['wc', '-l']
             wc_params.extend(input_filenames)
             wc_output = command.execute_with_output(" ".join(wc_params))
@@ -112,7 +112,7 @@ class PipelineStepRunSRST2(PipelineStep):
             wc_lines = [line for line in wc_output.split("\n") if line != '']
             wc_target_line = [line for line in wc_lines[-1].split(" ") if line != '']
             total_line_count = int(wc_target_line[0])
-            return total_line_count / 4 # fastqs have 4 lines for every read
+            return total_line_count / 4 
 
     @staticmethod
     def _append_dpm_to_results(amr_results, total_reads):
