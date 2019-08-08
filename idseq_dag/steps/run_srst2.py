@@ -14,7 +14,6 @@ class PipelineStepRunSRST2(PipelineStep):
     '''
 
     def run(self):
-        command.execute("apt-get install -y bedtools")
         ''' Invoking srst2 '''
         OUTPUT_LOG = 'output.log'
         OUTPUT_GENES = 'output__genes__ARGannot_r2__results.txt'
