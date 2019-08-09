@@ -229,11 +229,98 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             accessions = dict(sorted(accessions.items(), key=lambda x: x[1], reverse=True)[:n])
         accessions = set(accessions.keys())
 
+        ####### HACK: OVERWRITE WITH ALL THE DENV ACCESSIONS > 10,000 BP LONG
+        nt_loc_dict = open_file_db_by_extension(nt_loc_db, IdSeqDictValue.VALUE_TYPE_ARRAY)
+        accessions = set([
+            acc for acc in [
+                'MG721055.1',
+                'KP012546.1',
+                'KP723479.1',
+                'KT187553.1',
+                'KT187554.1',
+                'KT187555.1',
+                'KT187556.1',
+                'KT187557.1',
+                'KT187558.1',
+                'MG721054.1',
+                'MG721056.1',
+                'MG721058.1',
+                'MH822949.1',
+                'MH822944.1',
+                'JX966379.1',
+                'JX966380.1',
+                'MH781015.1',
+                'JQ045670.1',
+                'JQ045684.1',
+                'JQ045686.1',
+                'JQ045674.1',
+                'JQ045682.1',
+                'MH822948.1',
+                'JQ045671.1',
+                'JQ045675.1',
+                'JQ045679.1',
+                'JQ045681.1',
+                'JQ045685.1',
+                'JQ045678.1',
+                'JQ045680.1',
+                'JQ045683.1',
+                'JQ045669.1',
+                'JQ045676.1',
+                'MH781013.1',
+                'MH822947.1',
+                'JQ045672.1',
+                'JX286526.1',
+                'MH822956.1',
+                'JQ045677.1',
+                'MH822942.1',
+                'MH781014.1',
+                'JX286523.1',
+                'MH822939.1',
+                'MH822954.1',
+                'MH822955.1',
+                'JX286522.1',
+                'JX286520.1',
+                'JX286521.1',
+                'JX286525.1',
+                'MH822946.1',
+                'MH822940.1',
+                'MH822941.1',
+                'JX286524.1',
+                'KP723478.1',
+                'MH822951.1',
+                'MH822952.1',
+                'MG721062.1',
+                'KU509267.1',
+                'MH822945.1',
+                'JQ045673.1',
+                'MH822953.1',
+                'KU509269.1',
+                'MG721057.1',
+                'KU509277.1',
+                'MH822950.1',
+                'KU509271.1',
+                'JX286518.1',
+                'KU509273.1',
+                'JX286516.1',
+                'JX286519.1',
+                'KU509274.1',
+                'JX286517.1',
+                'KU509270.1',
+                'KU509268.1',
+                'MH822943.1',
+                'KU509275.1',
+                'KU509276.1',
+                'JQ686088.2',
+                'KU509272.1'
+            ] if acc in nt_loc_dict
+        ])
+        #######
+        
+        
         # Make map of accession to sequence file
         accession2info = dict((acc, {}) for acc in accessions)
-        with open_file_db_by_extension(nt_loc_db, IdSeqDictValue.VALUE_TYPE_ARRAY) as nt_loc_dict:
-            PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_s3(
-                accession2info, nt_loc_dict, nt_db)
+        PipelineStepGenerateAlignmentViz.get_sequences_by_accession_list_from_s3(
+            accession2info, nt_loc_dict, nt_db)
 
         # Put 1 fasta file per accession into the destination directory
         accession_fastas = {}
