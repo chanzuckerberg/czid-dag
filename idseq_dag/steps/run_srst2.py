@@ -85,10 +85,13 @@ class PipelineStepRunSRST2(PipelineStep):
         ## TODO: factor out into utility function, see nonhost_fastq
         input_filenames = self.input_files_local[0]
         if is_zipped:
-            gunzip_params = ['gunzip', '-k']
-            gunzip_params.extend(input_filenames)
-            command.execute(" ".join(gunzip_params))
-            input_filenames = map(lambda name: name[:len(name)-3], input_filenames)
+            unzipped_filenames = []
+            for filename in input_filenames:
+                if not os.path.exists(filename[:len(name)-3]):
+                    gunzip_params = ['gunzip', '-k']
+                    gunzip_params.extend([filename])
+                    command.execute(" ".join(gunzip_params))
+                unzipped_filenames.push(filename[:len(name)-3])
         if is_fasta: # Number of lines per read can vary, so we use grep
             grep_params = ['grep', '-c', '"^>"'] # fastas start reads with "^>".
             grep_params.extend(input_filenames) 
