@@ -89,6 +89,8 @@ def iterate_m8(m8_file, debug_caller=None, logging_interval=25000000, full_line=
                 invalid_hits += 1
                 last_invalid_line = line
                 continue
+            if alignment_length <= 30:
+                continue
             if debug_caller and line_count % logging_interval == 0:
                 msg = "Scanned {} m8 lines from {} for {}, and going.".format(
                     line_count, m8_file, debug_caller)
