@@ -99,7 +99,9 @@ class PipelineStepRunSRST2(PipelineStep):
         """Quick fix to ensure files needed are actually present"""
         if os.path.exists(self.output_files_local()[5]):
             return
-        copy_args = [f'{self.output_dir_local}/*.bam', f'{self.output_files_local()[5]}']
+        # trying to find a file that looks like out*.sorted.bam
+        bam_file = command.glob(glob_pattern=f'{self.output_dir_local}/*.ARGannot_r2.sorted.bam', max_results=1)
+        copy_args = [bam_file[0], f'{self.output_files_local()[5]}']
         command.execute(
             command_patterns.SingleCommand(
                 cmd='cp',
