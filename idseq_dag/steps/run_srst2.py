@@ -99,15 +99,15 @@ class PipelineStepRunSRST2(PipelineStep):
         """Quick fix to ensure files needed are actually present"""
         if os.path.exists(self.output_files_local()[5]):
             return
-        # trying to find a file that looks like out*.sorted.bam
-        bam_file = command.glob(glob_pattern=f'{self.output_dir_local}/*.ARGannot_r2.sorted.bam', max_results=1)
-        copy_args = [bam_file[0], f'{self.output_files_local()[5]}']
-        command.execute(
-            command_patterns.SingleCommand(
-                cmd='cp',
-                args=copy_args
+        elif os.path.exists(f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam')
+            # trying to find a file that looks like out*.sorted.bam
+            move_args = [f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam', f'{self.output_files_local()[5]}']
+            command.execute(
+                command_patterns.SingleCommand(
+                    cmd='mv',
+                    args=copy_args
+                )
             )
-        )
 
     def generate_mapped_reads_tsv(self):
         """Use bedtools to generate a table of mapped reads for each genome in the ARG ANNOT database.
