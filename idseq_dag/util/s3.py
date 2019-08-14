@@ -27,7 +27,6 @@ def split_identifiers(s3_path):
 
 def check_s3_presence(s3_path):
     """True if s3_path exists. False otherwise."""
-    assert "prod/samples/549/" not in s3_path, "Sorry, project 549 has been disabled."
     try:
         o = command.execute_with_output("aws s3 ls %s" % s3_path)
         if o:
@@ -90,7 +89,6 @@ def fetch_from_s3(src,   #pylint: disable=dangerous-default-value
                   mutex=TraceLock("fetch_from_s3", threading.RLock()),
                   locks={}):
     """Fetch a file from S3 if needed, using either s3mi or aws cp."""
-    assert "prod/samples/549/" not in src, "Sorry, project 549 has been disabled."
     with mutex:
         if os.path.exists(dst) and os.path.isdir(dst):
             dst = os.path.join(dst, os.path.basename(src))
