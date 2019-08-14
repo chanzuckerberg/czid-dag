@@ -97,6 +97,8 @@ class PipelineStepRunSRST2(PipelineStep):
 
     def normalize_bam_file(self):
         """Quick fix to ensure files needed are actually present"""
+        if os.path.exists(self.output_files_local()[5]):
+            return
         copy_args = [f'{self.output_dir_local}/*.bam', f'{self.output_files_local()[5]}']
         command.execute(
             command_patterns.SingleCommand(
