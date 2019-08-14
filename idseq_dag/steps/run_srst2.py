@@ -37,6 +37,7 @@ class PipelineStepRunSRST2(PipelineStep):
                 PipelineStepRunSRST2.fill_file_path(f)
         else:
             # Post processing of amr data
+            self.normalize_bam_file()
             self.generate_mapped_reads_tsv()
             total_reads = self.get_total_reads(is_zipped, is_fasta)
             results_full = os.path.join(self.output_dir_local, OUTPUT_FULL_GENES)
@@ -93,6 +94,16 @@ class PipelineStepRunSRST2(PipelineStep):
         n_threads = str(self.additional_attributes['n_threads'])
         return ['--min_coverage', min_cov, '--threads', n_threads,
                 '--output', os.path.join(self.output_dir_local, 'output'), '--log', '--gene_db', db_file_path]
+
+    def normalize_bam_file(self):
+        """Quick fix to ensure files needed are actually present"""
+        copy_args = [f'{self.output_dir_local}/*.bam', f'{self.output_dir_local}/{self.output_files_local()[5]}']
+        command.execute(
+            command_patterns.SingleCommand(
+                cmd='cp',
+                args=copy_args
+            )
+        )
 
     def generate_mapped_reads_tsv(self):
         """Use bedtools to generate a table of mapped reads for each genome in the ARG ANNOT database.
