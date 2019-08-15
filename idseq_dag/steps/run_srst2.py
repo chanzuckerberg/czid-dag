@@ -99,8 +99,9 @@ class PipelineStepRunSRST2(PipelineStep):
         """Quick fix to ensure files needed are actually present"""
         if os.path.exists(self.output_files_local()[5]):
             return
+        # For unpaired fastq inputs, srst2 gives a different name to the sorted bam file that it outputs
+        # We rename the bam file to what we expect (as specified in the dag)
         elif os.path.exists(f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam'):
-            # trying to find a file that looks like out*.sorted.bam
             move_args = [f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam', f'{self.output_files_local()[5]}']
             command.execute(
                 command_patterns.SingleCommand(
