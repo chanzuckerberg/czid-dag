@@ -85,7 +85,15 @@ def iterate_m8(m8_file, debug_caller=None, logging_interval=25000000, full_line=
             # webapp loader to crash as the Rails JSON parser cannot handle
             # NaNs. Test if e_value != e_value to test if e_value is NaN
             # because NaN != NaN.
-            if alignment_length <= 0 or not -0.25 < percent_id < 100.25 or e_value != e_value:
+
+            ### ALIGNMENT LENGTH FILTER HACK ###
+            # Modify this number as appropriate (what's a good choice depends on read length and user preference).
+            # If you do not want an alignment length filter, you must set this to 0. We still need to filter out
+            # bogus negative length alignments.
+            MIN_ALIGNMENT_LENGTH = 75
+            ###
+
+            if alignment_length <= MIN_ALIGNMENT_LENGTH or not -0.25 < percent_id < 100.25 or e_value != e_value:
                 invalid_hits += 1
                 last_invalid_line = line
                 continue
