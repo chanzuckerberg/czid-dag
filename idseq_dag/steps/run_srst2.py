@@ -105,7 +105,7 @@ class PipelineStepRunSRST2(PipelineStep):
             command.execute(
                 command_patterns.SingleCommand(
                     cmd='mv',
-                    args=copy_args
+                    args=move_args
                 )
             )
 
