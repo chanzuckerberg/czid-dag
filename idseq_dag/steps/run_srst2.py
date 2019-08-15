@@ -103,11 +103,13 @@ class PipelineStepRunSRST2(PipelineStep):
         # We rename the bam file to what we expect (as specified in the dag)
         unpaired_bam_path = f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam'
         if os.path.exists(unpaired_bam_path):
-            move_args = [unpaired_bam_path, f'{self.output_files_local()[5]}']
             command.execute(
                 command_patterns.SingleCommand(
                     cmd='mv',
-                    args=move_args
+                    args=[
+                        unpaired_bam_path, 
+                        self.output_files_local()[5]
+                    ]
                 )
             )
 

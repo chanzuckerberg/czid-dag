@@ -1,9 +1,9 @@
 {
   "name": "amr_human_sample_paired_rds_dag",
-  "output_dir_s3": "s3://idseq-samples-test/amr/example/",
+  "output_dir_s3": "s3://idseq-samples-test/amr/26989",
   "targets": {
     "srst2_out": ["out.log", "out__genes__ARGannot_r2__results.txt", "out__fullgenes__ARGannot_r2__results.txt", "amr_processed_results.csv", "amr_summary_results.csv", "output__.ARGannot_r2.sorted.bam"],
-    "fastqs": ["AMR_TR-DNA-NOVA042518_1-6mo_S111_R1_001.fastq.gz", "AMR_TR-DNA-NOVA042518_1-6mo_S111_R2_001.fastq.gz"]
+    "fastqs": ["UnAmbiguouslyMapped_ds.gut.fq.gz"]
   },
   "steps": [
     {
@@ -25,7 +25,7 @@
   ],
   "given_targets": {
     "fastqs": {
-      "s3_dir":  "s3://idseq-samples-test/", "count_reads": 1, "max_fragments": 75000000} 
+      "s3_dir":  "s3://idseq-samples-prod/samples/557/26989/fastqs/", "count_reads": 1, "max_fragments": 75000000} 
   }
 }
 
