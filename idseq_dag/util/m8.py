@@ -88,12 +88,12 @@ def iterate_m8(m8_file, debug_caller=None, logging_interval=25000000, full_line=
 
             ### ALIGNMENT LENGTH FILTER HACK ###
             # Modify this number as appropriate (what's a good choice depends on read length and user preference).
-            # If you do not want an alignment length filter, you must set this to 0. We still need to filter out
-            # bogus negative length alignments.
+            # If you do not want an alignment length filter, you must set this to 1. We still need to filter out
+            # bogus negative or zero length alignments.
             MIN_ALIGNMENT_LENGTH = 75
             ###
 
-            if alignment_length <= MIN_ALIGNMENT_LENGTH or not -0.25 < percent_id < 100.25 or e_value != e_value:
+            if alignment_length <= MIN_ALIGNMENT_LENGTH - 1 or not -0.25 < percent_id < 100.25 or e_value != e_value:
                 invalid_hits += 1
                 last_invalid_line = line
                 continue
