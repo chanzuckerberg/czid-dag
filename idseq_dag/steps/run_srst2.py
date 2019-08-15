@@ -101,8 +101,9 @@ class PipelineStepRunSRST2(PipelineStep):
             return
         # For unpaired fastq inputs, srst2 gives a different name to the sorted bam file that it outputs
         # We rename the bam file to what we expect (as specified in the dag)
-        elif os.path.exists(f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam'):
-            move_args = [f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam', f'{self.output_files_local()[5]}']
+        unpaired_bam_path = f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam'
+        if os.path.exists(unpaired_bam_path):
+            move_args = [unpaired_bam_path, f'{self.output_files_local()[5]}']
             command.execute(
                 command_patterns.SingleCommand(
                     cmd='mv',
