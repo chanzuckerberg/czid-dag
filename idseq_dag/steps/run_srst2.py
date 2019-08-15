@@ -96,7 +96,7 @@ class PipelineStepRunSRST2(PipelineStep):
                 '--output', os.path.join(self.output_dir_local, 'output'), '--log', '--gene_db', db_file_path]
 
     def normalize_bam_file(self):
-        """Quick fix to ensure files needed are actually present"""
+        """Ensure files needed are actually present"""
         if os.path.exists(self.output_files_local()[5]):
             return
         # For unpaired fastq inputs, srst2 gives a different name to the sorted bam file that it outputs
