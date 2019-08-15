@@ -99,7 +99,7 @@ class PipelineStepRunSRST2(PipelineStep):
         """Quick fix to ensure files needed are actually present"""
         if os.path.exists(self.output_files_local()[5]):
             return
-        elif os.path.exists(f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam')
+        elif os.path.exists(f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam'):
             # trying to find a file that looks like out*.sorted.bam
             move_args = [f'{self.output_dir_local}/output___R1_001.ARGannot_r2.sorted.bam', f'{self.output_files_local()[5]}']
             command.execute(
