@@ -50,10 +50,10 @@ class PipelineStepDownloadAccessions(PipelineStep):
         '''
             We found a ncbi record that is oddly annotated (title starts with a comma,
             as you can see here: https://www.ncbi.nlm.nih.gov/protein/XP_002289390.1)
-            That produce wrong results in blastx (blastx understand this accession 
+            That produce wrong results in blastx (blastx understand this accession
             as being "XP_002289390.1," instead of "XP_002289390.1")
 
-            This method detects and removes this comma from the title, and
+            This method detects and removes this trailling comma from the title, and
             it is being invoked before writing it to file assembly/nr.refseq.fasta,
             which is a subset of the original nr index.
 
@@ -78,7 +78,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
                 # (...more lines with sequence data...)
             )
 
-            Right now this method is only being used to remove the commas (and spaces),
+            Right now this method is only being used to remove the trailing comma,
             since this is the only case that we found so far affecting the pipeline.
             It may be extended the future to handle more exceptions if it is needed.
         '''
