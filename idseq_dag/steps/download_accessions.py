@@ -45,6 +45,9 @@ class PipelineStepDownloadAccessions(PipelineStep):
                     allow_s3mi=ALLOW_S3MI)
                 self.download_ref_sequences_from_file(accession_dict, loc_dict, db_path, output_reference_fasta)
 
+
+    FIX_COMMA_REGEXP = re.compile(r'^(?P<accession_id>[^ ]+) (?P<wrong_pattern>, *)?(?P<description>.*)$')
+
     @staticmethod
     def _fix_ncbi_record(accession_data: str) -> str:
         '''
@@ -82,12 +85,11 @@ class PipelineStepDownloadAccessions(PipelineStep):
             since this is the only case that we found so far affecting the pipeline.
             It may be extended the future to handle more exceptions if it is needed.
         '''
-        FIX_COMMA_REGEXP = re.compile(r'^(?P<accession_id>[^ ]+) (?P<wrong_pattern>, *)?(?P<description>.*)$')
         def _fix_headers(line):
             if len(line) > 0 and line[0] == ">":
                 # support for multiheader line separted by CTRL_A (https://en.wikipedia.org/wiki/FASTA_format#Description_line)
                 header_items = line.lstrip(">").split("\x01")
-                header_items = (FIX_COMMA_REGEXP.sub(r"\g<accession_id> \g<description>", header_item) for header_item in header_items)
+                header_items = (PipelineStepDownloadAccessions.FIX_COMMA_REGEXP.sub(r"\g<accession_id> \g<description>", header_item) for header_item in header_items)
                 return ">" + ("\x01".join(header_items))
             return line
 
