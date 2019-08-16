@@ -92,7 +92,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
             return line
 
         lines = accession_data.split("\n")
-        lines = map(_fix_headers, lines)
+        lines = (_fix_headers(line) for line in lines)
         return "\n".join(lines)
 
     def download_ref_sequences_from_file(self, accession_dict, loc_dict, db_path,
