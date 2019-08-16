@@ -81,7 +81,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
                 # (...more lines with sequence data...)
             )
 
-            Right now this method is only being used to remove the trailing comma,
+            Right now this method is only being used to remove the heading comma,
             since this is the only case that we found so far affecting the pipeline.
             It may be extended the future to handle more exceptions if it is needed.
         '''
