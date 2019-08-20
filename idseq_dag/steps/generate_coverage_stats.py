@@ -111,7 +111,7 @@ class PipelineStepGenerateCoverageStats(PipelineStep):
 
     @staticmethod
     def calc_contig2coverage(bam_file):
-        CHUNK_SIZE = 100
+        CHUNK_SIZE = 200
         with pysam.AlignmentFile(bam_file, "rb") as f:
             all_references = f.references
             with log.log_context("calc_contig2coverage", {"bam_file": bam_file, "all_references_count": len(all_references)}):
