@@ -50,12 +50,12 @@ class TestDownloadAccessions(unittest.TestCase):
             ],
             [
                 'WHEN entry is a single-header and the description starts with a comma THEN return the header with the comma and spaces from the beginning of the description removed',
-                '>OGG82825.1 replicative DNA helicase [Candidatus Kaiserbacteria bacterium RIFCSPLOWO2_02_FULL_54_13]\n' + FAKE_SEQUENCE_DATA,
+                '>OGG82825.1 , replicative DNA helicase [Candidatus Kaiserbacteria bacterium RIFCSPLOWO2_02_FULL_54_13]\n' + FAKE_SEQUENCE_DATA,
                 '>OGG82825.1 replicative DNA helicase [Candidatus Kaiserbacteria bacterium RIFCSPLOWO2_02_FULL_54_13]\n' + FAKE_SEQUENCE_DATA,
             ],
             [
                 "WHEN none of the descriptions from a multi-header start with a comma THEN return the original headers",
-                '>XP_002289390.1 , partial [Thalassiosira pseudonana CCMP1335]\x01EED92927.1 ,  Conserved Hypothetical Protein, partial [Thalassiosira pseudonana CCMP1335]\n' + FAKE_SEQUENCE_DATA,
+                '>XP_002289390.1 partial [Thalassiosira pseudonana CCMP1335]\x01EED92927.1 Conserved Hypothetical Protein, partial [Thalassiosira pseudonana CCMP1335]\n' + FAKE_SEQUENCE_DATA,
                 '>XP_002289390.1 partial [Thalassiosira pseudonana CCMP1335]\x01EED92927.1 Conserved Hypothetical Protein, partial [Thalassiosira pseudonana CCMP1335]\n' + FAKE_SEQUENCE_DATA
             ],
             [
