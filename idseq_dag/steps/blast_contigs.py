@@ -71,7 +71,7 @@ class PipelineStepBlastContigs(PipelineStep):
         PipelineStepRunAssembly.generate_info_from_sam(bowtie_sam, read2contig, contig_stats)
 
         (updated_read_dict, read2blastm8, contig2lineage, added_reads) = self.update_read_dict(
-                read2contig, blast_top_m8, read_dict, accession_dict)
+                read2contig, blast_top_m8, read_dict, accession_dict, blast_type)
         self.generate_m8_and_hit_summary(updated_read_dict, added_reads, read2blastm8,
                                          hit_summary, deduped_m8,
                                          refined_hit_summary, refined_m8)
@@ -181,14 +181,14 @@ class PipelineStepBlastContigs(PipelineStep):
                 rmf.write("\t".join(m8_fields))
 
     @staticmethod
-    def update_read_dict(read2contig, blast_top_m8, read_dict, accession_dict):
+    def update_read_dict(read2contig, blast_top_m8, read_dict, accession_dict, blast_type):
         consolidated_dict = read_dict
         read2blastm8 = {}
         contig2accession = {}
         contig2lineage = {}
         added_reads = {}
 
-        for contig_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in m8.iterate_m8(blast_top_m8):
+        for contig_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in m8.iterate_m8(blast_top_m8, blast_type):
             contig2accession[contig_id] = (accession_id, line)
             contig2lineage[contig_id] = accession_dict[accession_id]
 
@@ -246,16 +246,16 @@ class PipelineStepBlastContigs(PipelineStep):
             )
         )
         # further processing of getting the top m8 entry for each contig.
-        PipelineStepBlastContigs.get_top_m8(blast_m8, blast_top_m8)
+        PipelineStepBlastContigs.get_top_m8(blast_m8, blast_top_m8, blast_type)
 
     @staticmethod
-    def get_top_m8(orig_m8, blast_top_m8):
+    def get_top_m8(orig_m8, blast_top_m8, blast_type):
         ''' Get top m8 file entry for each read from orig_m8 and output to blast_top_m8 '''
         with open(blast_top_m8, 'w') as top_m8f:
             top_line = None
             top_bitscore = 0
             current_read_id = None
-            for read_id, _accession_id, _percent_id, _alignment_length, e_value, bitscore, line in m8.iterate_m8(orig_m8):
+            for read_id, _accession_id, _percent_id, _alignment_length, e_value, bitscore, line in m8.iterate_m8(orig_m8, blast_type):
                 # Get the top entry of each read_id based on the bitscore
                 if read_id != current_read_id:
                     # Different batch start

@@ -44,7 +44,7 @@ def summarize_hits(hit_summary_file, min_reads_per_genus=0):
 
     return (read_dict, accession_dict, selected_genera)
 
-def iterate_m8(m8_file, service, debug_caller=None, logging_interval=25000000, full_line=False):
+def iterate_m8(m8_file, service=None, debug_caller=None, logging_interval=25000000, full_line=False):
     """Generate an iterator over the m8 file and return values for each line.
     Work around and warn about any invalid hits detected.
     Return a subset of values (read_id, accession_id, percent_id, alignment_length,
@@ -99,7 +99,7 @@ def iterate_m8(m8_file, service, debug_caller=None, logging_interval=25000000, f
             #      produced by RAPSEARCH2  
             MIN_ALIGNMENT_LENGTH = 36
             ###
-            if service == "gsnap":
+            if service in ("gsnap", "nucl"):
                 if alignment_length < MIN_ALIGNMENT_LENGTH:
                     continue
             
