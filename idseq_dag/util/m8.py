@@ -44,7 +44,7 @@ def summarize_hits(hit_summary_file, min_reads_per_genus=0):
 
     return (read_dict, accession_dict, selected_genera)
 
-def iterate_m8(m8_file, debug_caller=None, logging_interval=25000000, full_line=False):
+def iterate_m8(m8_file, service, debug_caller=None, logging_interval=25000000, full_line=False):
     """Generate an iterator over the m8 file and return values for each line.
     Work around and warn about any invalid hits detected.
     Return a subset of values (read_id, accession_id, percent_id, alignment_length,
@@ -91,11 +91,17 @@ def iterate_m8(m8_file, debug_caller=None, logging_interval=25000000, full_line=
                 continue
 
             ### Alignment Length Filter ###
-            # Alignments with length <=35 bp are associated with false-positives 
+            # Alignments with length <=35 bp are associated with false-positives in NT
+            # when the .m8 file is generated via service = "gsnap", filter to require MIN_ALIGNMENT_LENGTH
+            # note:
+            #    - this is already taken care of for RAPSEARCH2 .m8 files via the -l parameter
+            #    - the -l parameter used in rapsearch is shorter due to shorter overall alignment lengths 
+            #      produced by RAPSEARCH2  
             MIN_ALIGNMENT_LENGTH = 36
             ###
-            if alignment_length < MIN_ALIGNMENT_LENGTH:
-                continue
+            if service == "gsnap":
+                if alignment_length < MIN_ALIGNMENT_LENGTH:
+                    continue
             
             if debug_caller and line_count % logging_interval == 0:
                 msg = "Scanned {} m8 lines from {} for {}, and going.".format(
@@ -126,7 +132,7 @@ def read_file_into_set(file_name):
 
 @command.run_in_subprocess
 def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
-                 output_m8, output_summary, taxon_blacklist=None):
+                 output_m8, output_summary, service, taxon_blacklist=None):
     """
     Determine the optimal taxon assignment for each read from the alignment
     results. When a read aligns to multiple distinct references, we need to
@@ -189,10 +195,10 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
     with open_file_db_by_extension(lineage_map_path, IdSeqDictValue.VALUE_TYPE_ARRAY) as lineage_map, \
          open_file_db_by_extension(accession2taxid_dict_path) as accession2taxid_dict:
         _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
-                           output_m8, output_summary, taxon_blacklist)
+                           output_m8, output_summary, service, taxon_blacklist)
 
 def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
-                       output_m8, output_summary, taxon_blacklist):
+                       output_m8, output_summary, service, taxon_blacklist):
     # Helper functions
     # TODO: Represent taxids by numbers instead of strings to reduce
     # memory footprint and increase speed.
@@ -268,7 +274,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
     # Read input_m8 and group hits by read id
     m8 = defaultdict(list)
     for read_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, _line in iterate_m8(
-            input_m8, "call_hits_m8_initial_scan"):
+            input_m8, service, "call_hits_m8_initial_scan"):
         m8[read_id].append((accession_id, e_value))
 
     # Deduplicate m8 and summarize hits
@@ -318,7 +324,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
             # This change may need to be accompanied by a change to
             # GSNAP/RAPSearch parameters.
             for read_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in iterate_m8(
-                    input_m8, "call_hits_m8_emit_deduped_and_summarized_hits"):
+                    input_m8, service, "call_hits_m8_emit_deduped_and_summarized_hits"):
                 if read_id in emitted:
                     continue
 
