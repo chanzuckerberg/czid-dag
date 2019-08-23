@@ -396,3 +396,10 @@ def remote(base_command, key_path, remote_username, instance_ip):
             base_command
         ]
     )
+
+
+def relative_file_path(file_path, relative_path):
+    p1 = os.path.abspath(file_path)
+    if os.path.isfile(file_path):
+        p1 = os.path.dirname(p1)
+    return os.path.abspath(os.path.join(p1, relative_path))
