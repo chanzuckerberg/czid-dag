@@ -13,7 +13,7 @@ import idseq_dag.util.log as log
 from idseq_dag.steps.run_assembly import PipelineStepRunAssembly
 
 MIN_REF_FASTA_SIZE = 25
-MIN_ASEEMBLED_CONTIG_SIZE = 25
+MIN_ASSEMBLED_CONTIG_SIZE = 25
 
 class PipelineStepBlastContigs(PipelineStep):
     """ The BLAST step is run independently for the contigs. First against the NT-BLAST database
@@ -51,7 +51,7 @@ class PipelineStepBlastContigs(PipelineStep):
 
         (blast_m8, refined_m8, refined_hit_summary, refined_counts, contig_summary_json, blast_top_m8) = self.output_files_local()
         db_type = self.additional_attributes["db_type"]
-        if os.path.getsize(assembled_contig) < MIN_ASEEMBLED_CONTIG_SIZE or \
+        if os.path.getsize(assembled_contig) < MIN_ASSEMBLED_CONTIG_SIZE or \
             os.path.getsize(reference_fasta) < MIN_REF_FASTA_SIZE:
                 # No assembled results or refseq fasta available.
                 # Create empty output files.

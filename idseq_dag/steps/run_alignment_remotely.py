@@ -530,7 +530,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 -l 10
                 -a T
                 -b 0
-                -v 50
+                -v 50 
                 -z 24
                 -q {remote_input_files}
                 -o {multihit_remote_outfile}
