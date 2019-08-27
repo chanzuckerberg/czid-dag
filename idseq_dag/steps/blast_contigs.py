@@ -16,19 +16,19 @@ MIN_REF_FASTA_SIZE = 25
 MIN_ASEEMBLED_CONTIG_SIZE = 25
 
 class PipelineStepBlastContigs(PipelineStep):
-    """ The BLAST step is run independently for the contigs. First against the NT-BLAST database 
-    constructed from putative taxa identified from short read alignments to NCBI NT using GSNAP. 
-    Then, against the NR-BLAST database constructed from putative taxa identified from short read 
+    """ The BLAST step is run independently for the contigs. First against the NT-BLAST database
+    constructed from putative taxa identified from short read alignments to NCBI NT using GSNAP.
+    Then, against the NR-BLAST database constructed from putative taxa identified from short read
     alignments to NCBI NR with Rapsearch2.
 
 
     ```
-    blast_command 
-    -query {assembled_contig} 
-    -db {blast_index_path} 
-    -out {blast_m8} 
-    -outfmt 6 
-    -num_alignments 5 
+    blast_command
+    -query {assembled_contig}
+    -db {blast_index_path}
+    -out {blast_m8}
+    -outfmt 6
+    -num_alignments 5
     -num_threads 32
     ```
     """
@@ -210,9 +210,11 @@ class PipelineStepBlastContigs(PipelineStep):
         blast_index_path = os.path.join(os.path.dirname(blast_m8), f"{db_type}_blastindex")
         blast_type = 'nucl'
         blast_command = 'blastn'
+        min_alignment_length = 36
         if db_type == 'nr':
             blast_type = 'prot'
             blast_command = 'blastx'
+            min_alignment_length = 0
         command.execute(
             command_patterns.SingleCommand(
                 cmd="makeblastdb",
@@ -246,16 +248,16 @@ class PipelineStepBlastContigs(PipelineStep):
             )
         )
         # further processing of getting the top m8 entry for each contig.
-        PipelineStepBlastContigs.get_top_m8(blast_m8, blast_top_m8, blast_type)
+        PipelineStepBlastContigs.get_top_m8(blast_m8, blast_top_m8, min_alignment_length)
 
     @staticmethod
-    def get_top_m8(orig_m8, blast_top_m8, blast_type):
+    def get_top_m8(orig_m8, blast_top_m8, min_alignment_length):
         ''' Get top m8 file entry for each read from orig_m8 and output to blast_top_m8 '''
         with open(blast_top_m8, 'w') as top_m8f:
             top_line = None
             top_bitscore = 0
             current_read_id = None
-            for read_id, _accession_id, _percent_id, _alignment_length, e_value, bitscore, line in m8.iterate_m8(orig_m8, blast_type):
+            for read_id, _accession_id, _percent_id, _alignment_length, e_value, bitscore, line in m8.iterate_m8(orig_m8, min_alignment_length):
                 # Get the top entry of each read_id based on the bitscore
                 if read_id != current_read_id:
                     # Different batch start
