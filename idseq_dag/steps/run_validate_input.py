@@ -29,13 +29,14 @@ class PipelineStepRunValidateInput(PipelineStep):
         is_fastq = file_ext == 'fastq'
 
         try:
-            for input_file in input_files:
-                file_name, file_ext = os.path.splitext(input_file)
+            for i in range(input_files):
+                file_name, file_ext = os.path.splitext(input_files[i])
 
                 # unzip if .gz file
                 if file_ext == '.gz':
+                    input_files[i] = file_name
+                    num_lines = self.calc_max_num_lines(is_fastq, max_fragments)
                     try:
-                        num_lines = self.calc_max_num_lines(is_fastq, max_fragments)
                         command.execute(
                             command_patterns.ShellScriptCommand(
                                 script=r'''gzip -dc "${input_file}" | head -n "${num_lines}" | "${scripts_dir}"/input_file_line_validation.sh --max_line_length "${max_line_length}" > "${output_file}";''',
@@ -48,7 +49,6 @@ class PipelineStepRunValidateInput(PipelineStep):
                                 }
                             )
                         )
-                        input_files[i] = file_name
                     except:
                         raise RuntimeError(f"Invalid gzip file")
 
