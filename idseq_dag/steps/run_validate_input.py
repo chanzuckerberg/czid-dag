@@ -29,7 +29,7 @@ class PipelineStepRunValidateInput(PipelineStep):
         is_fastq = file_ext == 'fastq'
 
         try:
-            for i in range(input_files):
+            for i in range(len(input_files)):
                 file_name, file_ext = os.path.splitext(input_files[i])
 
                 # unzip if .gz file
