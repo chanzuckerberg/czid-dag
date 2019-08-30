@@ -30,7 +30,8 @@ class PipelineStepRunValidateInput(PipelineStep):
 
         try:
             for i in range(len(input_files)):
-                file_name, file_ext = os.path.splitext(input_files[i])
+                input_file = input_files[i]
+                file_name, file_ext = os.path.splitext(input_file)
 
                 # unzip if .gz file
                 if file_ext == '.gz':
