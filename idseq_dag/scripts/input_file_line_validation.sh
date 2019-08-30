@@ -26,6 +26,7 @@ read -d "" awk_script << 'AWK_SCRIPT_END'
     print "PARSE ERROR: stdin exceeds max line size of", max_line_length, ". Line", NR, "Current length:", length > "/dev/stderr";
     exit 1;
   }
+  print $0;
 }
 AWK_SCRIPT_END
 
