@@ -399,6 +399,14 @@ def remote(base_command, key_path, remote_username, instance_ip):
 
 
 def relative_file_path(file_path, relative_path):
+    '''
+        Returns an absolute path relative to the provided file/directory.
+        For example, if your file is /app/idseq_dag/steps/run_validate_input.py, and you execute this line:
+        
+            relative_file_path(__file__, "../scripts/abc.awk")
+        
+        this will return /app/idseq_dag/scripts/abc.awk.
+    '''
     p1 = os.path.abspath(file_path)
     if os.path.isfile(file_path):
         p1 = os.path.dirname(p1)
