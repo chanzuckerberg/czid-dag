@@ -29,13 +29,13 @@ class PipelineStepRunValidateInput(PipelineStep):
         is_fastq = file_ext == 'fastq'
 
         try:
-            for i in range(len(input_files)):
+            for i in range(num_inputs):
                 input_file = input_files[i]
-                file_name, file_ext = os.path.splitext(input_file)
+                splited_input_file_name, splited_input_file_ext = os.path.splitext(input_file)
 
                 # unzip if .gz file
-                if file_ext == '.gz':
-                    input_files[i] = file_name
+                if splited_input_file_ext == '.gz':
+                    input_files[i] = splited_input_file_name
                     num_lines = self.calc_max_num_lines(is_fastq, max_fragments)
                     try:
                         command.execute(
@@ -46,7 +46,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                                     "awk_script_file": command.relative_file_path(__file__, "../scripts/fastq-fasta-line-validation.awk"),
                                     "max_line_length": vc.MAX_LINE_LENGTH,
                                     "num_lines": num_lines,
-                                    "output_file": file_name
+                                    "output_file": splited_input_file_name
                                 }
                             )
                         )
