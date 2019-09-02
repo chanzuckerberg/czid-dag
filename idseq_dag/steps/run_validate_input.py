@@ -157,7 +157,7 @@ class PipelineStepRunValidateInput(PipelineStep):
         num_lines = self.calc_max_num_lines(is_fastq, max_fragments)
         command.execute(
             command_patterns.ShellScriptCommand(
-                script=r'''head -n "${num_lines}" "${infile}" |  > "${outfile}";''',
+                script=r'''head -n "${num_lines}" "${infile}" > "${outfile}";''',
                 named_args={
                     'num_lines': num_lines,
                     'infile': infile,
