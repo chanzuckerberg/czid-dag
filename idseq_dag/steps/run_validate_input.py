@@ -33,10 +33,11 @@ class PipelineStepRunValidateInput(PipelineStep):
                 input_file = input_files[i]
                 splited_input_file_name, splited_input_file_ext = os.path.splitext(input_file)
 
+                num_lines = self.calc_max_num_lines(is_fastq, max_fragments)
+
                 # unzip if .gz file
                 if splited_input_file_ext == '.gz':
                     input_files[i] = splited_input_file_name
-                    num_lines = self.calc_max_num_lines(is_fastq, max_fragments)
                     try:
                         command.execute(
                             command_patterns.ShellScriptCommand(
