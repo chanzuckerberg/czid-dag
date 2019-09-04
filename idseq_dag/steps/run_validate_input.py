@@ -43,7 +43,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                                 script=r'''gzip -dc "${input_file}" | head -n "${num_lines}" | awk -f "${awk_script_file}" -v max_line_length="${max_line_length}" > "${output_file}";''',
                                 named_args={
                                     "input_file": input_file,
-                                    "awk_script_file": command.relative_file_path(__file__, "../scripts/fastq-fasta-line-validation.awk"),
+                                    "awk_script_file": command.get_resource_filename("scripts/fastq-fasta-line-validation.awk"),
                                     "max_line_length": vc.MAX_LINE_LENGTH,
                                     "num_lines": num_lines,
                                     "output_file": splited_input_file_name

@@ -9,6 +9,7 @@ import datetime
 import glob as _glob
 import shutil
 import shlex
+import pkg_resources
 from functools import wraps
 import pytz
 from typing import List, Union, Dict, Any
@@ -398,16 +399,14 @@ def remote(base_command, key_path, remote_username, instance_ip):
     )
 
 
-def relative_file_path(file_path, relative_path):
+def get_resource_filename(root_relative_path, package='idseq_dag'):
     '''
-        Returns an absolute path relative to the provided file/directory.
-        For example, if your file is /app/idseq_dag/steps/run_validate_input.py, and you execute this line:
-        
-            relative_file_path(__file__, "../scripts/abc.awk")
-        
-        this will return /app/idseq_dag/scripts/abc.awk.
+        Given a file path relative to the root of the package, it returns an absolute path.
+
+        Example:
+            command.get_resource_filename("scripts/fastq-fasta-line-validation.awk")
+
+        will return a string containing:
+            /app/idseq_dag/scripts/fastq-fasta-line-validation.awk
     '''
-    p1 = os.path.abspath(file_path)
-    if os.path.isfile(file_path):
-        p1 = os.path.dirname(p1)
-    return os.path.abspath(os.path.join(p1, relative_path))
+    return pkg_resources.resource_filename(package, root_relative_path)
