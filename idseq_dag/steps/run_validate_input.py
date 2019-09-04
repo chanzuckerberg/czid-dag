@@ -40,7 +40,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                     try:
                         command.execute(
                             command_patterns.ShellScriptCommand(
-                                script=r'''gzip -dc "${input_file}" | head -n "${num_lines}" | awk -f "${awk_script_file}" -v max_line_length="${max_line_length}" > "${output_file}";''',
+                                script=r'''gzip -dc "${input_file}" | cut -c -"$[max_line_length+1]" | head -n "${num_lines}" | awk -f "${awk_script_file}" -v max_line_length="${max_line_length}" > "${output_file}";''',
                                 named_args={
                                     "input_file": input_file,
                                     "awk_script_file": command.get_resource_filename("scripts/fastq-fasta-line-validation.awk"),
@@ -51,7 +51,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                             )
                         )
                     except:
-                        raise RuntimeError(f"Invalid gzip file")
+                        raise RuntimeError(f"Invalid fastq/fasta/gzip file")
 
             # keep a dictionary of the distribution of read lengths in the files
             self.summary_dict = {vc.BUCKET_TOO_SHORT:0,
@@ -245,9 +245,9 @@ class PipelineStepRunValidateInput(PipelineStep):
                     self.summary_dict[vc.BUCKET_LONG] += 1
                 else:
                     self.summary_dict[vc.BUCKET_TOO_LONG] += 1
-                    read_l = read_l[0:10000]
+                    read_l = read_l[0:vc.READ_LEN_CUTOFF_HIGH]
                     if is_fastq:
-                        quality_l = quality_l[0:10000]
+                        quality_l = quality_l[0:vc.READ_LEN_CUTOFF_HIGH]
 
                 output_f.write(identifier_l + read_l + "\n")
                 if is_fastq:
