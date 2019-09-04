@@ -52,6 +52,26 @@ class PipelineStepRunValidateInput(PipelineStep):
                         )
                     except:
                         raise RuntimeError(f"Invalid fastq/fasta/gzip file")
+                else:
+                    # Validate and truncate the input file to keep behavior consistent with gz input files
+                    try:
+                        tmp_file = splited_input_file_name + ".tmp"
+                        command.execute(
+                            command_patterns.ShellScriptCommand(
+                                script=r'''cat "${input_file}" | cut -c -"$[max_line_length+1]" | head -n "${num_lines}" | awk -f "${awk_script_file}" -v max_line_length="${max_line_length}" > "${output_file}";''',
+                                named_args={
+                                    "input_file": input_file,
+                                    "awk_script_file": command.get_resource_filename("scripts/fastq-fasta-line-validation.awk"),
+                                    "max_line_length": vc.MAX_LINE_LENGTH,
+                                    "num_lines": num_lines,
+                                    "output_file": tmp_file
+                                }
+                            )
+                        )
+                        command.remove_file(input_file)
+                        command.move_file(tmp_file, input_file)
+                    except:
+                        raise RuntimeError(f"Invalid fastq/fasta file")
 
             # keep a dictionary of the distribution of read lengths in the files
             self.summary_dict = {vc.BUCKET_TOO_SHORT:0,
