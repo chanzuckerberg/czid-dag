@@ -96,7 +96,7 @@ class PipelineStepRunLZW(PipelineStep):
             #score = lzw_fraction * adjustment_heuristic
             predicted_score = predict_lzw(seq_length)
             delta = cutoff - predicted_score
-
+            score = lzw_fraction + delta
         else:
             score = lzw_fraction
         return score
