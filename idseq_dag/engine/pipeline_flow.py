@@ -274,7 +274,7 @@ class PipelineFlow(object):
         log.write("all steps are done")
 
 
-def _get_name_from_path(dag_json):
+def _get_name_from_path(dag_json: str) -> str:
     """
     Returns a useful stage name from a dag_json file page for when the dag_json
     is missing an explicit name.
@@ -288,7 +288,7 @@ def _get_name_from_path(dag_json):
     >>> _get_name_from_path('templates/gsnap_index')
     'gsnap_index'
     """
-    return dag_json.split('/')[-1].split('.')[0]
+    return os.path.splitext(os.path.basename(dag_json))[0]
 
 
 if __name__ == '__main__':
