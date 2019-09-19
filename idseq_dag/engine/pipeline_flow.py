@@ -63,7 +63,6 @@ class PipelineFlow(object):
           "targets": lists of files that are given or would be generated
           "steps": steps that species actions to generate input and output
           "given_targets": input files that are given
-          "name": the name of the stage running
         '''
         dag = json.loads(open(dag_json).read())
         log.log_event("pipeline_flow.dag_json_loaded", values={"file": dag_json, "contents": dag})
@@ -71,7 +70,7 @@ class PipelineFlow(object):
         targets = dag["targets"]
         steps = dag["steps"]
         given_targets = dag["given_targets"]
-        name = dag.get("name", _get_name_from_path(dag_json))
+        dag['name'] = dag.get("name", _get_name_from_path(dag_json))
         covered_targets = set()
         for s in steps:
             # validate each step in/out are valid targets
