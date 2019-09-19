@@ -95,9 +95,6 @@ class PipelineFlow(object):
         for target_name in targets.keys():
             if target_name not in covered_targets:
                 raise ValueError("%s couldn't be generated from the steps" % target_name)
-        # Check that name exists
-        if name is None:
-            raise ValueError("Name does not exist for given dag_json")
 
         return dag
 
