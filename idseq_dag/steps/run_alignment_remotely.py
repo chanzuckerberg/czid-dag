@@ -48,7 +48,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     GSNAP documentation is available [here](http://research-pub.gene.com/gmap/).
     -t (threads): r5d.metal machines have 96 vCPUs. Use 48 threads and each process will be able to
-    concurrently process 2 chunks.
+    concurrently process 2 chunks (see attribute 'max_concurrent').
 
     For Rapsearch:
     ```
