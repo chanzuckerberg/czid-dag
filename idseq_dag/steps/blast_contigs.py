@@ -15,31 +15,58 @@ from idseq_dag.steps.run_assembly import PipelineStepRunAssembly
 MIN_REF_FASTA_SIZE = 25
 MIN_ASSEMBLED_CONTIG_SIZE = 25
 
-# When composing a query cover form non-overlapping fragments, consider fragments
+# When composing a query cover from non-overlapping fragments, consider fragments
 # that overlap less than this fraction to be disjoint.
-MIN_OVERLAP_FRACTION = 0.1
+NT_MIN_OVERLAP_FRACTION = 0.1
 
-# Filter ignore blastn (NT) results with lower percent identity.
-MIN_PIDENT = 90
+# NT alginments with shorter length are associated with a high rate of false positives.
+# NR doesn't have this problem because Rapsearch contains an equivalent filter.
+# TODO: Nevertheless, it may be useful to re-filter blastx results.
+NT_MIN_ALIGNMENT_LEN = 36
+
+# Ignore NT local alignments with sequence similarity below 90%.
+NT_MIN_PIDENT = 90
 
 
-def interval(a, b):
-    '''Reorder the interval bounds so that a < b.  Necessary for strands in blast output.'''
-    return (min(a, b), max(a, b))
+# Output of blastn
+BLAST_OUTPUT_SCHEMA = {
+    "qseqid": str,
+    "sseqid": str,
+    "pident": float,
+    "qlen": int,
+    "slen": int,
+    "hsplen": int,
+    "mismatch": int,
+    "gapopen": int,
+    "qstart": int,
+    "qend": int,
+    "sstart": int,
+    "send": int,
+    "evalue": float,
+    "bitscore": float,
+}
+
+
+# Re-ranked output of blastn, one row per query with just the winner reference (aka subject) sequence for the query.
+RERANKED_BLAST_OUTPUT_SCHEMA = dict(BLAST_OUTPUT_SCHEMA).update({
+    "qcov": float,
+    "hsp_count": int
+})
 
 
 def intervals_overlap(p, q):
-    '''Return True iff the intersection of p and q covers more than MIN_OVERLAP_FRACTION of either p or q.'''
+    '''Return True iff the intersection of p and q covers more than NT_MIN_OVERLAP_FRACTION of either p or q.'''
     p_len = p[1] - p[0]
     q_len = q[1] - q[0]
     shorter_len = min(p_len, q_len)
-    intersection_len = max(0.0,  min(p[1], q[1]) - max(p[0], q[0]))
-    return (intersection_len / shorter_len) > MIN_OVERLAP_FRACTION
+    intersection_len = max(0.0, min(p[1], q[1]) - max(p[0], q[0]))
+    return intersection_len > (NT_MIN_OVERLAP_FRACTION * shorter_len)
 
 
 def query_interval(row):
     # decode HSP query interval
-    return interval(row["qstart"], row["qend"])
+    # depending on strand, qstart and qend may be reversed
+    return sorted([row["qstart"], row["qend"]])
 
 
 def hsp_overlap(hsp_1, hsp_2):
@@ -48,7 +75,7 @@ def hsp_overlap(hsp_1, hsp_2):
 
 
 def intersects(needle, haystack):
-    ''' Return True iff needle intersects haystack.  Ignore overlap < MIN_OVERLAP_FRACTION. '''
+    ''' Return True iff needle intersects haystack.  Ignore overlap < NT_MIN_OVERLAP_FRACTION. '''
     return any(hsp_overlap(needle, hay) for hay in haystack)
 
 
@@ -59,6 +86,7 @@ class Optimizer:
         # ordered by decreasing bitscore.
         self.hsps = hsps
         self.optimal_set = None
+        # agscores are non-negative
         self.agscore = None
 
     def solve(self):
@@ -126,23 +154,23 @@ class PipelineStepBlastContigs(PipelineStep):
             3. blast assembled contigs to the index
             4. update the summary
         '''
-        (align_m8, deduped_m8, hit_summary, orig_counts) = self.input_files_local[0]
+        (_align_m8, deduped_m8, hit_summary, orig_counts) = self.input_files_local[0]
         assembled_contig, _assembled_scaffold, bowtie_sam, _contig_stats = self.input_files_local[1]
         reference_fasta = self.input_files_local[2][0]
 
         (blast_m8, refined_m8, refined_hit_summary, refined_counts, contig_summary_json, blast_top_m8) = self.output_files_local()
         db_type = self.additional_attributes["db_type"]
         if os.path.getsize(assembled_contig) < MIN_ASSEMBLED_CONTIG_SIZE or \
-            os.path.getsize(reference_fasta) < MIN_REF_FASTA_SIZE:
-                # No assembled results or refseq fasta available.
-                # Create empty output files.
-                command.write_text_to_file(' ', blast_m8)
-                command.write_text_to_file(' ', blast_top_m8)
-                command.copy_file(deduped_m8, refined_m8)
-                command.copy_file(hit_summary, refined_hit_summary)
-                command.copy_file(orig_counts, refined_counts)
-                command.write_text_to_file('[]', contig_summary_json)
-                return
+           os.path.getsize(reference_fasta) < MIN_REF_FASTA_SIZE:
+            # No assembled results or refseq fasta available.
+            # Create empty output files.
+            command.write_text_to_file(' ', blast_m8)
+            command.write_text_to_file(' ', blast_top_m8)
+            command.copy_file(deduped_m8, refined_m8)
+            command.copy_file(hit_summary, refined_hit_summary)
+            command.copy_file(orig_counts, refined_counts)
+            command.write_text_to_file('[]', contig_summary_json)
+            return #FIXME return in the middle of the function
 
         (read_dict, accession_dict, _selected_genera) = m8.summarize_hits(hit_summary)
         if db_type == 'nt':
@@ -157,7 +185,7 @@ class PipelineStepBlastContigs(PipelineStep):
         PipelineStepRunAssembly.generate_info_from_sam(bowtie_sam, read2contig, contig_stats)
 
         (updated_read_dict, read2blastm8, contig2lineage, added_reads) = self.update_read_dict(
-                read2contig, blast_top_m8, read_dict, accession_dict)
+            read2contig, blast_top_m8, read_dict, accession_dict)
         self.generate_m8_and_hit_summary(updated_read_dict, added_reads, read2blastm8,
                                          hit_summary, deduped_m8,
                                          refined_hit_summary, refined_m8)
@@ -175,8 +203,8 @@ class PipelineStepBlastContigs(PipelineStep):
         with TraceLock("PipelineStepBlastContigs-CYA", PipelineStepBlastContigs.cya_lock, debug=False):
             with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_count_json_from_m8", "db_type": db_type, "refined_counts": refined_counts}):
                 m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
-                                                    evalue_type, db_type.upper(),
-                                                    lineage_db, deuterostome_db, refined_counts)
+                                                     evalue_type, db_type.upper(),
+                                                     lineage_db, deuterostome_db, refined_counts)
 
         # generate contig stats at genus/species level
         with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_summary"}):
@@ -204,7 +232,7 @@ class PipelineStepBlastContigs(PipelineStep):
             contig = read2contig.get(read_id)
             if contig and contig != '*' and contig2lineage.get(contig):
                 # It's possible a contig doesn't blast to anything
-                species_taxid, genus_taxid, family_taxid = contig2lineage[contig]
+                species_taxid, genus_taxid, _family_taxid = contig2lineage[contig]
                 species_summary[species_taxid][contig] += 1
                 genus_summary[genus_taxid][contig] += 1
             else:
@@ -215,7 +243,7 @@ class PipelineStepBlastContigs(PipelineStep):
 
         for read_id, read_info in added_reads_dict.items():
             contig = read2contig[read_id]
-            species_taxid, genus_taxid, family_taxid = contig2lineage[contig]
+            species_taxid, genus_taxid, _family_taxid = contig2lineage[contig]
             species_summary[species_taxid][contig] += 1
             genus_summary[genus_taxid][contig] += 1
         # constructing the array for output
@@ -223,8 +251,8 @@ class PipelineStepBlastContigs(PipelineStep):
         for idx, summary in enumerate([species_summary, genus_summary]):
             tax_level = idx + 1
             for taxid, contig_counts in summary.items():
-                entry = { 'taxid': taxid, 'tax_level': tax_level,
-                          'count_type': db_type.upper(), 'contig_counts': contig_counts}
+                entry = {'taxid': taxid, 'tax_level': tax_level,
+                         'count_type': db_type.upper(), 'contig_counts': contig_counts}
                 output_array.append(entry)
         return output_array
 
@@ -274,7 +302,7 @@ class PipelineStepBlastContigs(PipelineStep):
         contig2lineage = {}
         added_reads = {}
 
-        for contig_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, line in m8.iterate_m8(blast_top_m8):
+        for contig_id, accession_id, _percent_id, _alignment_length, _e_value, _bitscore, line in m8.iterate_m8(blast_top_m8):
             contig2accession[contig_id] = (accession_id, line)
             contig2lineage[contig_id] = accession_dict[accession_id]
 
@@ -297,7 +325,8 @@ class PipelineStepBlastContigs(PipelineStep):
         blast_index_path = os.path.join(os.path.dirname(blast_m8), f"{db_type}_blastindex")
         blast_type = 'nucl'
         blast_command = 'blastn'
-        min_alignment_length = 36
+        min_alignment_length = NT_MIN_ALIGNMENT_LEN
+        min_pident = NT_MIN_PIDENT
         command.execute(
             command_patterns.SingleCommand(
                 cmd="makeblastdb",
@@ -311,7 +340,6 @@ class PipelineStepBlastContigs(PipelineStep):
                 ]
             )
         )
-        # FIXME
         command.execute(
             command_patterns.SingleCommand(
                 cmd=blast_command,
@@ -323,18 +351,18 @@ class PipelineStepBlastContigs(PipelineStep):
                     "-out",
                     blast_m8,
                     "-outfmt",
-                    '6 qseqid sseqid pident qlen slen length mismatch gapopen qstart qend sstart send evalue bitscore',
+                    '6 ' + ' '.join(BLAST_OUTPUT_SCHEMA.keys()),
                     '-evalue',
                     1e-10,
                     '-max_target_seqs',
-                     5000
+                    5000,
                     "-num_threads",
                     16
                 ]
             )
         )
         # further processing of getting the top m8 entry for each contig.
-        PipelineStepBlastContigs.get_top_m8_nt(blast_m8, blast_top_m8, min_alignment_length)
+        PipelineStepBlastContigs.get_top_m8_nt(blast_m8, blast_top_m8, min_alignment_length, min_pident)
 
 
     @staticmethod
@@ -385,7 +413,7 @@ class PipelineStepBlastContigs(PipelineStep):
             top_line = None
             top_bitscore = 0
             current_read_id = None
-            for read_id, _accession_id, _percent_id, _alignment_length, e_value, bitscore, line in m8.iterate_m8(orig_m8):
+            for read_id, _accession_id, _percent_id, _alignment_length, _e_value, bitscore, line in m8.iterate_m8(orig_m8):
                 # Get the top entry of each read_id based on the bitscore
                 if read_id != current_read_id:
                     # Different batch start
@@ -402,70 +430,44 @@ class PipelineStepBlastContigs(PipelineStep):
 
 
     @staticmethod
-    def get_top_m8_nt(orig_m8, blast_top_m8, min_alignment_length):
+    def get_top_m8_nt(blast_output, blast_top_m8, min_alignment_length, min_pident):
         '''
-        For each query contig Q and reference (aka subject) sequence S, extend the highest-scoring fragment alignment of Q to S with other non-overlapping fragments as far as possible, to maximize cumulative bitscore while avoiding overlap in Q.
+        For each contig Q (query) and reference S (subject), extend the highest-scoring fragment alignment of Q to S with other non-overlapping fragments as far as possible, to maximize cumulative bitscore while avoiding overlap in Q.
 
-        Define agscore(Q, S) as the number of matching base pairs in all fragments that belong to HSP(Q, S).  Rank (Q, S) pairs by agscore(Q, S) and output the highest ranking S for each Q.
+        For each Q, output the S with highest agscore(Q, S), which is defined as the number of matching base pairs in all fragments that belong to HSP(Q, S).
 
-        Note that agscore is NOT the sum of bitscores in HSP(Q, S) because of concerns that *cumulative* bitscores are not comparable across different reference sequences S.  TODO:  Document and discuss these concerns and score choices.'''
+        Note that agscore(Q, S) is NOT the sum of bitscores in HSP(Q, S) because of concerns that cumulative bitscores might not be directly comparable across different reference sequences S.  TODO:  Document and discuss these concerns and score choices.'''
 
-        def parse_headerless_table(rows, schema={}):
-            headers = schema.keys()
-            for values in rows:
-                assert len(headers) == len(values)
-                yield {h: schema[h](v) for h, v in zip(headers, values)}
-
-        def tsv_rows(path):
+        def parse_hsps(path, schema):
+            # Yield the tab-separated values from each input line as a dictionary matching the schema.
+            schema_items = schema.items()
             with open(path, "r") as stream:
                 for line in stream:
-                    yield line.rstrip("\n").split("\t")
+                    row = line.rstrip("\n").split("\t")
+                    assert len(row) == len(schema)
+                    yield {cname: ctype(vstr) for vstr, (cname, ctype) in zip(row, schema_items)}
 
-        blast_outfmt6_schema = {
-            "qseqid": str,
-            "sseqid": str,
-            "pident": float,
-            "qlen": int,
-            "slen": int,
-            "hsplen": int,
-            "mismatch": int,
-            "gapopen": int,
-            "qstart": int,
-            "qend": int,
-            "sstart": int,
-            "send": int,
-            "evalue": float,
-            "bitscore": float,
-        }
-
-        ranked_blast_output_schema = dict(blast_outfmt6_schema)
-        ranked_blast_output_schema.update({
-            "qcov": float,
-            "hsp_count": int
-        })
-
+        # Group the highest-scoring pairs by (query_id, subject_id).
         HSPs = defaultdict(list)
-
-        for hsp in parse_headerless_table(tsv_rows(blast_output_fmt6), blast_outfmt6_schema):
-
-            # local HSP sequence similarity filter
-            if hsp["pident"] < param.MIN_PIDENT:
+        for hsp in parse_hsps(blast_output, BLAST_OUTPUT_SCHEMA):
+            # local HSP minimum alignmnet length filter and sequence similarity filter
+            if hsp["hsplen"] < min_alignment_length:
                 continue
-
-            # add HSP to group
+            if hsp["pident"] < min_pident:
+                continue
             group_id = (hsp["qseqid"], hsp["sseqid"])
-
             HSPs[group_id].append(hsp)
 
-        winners = dict()
+        # Optimize each group of HSPs and pick the best scoring group for each query_id.
+        winners = defaultdict(float)
         for group_id, hsps in HSPs.items():
-            o = Optimizer(hsps)
-            o.solve()
+            opti = Optimizer(hsps)
+            opti.solve()
             query_id, _ = group_id
-            if query_id not in winners or winners[query_id].agscore < o.agscore:
-                winners[query_id] = o
+            if winners[query_id].agscore < opti.agscore:
+                winners[query_id] = opti
 
         with open(blast_top_m8, 'w') as top_m8f:
-            for query_id, o in winners.items():
-                sr = o.solution_row()
-                top_m8f.write("\t".join(str(sr[k]) for k in ranked_blast_output_schema.keys()) + "\n")
+            for query_id, opti in winners.items():
+                sr = opti.solution_row()
+                top_m8f.write("\t".join(str(sr[k]) for k in RERANKED_BLAST_OUTPUT_SCHEMA.keys()) + "\n")
