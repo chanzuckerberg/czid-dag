@@ -11,6 +11,66 @@ import idseq_dag.util.lineage as lineage
 
 from idseq_dag.util.dict import IdSeqDictValue, open_file_db_by_extension
 
+# Output of blastn format 6
+BLAST_OUTPUT_SCHEMA = {
+    "qseqid": str,
+    "sseqid": str,
+    "pident": float,
+    "length": int,
+    "mismatch": int,
+    "gapopen": int,
+    "qstart": int,
+    "qlen": int,
+    "qend": int,
+    "sstart": int,
+    "send": int,
+    "evalue": float,
+    "bitscore": float,
+}
+
+
+# Additional fields helpful for grouping HSPs to rerank blast results similar to web-blast.
+BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_SCHEMA).update({
+    "slen": int,
+    "hsplen": int,
+})
+
+
+# Re-ranked output of blastn, one row per query with just the winner reference (aka subject) sequence for the query.
+RERANKED_BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_NT_SCHEMA).update({
+    "qcov": float,
+    "hsp_count": int
+})
+
+
+RERANKED_BLAST_OUTPUT_SCHEMA = {
+    'nt':  RERANKED_BLAST_OUTPUT_NT_SCHEMA,
+    'nr':  BLAST_OUTPUT_SCHEMA,
+}
+
+
+def parse_tsv(path, schema, expect_headers=False, raw_lines=False):
+    # Yield the tab-separated values from each input line as a dictionary matching the schema.
+    assert expect_headers == False, "Header row not yet implemented.  Fortunately, not yet used."
+    schema_items = schema.items()
+    with open(path, "r") as stream:
+        for raw_line in stream:
+            row = raw_line.rstrip("\n").split("\t")
+            assert len(row) == len(schema)
+            row_dict = {cname: ctype(vstr) for vstr, (cname, ctype) in zip(row, schema_items)}
+            if raw_lines:
+                yield row_dict, raw_line
+            else:
+                yield row_dict
+
+
+def unparse_tsv(path, schema, row_dicts):
+    schema_keys = schema.keys()
+    with open(path, 'w') as f:
+        for row in row_dicts:
+            f.write("\t".join(str(row[k]) for k in schema_keys) + "\n")
+
+
 def log_corrupt(m8_file, line):
     msg = m8_file + " is corrupt at line:\n" + line + "\n----> delete it and its corrupt ancestors before restarting run"
     log.write(msg)
@@ -44,7 +104,7 @@ def summarize_hits(hit_summary_file, min_reads_per_genus=0):
 
     return (read_dict, accession_dict, selected_genera)
 
-def iterate_m8(m8_file, min_alignment_length = 0, debug_caller=None, logging_interval=25000000, full_line=False):
+def iterate_m8(m8_file, min_alignment_length=0, debug_caller=None, logging_interval=25000000, full_line=False):
     """Generate an iterator over the m8 file and return values for each line.
     Work around and warn about any invalid hits detected.
     Return a subset of values (read_id, accession_id, percent_id, alignment_length,

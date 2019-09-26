@@ -28,32 +28,6 @@ NT_MIN_ALIGNMENT_LEN = 36
 NT_MIN_PIDENT = 90
 
 
-# Output of blastn
-BLAST_OUTPUT_SCHEMA = {
-    "qseqid": str,
-    "sseqid": str,
-    "pident": float,
-    "qlen": int,
-    "slen": int,
-    "hsplen": int,
-    "mismatch": int,
-    "gapopen": int,
-    "qstart": int,
-    "qend": int,
-    "sstart": int,
-    "send": int,
-    "evalue": float,
-    "bitscore": float,
-}
-
-
-# Re-ranked output of blastn, one row per query with just the winner reference (aka subject) sequence for the query.
-RERANKED_BLAST_OUTPUT_SCHEMA = dict(BLAST_OUTPUT_SCHEMA).update({
-    "qcov": float,
-    "hsp_count": int
-})
-
-
 def intervals_overlap(p, q):
     '''Return True iff the intersection of p and q covers more than NT_MIN_OVERLAP_FRACTION of either p or q.'''
     p_len = p[1] - p[0]
@@ -79,7 +53,7 @@ def intersects(needle, haystack):
     return any(hsp_overlap(needle, hay) for hay in haystack)
 
 
-class Optimizer:
+class HSPGroupOptimizer:
 
     def __init__(self, hsps):
         # List of HSPs from the same query to the same subject sequence,
@@ -173,19 +147,14 @@ class PipelineStepBlastContigs(PipelineStep):
             return #FIXME return in the middle of the function
 
         (read_dict, accession_dict, _selected_genera) = m8.summarize_hits(hit_summary)
-        if db_type == 'nt':
-            PipelineStepBlastContigs.run_blast_nt(assembled_contig, reference_fasta,
-                                                  db_type, blast_m8, blast_top_m8)
-        else:
-            assert db_type == 'nr'
-            PipelineStepBlastContigs.run_blast_nr(assembled_contig, reference_fasta,
-                                                  db_type, blast_m8, blast_top_m8)
+        PipelineStepBlastContigs.run_blast(db_type, assembled_contig, reference_fasta,
+                                           blast_m8, blast_top_m8)
         read2contig = {}
         contig_stats = defaultdict(int)
         PipelineStepRunAssembly.generate_info_from_sam(bowtie_sam, read2contig, contig_stats)
 
         (updated_read_dict, read2blastm8, contig2lineage, added_reads) = self.update_read_dict(
-            read2contig, blast_top_m8, read_dict, accession_dict)
+            read2contig, blast_top_m8, read_dict, accession_dict, db_type)
         self.generate_m8_and_hit_summary(updated_read_dict, added_reads, read2blastm8,
                                          hit_summary, deduped_m8,
                                          refined_hit_summary, refined_m8)
@@ -221,6 +190,14 @@ class PipelineStepBlastContigs(PipelineStep):
                 json.dump(contig2lineage, c2lf)
 
         self.additional_files_to_upload.append(contig2lineage_json)
+
+    @staticmethod
+    def run_blast(db_type, *args):
+        if db_type == 'nt':
+            PipelineStepBlastContigs.run_blast_nt(db_type, *args)
+        else:
+            assert db_type == 'nr'
+            PipelineStepBlastContigs.run_blast_nr(db_type, *args)
 
     @staticmethod
     def generate_taxon_summary(read2contig, contig2lineage, read_dict, added_reads_dict, db_type):
@@ -295,15 +272,17 @@ class PipelineStepBlastContigs(PipelineStep):
                 rmf.write("\t".join(m8_fields))
 
     @staticmethod
-    def update_read_dict(read2contig, blast_top_m8, read_dict, accession_dict):
+    def update_read_dict(read2contig, blast_top_m8, read_dict, accession_dict, db_type):
         consolidated_dict = read_dict
         read2blastm8 = {}
         contig2accession = {}
         contig2lineage = {}
         added_reads = {}
 
-        for contig_id, accession_id, _percent_id, _alignment_length, _e_value, _bitscore, line in m8.iterate_m8(blast_top_m8):
-            contig2accession[contig_id] = (accession_id, line)
+        for row, raw_line in m8.parse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_SCHEMA[db_type], raw_lines=True):
+            contig_id = row["qseqid"]
+            accession_id = row["sseqid"]
+            contig2accession[contig_id] = (accession_id, raw_line)
             contig2lineage[contig_id] = accession_dict[accession_id]
 
         for read_id, contig_id in read2contig.items():
@@ -321,7 +300,7 @@ class PipelineStepBlastContigs(PipelineStep):
 
 
     @staticmethod
-    def run_blast_nt(assembled_contig, reference_fasta, db_type, blast_m8, blast_top_m8):
+    def run_blast_nt(db_type, assembled_contig, reference_fasta, blast_m8, blast_top_m8):
         blast_index_path = os.path.join(os.path.dirname(blast_m8), f"{db_type}_blastindex")
         blast_type = 'nucl'
         blast_command = 'blastn'
@@ -351,7 +330,7 @@ class PipelineStepBlastContigs(PipelineStep):
                     "-out",
                     blast_m8,
                     "-outfmt",
-                    '6 ' + ' '.join(BLAST_OUTPUT_SCHEMA.keys()),
+                    '6 ' + ' '.join(m8.BLAST_OUTPUT_NT_SCHEMA.keys()),
                     '-evalue',
                     1e-10,
                     '-max_target_seqs',
@@ -366,7 +345,7 @@ class PipelineStepBlastContigs(PipelineStep):
 
 
     @staticmethod
-    def run_blast_nr(assembled_contig, reference_fasta, db_type, blast_m8, blast_top_m8):
+    def run_blast_nr(db_type, assembled_contig, reference_fasta, blast_m8, blast_top_m8):
         blast_index_path = os.path.join(os.path.dirname(blast_m8), f"{db_type}_blastindex")
         blast_type = 'prot'
         blast_command = 'blastx'
@@ -426,7 +405,7 @@ class PipelineStepBlastContigs(PipelineStep):
                     top_bitscore = bitscore
                     top_line = line
             if top_line is not None:
-                top_m8f.write(top_line)
+                top_m8f.write(top_line) # TODO: Unify reranked formats for NT and NR:  .rstrip("\n") + "\t0\t0\n")
 
 
     @staticmethod
@@ -438,18 +417,9 @@ class PipelineStepBlastContigs(PipelineStep):
 
         Note that agscore(Q, S) is NOT the sum of bitscores in HSP(Q, S) because of concerns that cumulative bitscores might not be directly comparable across different reference sequences S.  TODO:  Document and discuss these concerns and score choices.'''
 
-        def parse_hsps(path, schema):
-            # Yield the tab-separated values from each input line as a dictionary matching the schema.
-            schema_items = schema.items()
-            with open(path, "r") as stream:
-                for line in stream:
-                    row = line.rstrip("\n").split("\t")
-                    assert len(row) == len(schema)
-                    yield {cname: ctype(vstr) for vstr, (cname, ctype) in zip(row, schema_items)}
-
         # Group the highest-scoring pairs by (query_id, subject_id).
         HSPs = defaultdict(list)
-        for hsp in parse_hsps(blast_output, BLAST_OUTPUT_SCHEMA):
+        for hsp in m8.parse_tsv(blast_output, m8.BLAST_OUTPUT_NT_SCHEMA):
             # local HSP minimum alignmnet length filter and sequence similarity filter
             if hsp["hsplen"] < min_alignment_length:
                 continue
@@ -458,16 +428,13 @@ class PipelineStepBlastContigs(PipelineStep):
             group_id = (hsp["qseqid"], hsp["sseqid"])
             HSPs[group_id].append(hsp)
 
-        # Optimize each group of HSPs and pick the best scoring group for each query_id.
+        # Find the optimal subset of HSPs in each group.  This yields the group's agscore.  Note the highest score for each query_id.
         winners = defaultdict(float)
-        for group_id, hsps in HSPs.items():
-            opti = Optimizer(hsps)
-            opti.solve()
+        for group_id, candidate_hsps in HSPs.items():
+            group = HSPGroupOptimizer(candidate_hsps)
+            group.solve()
             query_id, _ = group_id
-            if winners[query_id].agscore < opti.agscore:
-                winners[query_id] = opti
+            if winners[query_id].agscore < group.agscore:
+                winners[query_id] = group
 
-        with open(blast_top_m8, 'w') as top_m8f:
-            for query_id, opti in winners.items():
-                sr = opti.solution_row()
-                top_m8f.write("\t".join(str(sr[k]) for k in RERANKED_BLAST_OUTPUT_SCHEMA.keys()) + "\n")
+        m8.unparse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_NT_SCHEMA, (w.solution_row() for w in winners.values()))

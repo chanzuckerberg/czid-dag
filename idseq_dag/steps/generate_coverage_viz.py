@@ -306,6 +306,7 @@ class PipelineStepGenerateCoverageViz(PipelineStep):
             return hits
 
         # iterate_m8 automatically removes invalid hits.
+        # FIXME:  blast_top_m8 doesn't have this format
         for (hit_id, accession_id, percent_id, alignment_length, num_mismatches, num_gaps,
              query_start, query_end, subject_start, subject_end, _e_value, _bitscore, _line) in m8.iterate_m8(m8_file, full_line=True):
 
