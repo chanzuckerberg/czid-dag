@@ -1,6 +1,6 @@
 {
   "name": "accession2taxid_dag_test",
-  "output_dir_s3": "s3://idseq-samples-development/markazhang/accession_test/2018-12-01",
+  "output_dir_s3": "s3://idseq-samples-development/markazhang/accession_test/2018-12-01/",
   "targets": {
     "accession2taxid_input": [
       "pdb.accession2taxid.gz"
@@ -14,16 +14,20 @@
     "accession2taxid_out": [
       "accession2taxid.gz",
       "accession2taxid_wgs.gz",
+      "accession2taxid.sqlite3",
+      "taxid2wgs_accession.sqlite3",
       "accession2taxid.db",
       "taxid2wgs_accession.db"
     ],
     "nt_loc_out": [
-      "nt_loc.db",
-      "nt_info.db"
+      "nt_loc.sqlite3",
+      "nt_info.sqlite3",
+      "nt_loc.db"
     ],
     "nr_loc_out": [
-      "nr_loc.db",
-      "nr_info.db"
+      "nr_loc.sqlite3",
+      "nr_info.sqlite3",
+      "nr_loc.db"
     ]
   },
   "steps": [

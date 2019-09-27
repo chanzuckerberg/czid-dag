@@ -1,10 +1,11 @@
 ''' Generate loc db  '''
 import dbm
-import shelve
+import idseq_dag.util.log as log
 import re
+import shelve
+
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.command import run_in_subprocess
-import idseq_dag.util.log as log
 from idseq_dag.util.dict import IdSeqDictForUpdate, IdSeqDictValue
 BATCH_INSERT_SIZE = 300
 
@@ -17,9 +18,14 @@ class PipelineStepGenerateLocDB(PipelineStep):
         Generate Loc DB for NT/NR
         """
         db_file = self.input_files_local[0][0]
-        loc_db_file = self.output_files_local()[0]
-        info_db_file = self.output_files_local()[1]
-        self.generate_loc_db_for_sqlite(db_file, loc_db_file, info_db_file)
+
+        loc_db_file_sqlite = self.output_files_local()[0]
+        info_db_file_sqlite = self.output_files_local()[1]
+        self.generate_loc_db_for_sqlite(db_file, loc_db_file_sqlite, info_db_file_sqlite)
+
+        loc_db_file = self.output_files_local()[2]
+        # TODO: (gdingle): this needs to be added
+        # info_db_file = self.output_files_local()[3]
         self.generate_loc_db_for_shelf(db_file, loc_db_file)
 
     @staticmethod

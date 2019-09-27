@@ -1,13 +1,14 @@
 ''' Accession2Taxid'''
-import gzip
-import shelve
 import dbm
-import threading
-from idseq_dag.engine.pipeline_step import PipelineStep
-from idseq_dag.util.command import run_in_subprocess
+import gzip
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.log as log
+import shelve
+import threading
+
+from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.util.command import run_in_subprocess
 from idseq_dag.util.dict import IdSeqDictForUpdate, IdSeqDictValue
 
 BATCH_INSERT_SIZE = 300
@@ -65,8 +66,14 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
         accession_mapping_files = self.input_files_local[0]
         nt_file = self.input_files_local[1][0]
         nr_file = self.input_files_local[2][0]
-        (output_gz, output_wgs_gz, accession2taxid_db,
-         taxid2wgs_accession_db) = self.output_files_local()
+        (
+            output_gz,
+            output_wgs_gz,
+            accession2taxid_db_sqlite,
+            taxid2wgs_accession_db_sqlite,
+            accession2taxid_db,
+            taxid2wgs_accession_db,
+         ) = self.output_files_local()
 
         # Get accession_list
         accessions_files = []
@@ -114,7 +121,7 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
         accessions = []  # reset accessions to release memory
 
         self.output_dicts_to_db_for_sqlite(mapping_files, wgs_accessions,
-                                           accession2taxid_db, taxid2wgs_accession_db,
+                                           accession2taxid_db_sqlite, taxid2wgs_accession_db_sqlite,
                                            output_gz, output_wgs_gz)
         self.output_dicts_to_db_for_shelf(mapping_files, wgs_accessions,
                                           accession2taxid_db, taxid2wgs_accession_db,
@@ -141,17 +148,17 @@ class PipelineStepGenerateAccession2Taxid(PipelineStep):
                                     batch_list = {}
                 accession_dict.batch_inserts(batch_list.items())
 
-        # generate taxid2 accession
-        taxid2accession_dict = {}
-        with gzip.open(output_wgs_gz, "wt") as gzf:
-            with open(wgs_accessions, 'r', encoding="utf-8") as wgsf:
-                for line in wgsf:
-                    accession = line[1:].split(".")[0]
-                    taxid = accession_dict.get(accession)
-                    if taxid:
-                        current_match = taxid2accession_dict.get(taxid, "")
-                        taxid2accession_dict[taxid] = f"{current_match},{accession}"
-                        gzf.write(line)
+            # generate taxid2 accession
+            taxid2accession_dict = {}
+            with gzip.open(output_wgs_gz, "wt") as gzf:
+                with open(wgs_accessions, 'r', encoding="utf-8") as wgsf:
+                    for line in wgsf:
+                        accession = line[1:].split(".")[0]
+                        taxid = accession_dict.get(accession)
+                        if taxid:
+                            current_match = taxid2accession_dict.get(taxid, "")
+                            taxid2accession_dict[taxid] = f"{current_match},{accession}"
+                            gzf.write(line)
 
         with IdSeqDictForUpdate(taxid2wgs_accession_db, IdSeqDictValue.VALUE_TYPE_SCALAR) as taxid2wgs_accession_dict:
             taxid2wgs_accession_dict.batch_inserts(taxid2accession_dict.items())
