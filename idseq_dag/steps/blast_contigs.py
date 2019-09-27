@@ -53,17 +53,16 @@ def intersects(needle, haystack):
     return any(hsp_overlap(needle, hay) for hay in haystack)
 
 
-class HSPGroupOptimizer:
+class CandidateHit:
 
-    def __init__(self, candidate_hsps):
-        # List of HSPs from the same query to the same subject sequence,
-        # ordered by decreasing bitscore.
-        self.hsps = candidate_hsps
+    def __init__(self, hsps):
+        '''List of HSPs from the same query to the same subject sequence, ordered by decreasing bitscore.'''
+        self.hsps = hsps
         self.optimal_set = None
         # agscores are non-negative
         self.agscore = None
 
-    def find_optimal_subset(self):
+    def find_optimal_fragment_cover(self):
         # Find a subset of disjoint HSPs with maximum sum of bitscores.
         # Initial implementation:  Super greedy.  Takes advantage of the fact
         # that blast results are sorted by bitscore, highest first.
@@ -74,7 +73,7 @@ class HSPGroupOptimizer:
         self.agscore = sum(hsp["pident"] * hsp["length"] for hsp in optimal_set)
         self.optimal_set = optimal_set
 
-    def solution_row(self):
+    def summary_row(self):
         '''Aggregate HSP data from the optimal set;  this is used later in generate_coverage_viz.'''
         r = dict(self.optimal_set[0])
         # re-define these as aggregates across the optimal set of HSPs
@@ -414,7 +413,7 @@ class PipelineStepBlastContigs(PipelineStep):
                     top_bitscore = bitscore
                     top_line = line
             if top_line is not None:
-                top_m8f.write(top_line) # TODO: Unify reranked formats for NT and NR:  .rstrip("\n") + "\t0\t0\n")
+                top_m8f.write(top_line) # TODO: Unify reranked formats for NT and NR
 
 
     @staticmethod
@@ -426,7 +425,7 @@ class PipelineStepBlastContigs(PipelineStep):
 
         Note that agscore(Q, S) is NOT the sum of bitscores in HSP(Q, S) because of concerns that cumulative bitscores might not be directly comparable across different reference sequences S.  TODO:  Document and discuss these concerns and score choices.'''
 
-        # Group blast output HSPs by (query_id, subject_id) candidate.
+        # Group blast output HSPs by (query_id, subject_id).
         HSPs = defaultdict(list)
         for hsp in m8.parse_tsv(blast_output, m8.BLAST_OUTPUT_NT_SCHEMA):
             # filter local alignment HSPs based on minimum length and sequence similarity
@@ -437,15 +436,16 @@ class PipelineStepBlastContigs(PipelineStep):
             candidate_id = (hsp["qseqid"], hsp["sseqid"])
             HSPs[candidate_id].append(hsp)
 
-        # Find the optimal subset of HSPs for each candidate, yielding that candidate's agscore.
-        # Record the highest scoring candidate for each query_id.
-        winners = {}
-        for candidate_id, candidate_hsps in HSPs.items():
-            candidate = HSPGroupOptimizer(candidate_hsps)
-            candidate.find_optimal_subset()
+        # Identify each query's optimal hit through ranking candidate hits by agscore,
+        # where a candidate hit's agscore is determined by its optimal fragment cover.
+        argmax = {}
+        for candidate_id, candidate_fragments in HSPs.items():
+            candidate_hit = CandidateHit(candidate_fragments)
+            candidate_hit.find_optimal_fragment_cover()
             (query_id, _) = candidate_id
-            if query_id not in winners or winners[query_id].agscore < candidate.agscore:
-                winners[query_id] = candidate
+            if query_id not in argmax or argmax[query_id].agscore < candidate_hit.agscore:
+                argmax[query_id] = candidate_hit
 
-        # Output the winner for each query.
-        m8.unparse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_NT_SCHEMA, (w.solution_row() for w in winners.values()))
+        # Output the optimal hit for each query.
+        m8.unparse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_NT_SCHEMA,
+                       (optimal_hit.summary_row() for optimal_hit in argmax.values()))

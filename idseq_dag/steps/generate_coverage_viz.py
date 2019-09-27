@@ -311,7 +311,7 @@ class PipelineStepGenerateCoverageViz(PipelineStep):
             if hit["qseqid"] in valid_hits:
                 # Blast output is per HSP, yet the hit represents a set of HSPs,
                 # so these fields have been aggregated across that set by
-                # function solution_row() in HSPGroupOptimizer.
+                # function summary_row() in class CandidateHit.
                 hits[hit["qseqid"]] = {
                     "accession": hit["sseqid"],
                     "percent_id": hit["pident"],
