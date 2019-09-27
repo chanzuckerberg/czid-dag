@@ -55,15 +55,15 @@ def intersects(needle, haystack):
 
 class HSPGroupOptimizer:
 
-    def __init__(self, hsps):
+    def __init__(self, candidate_hsps):
         # List of HSPs from the same query to the same subject sequence,
         # ordered by decreasing bitscore.
-        self.hsps = hsps
+        self.hsps = candidate_hsps
         self.optimal_set = None
         # agscores are non-negative
         self.agscore = None
 
-    def solve(self):
+    def find_optimal_subset(self):
         # Find a subset of disjoint HSPs with maximum sum of bitscores.
         # Initial implementation:  Super greedy.  Takes advantage of the fact
         # that blast results are sorted by bitscore, highest first.
@@ -71,16 +71,25 @@ class HSPGroupOptimizer:
         for next_hsp in self.hsps[1:]:
             if not intersects(next_hsp, optimal_set):
                 optimal_set.append(next_hsp)
-        self.agscore = sum(hsp["pident"] * hsp["hsplen"] for hsp in optimal_set)
+        self.agscore = sum(hsp["pident"] * hsp["length"] for hsp in optimal_set)
         self.optimal_set = optimal_set
 
     def solution_row(self):
+        '''Aggregate HSP data from the optimal set;  this is used later in generate_coverage_viz.'''
         r = dict(self.optimal_set[0])
-        r["hsplen"] = sum(hsp["hsplen"] for hsp in self.optimal_set)
-        r["pident"] = sum(hsp["pident"] * hsp["hsplen"] for hsp in self.optimal_set) / r["hsplen"]
+        # re-define these as aggregates across the optimal set of HSPs
+        r["length"] = sum(hsp["length"] for hsp in self.optimal_set)
+        if r["length"] == 0:
+            # it's never zero, but...
+            r["length"] = 1
+        r["pident"] = sum(hsp["pident"] * hsp["length"] for hsp in self.optimal_set) / r["length"]
         r["bitscore"] = sum(hsp["bitscore"] for hsp in self.optimal_set)
-        # these are new
-        r["qcov"] = r["hsplen"] / r["qlen"]
+        r["qstart"] = min(hsp["qstart"] for hsp in self.optimal_set)
+        r["qend"] = max(hsp["qend"] for hsp in self.optimal_set)
+        r["sstart"] = min(hsp["sstart"] for hsp in self.optimal_set)
+        r["send"] = max(hsp["send"] for hsp in self.optimal_set)
+        # add these two
+        r["qcov"] = r["length"] / r["qlen"]
         r["hsp_count"] = len(self.optimal_set)
         return r
 
@@ -97,7 +106,7 @@ class PipelineStepBlastContigs(PipelineStep):
     -query {assembled_contig}
     -db {blast_index_path}
     -out {blast_m8}
-    -outfmt '6 qseqid sseqid pident qlen slen length mismatch gapopen qstart qend sstart send evalue bitscore'
+    -outfmt '6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen'
     -evalue 1e-10
     -max_target_seqs 5000
     -num_threads 16
@@ -417,24 +426,26 @@ class PipelineStepBlastContigs(PipelineStep):
 
         Note that agscore(Q, S) is NOT the sum of bitscores in HSP(Q, S) because of concerns that cumulative bitscores might not be directly comparable across different reference sequences S.  TODO:  Document and discuss these concerns and score choices.'''
 
-        # Group the highest-scoring pairs by (query_id, subject_id).
+        # Group blast output HSPs by (query_id, subject_id) candidate.
         HSPs = defaultdict(list)
         for hsp in m8.parse_tsv(blast_output, m8.BLAST_OUTPUT_NT_SCHEMA):
-            # local HSP minimum alignmnet length filter and sequence similarity filter
-            if hsp["hsplen"] < min_alignment_length:
+            # filter local alignment HSPs based on minimum length and sequence similarity
+            if hsp["length"] < min_alignment_length:
                 continue
             if hsp["pident"] < min_pident:
                 continue
-            group_id = (hsp["qseqid"], hsp["sseqid"])
-            HSPs[group_id].append(hsp)
+            candidate_id = (hsp["qseqid"], hsp["sseqid"])
+            HSPs[candidate_id].append(hsp)
 
-        # Find the optimal subset of HSPs in each group.  This yields the group's agscore.  Note the highest score for each query_id.
+        # Find the optimal subset of HSPs for each candidate, yielding that candidate's agscore.
+        # Record the highest scoring candidate for each query_id.
         winners = defaultdict(float)
-        for group_id, candidate_hsps in HSPs.items():
-            group = HSPGroupOptimizer(candidate_hsps)
-            group.solve()
-            query_id, _ = group_id
-            if winners[query_id].agscore < group.agscore:
-                winners[query_id] = group
+        for candidate_id, candidate_hsps in HSPs.items():
+            candidate = HSPGroupOptimizer(candidate_hsps)
+            candidate.find_optimal_subset()
+            (query_id, _) = candidate_id
+            if winners[query_id].agscore < candidate.agscore:
+                winners[query_id] = candidate
 
+        # Output the winner for each query.
         m8.unparse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_NT_SCHEMA, (w.solution_row() for w in winners.values()))

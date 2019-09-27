@@ -305,24 +305,24 @@ class PipelineStepGenerateCoverageViz(PipelineStep):
         if os.path.getsize(m8_file) < MIN_M8_FILE_SIZE:
             return hits
 
-        # iterate_m8 automatically removes invalid hits.
-        # FIXME:  blast_top_m8 doesn't have this format
-        for (hit_id, accession_id, percent_id, alignment_length, num_mismatches, num_gaps,
-             query_start, query_end, subject_start, subject_end, _e_value, _bitscore, _line) in m8.iterate_m8(m8_file, full_line=True):
+        # See m8.BLAST_OUTPUT_SCHEMA for the m8_file format.
+        for hit in m8.parse_tsv(m8_file, m8.RERANKED_BLAST_OUTPUT_SCHEMA['nt']):  # Only runs for NT
 
-            if hit_id in valid_hits:
-                # Map the hit_id to a dict of hit data.
-                hits[hit_id] = {
-                    "accession": accession_id,
-                    "percent_id": percent_id,
-                    "alignment_length": alignment_length,
-                    "num_mismatches": num_mismatches,
-                    "num_gaps": num_gaps,
-                    "query_start": query_start,
-                    "query_end": query_end,
-                    "subject_start": subject_start,
-                    "subject_end": subject_end,
-                    "prop_mismatch": num_mismatches / alignment_length,
+            if hit["qseqid"] in valid_hits:
+                # Blast output is per HSP, yet the hit represents a set of HSPs,
+                # so these fields have been aggregated across that set by
+                # function solution_row() in HSPGroupOptimizer.
+                hits[hit["qseqid"]] = {
+                    "accession": hit["sseqid"],
+                    "percent_id": hit["pident"],
+                    "alignment_length": hit["length"],
+                    "num_mismatches": hit["mismatch"],
+                    "num_gaps": hit["gapopen"],
+                    "query_start": hit["qstart"],
+                    "query_end": hit["qend"],
+                    "subject_start": hit["sstart"],
+                    "subject_end": hit["send"],
+                    "prop_mismatch": hit["mismatch"] / max(1, hit["length"]),
                 }
 
         return hits

@@ -11,7 +11,9 @@ import idseq_dag.util.lineage as lineage
 
 from idseq_dag.util.dict import IdSeqDictValue, open_file_db_by_extension
 
-# Output of blastn format 6
+
+# blastn output format 6 as documented in
+# http://www.metagenomics.wiki/tools/blast/blastn-output-format-6
 BLAST_OUTPUT_SCHEMA = {
     "qseqid": str,
     "sseqid": str,
@@ -20,7 +22,6 @@ BLAST_OUTPUT_SCHEMA = {
     "mismatch": int,
     "gapopen": int,
     "qstart": int,
-    "qlen": int,
     "qend": int,
     "sstart": int,
     "send": int,
@@ -29,17 +30,17 @@ BLAST_OUTPUT_SCHEMA = {
 }
 
 
-# Additional fields helpful for grouping HSPs to rerank blast results similar to web-blast.
+# Additional blastn output columns.
 BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_SCHEMA).update({
-    "slen": int,
-    "hsplen": int,
+    "qlen": int,      # query sequence length, helpful for computing qcov
+    "slen": int,      # subject sequence length, unused...
 })
 
 
-# Re-ranked output of blastn, one row per query with just the winner reference (aka subject) sequence for the query.
+# Re-ranked output of blastn.  One row per query.  Two additional columns.
 RERANKED_BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_NT_SCHEMA).update({
-    "qcov": float,
-    "hsp_count": int
+    "qcov": float,     # fraction of query covered by the optimal set of HSPs
+    "hsp_count": int   # cardinality of the optimal set of HSPs for query;  see HSPGroupOptimizer
 })
 
 
@@ -50,25 +51,33 @@ RERANKED_BLAST_OUTPUT_SCHEMA = {
 
 
 def parse_tsv(path, schema, expect_headers=False, raw_lines=False):
-    # Yield the tab-separated values from each input line as a dictionary matching the schema.
-    assert expect_headers == False, "Header row not yet implemented.  Fortunately, not yet used."
+    '''Parse TSV file with given schema, yielding a dict per line.  See BLAST_OUTPUT_SCHEMA, for example.  When expect_headers=True, treat the first line as column headers.'''
+    assert expect_headers == False, "Headers not yet implemented."
     schema_items = schema.items()
     with open(path, "r") as stream:
-        for raw_line in stream:
-            row = raw_line.rstrip("\n").split("\t")
-            assert len(row) == len(schema)
-            row_dict = {cname: ctype(vstr) for vstr, (cname, ctype) in zip(row, schema_items)}
+        for line_number, raw_line in enumerate(stream):
+            try:
+                row = raw_line.rstrip("\n").split("\t")
+                assert len(row) == len(schema)
+                row_dict = {cname: ctype(vstr) for vstr, (cname, ctype) in zip(row, schema_items)}
+            except:
+                msg = f"{path}:{line_number + 1}:  Parse error.  Input does not conform to schema: {schema}"
+                log.write(msg, warning=True)
+                raise
+            # TODO:  Because we want this to be equally useful for blastn output, rapsearch output,
+            # or anything else with this format, we don't want to bake-in any real filters.
+            # Perhaps take filter predicate lambda as an argument.
             if raw_lines:
                 yield row_dict, raw_line
             else:
                 yield row_dict
 
 
-def unparse_tsv(path, schema, row_dicts):
+def unparse_tsv(path, schema, rows_generator):
     schema_keys = schema.keys()
-    with open(path, 'w') as f:
-        for row in row_dicts:
-            f.write("\t".join(str(row[k]) for k in schema_keys) + "\n")
+    with open(path, 'w') as stream:
+        for row in rows_generator:
+            stream.write("\t".join(str(row[k]) for k in schema_keys) + "\n")
 
 
 def log_corrupt(m8_file, line):
@@ -104,6 +113,9 @@ def summarize_hits(hit_summary_file, min_reads_per_genus=0):
 
     return (read_dict, accession_dict, selected_genera)
 
+
+# TODO:  Deprecate this iterate_m8() function, particularly its debug switches and modes,
+# in favor of the better encapsulated and more flexible parse_tsv() above.
 def iterate_m8(m8_file, min_alignment_length=0, debug_caller=None, logging_interval=25000000, full_line=False):
     """Generate an iterator over the m8 file and return values for each line.
     Work around and warn about any invalid hits detected.
