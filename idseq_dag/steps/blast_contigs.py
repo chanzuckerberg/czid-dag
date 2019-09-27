@@ -44,7 +44,7 @@ def query_interval(row):
 
 
 def hsp_overlap(hsp_1, hsp_2):
-    # Let's worry about subject (reference) sequence overlap later.
+    # TODO:  Should we take into account subject_interval overlap?
     return intervals_overlap(query_interval(hsp_1), query_interval(hsp_2))
 
 
@@ -439,12 +439,12 @@ class PipelineStepBlastContigs(PipelineStep):
 
         # Find the optimal subset of HSPs for each candidate, yielding that candidate's agscore.
         # Record the highest scoring candidate for each query_id.
-        winners = defaultdict(float)
+        winners = {}
         for candidate_id, candidate_hsps in HSPs.items():
             candidate = HSPGroupOptimizer(candidate_hsps)
             candidate.find_optimal_subset()
             (query_id, _) = candidate_id
-            if winners[query_id].agscore < candidate.agscore:
+            if query_id not in winners or winners[query_id].agscore < candidate.agscore:
                 winners[query_id] = candidate
 
         # Output the winner for each query.
