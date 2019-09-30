@@ -33,14 +33,15 @@ def intervals_overlap(p, q):
     p_len = p[1] - p[0]
     q_len = q[1] - q[0]
     shorter_len = min(p_len, q_len)
-    intersection_len = max(0.0, min(p[1], q[1]) - max(p[0], q[0]))
+    intersection_len = max(0, min(p[1], q[1]) - max(p[0], q[0]))
     return intersection_len > (NT_MIN_OVERLAP_FRACTION * shorter_len)
 
 
 def query_interval(row):
     # decode HSP query interval
     # depending on strand, qstart and qend may be reversed
-    return sorted([row["qstart"], row["qend"]])
+    q = (row["qstart"], row["qend"])
+    return min(*q), max(*q)
 
 
 def hsp_overlap(hsp_1, hsp_2):
@@ -435,7 +436,7 @@ class PipelineStepBlastContigs(PipelineStep):
         # alignment with no gaps that achieves one of the highest alignment scores
         # in a given search.
         #
-        # The output of BLAST consits of one HSP per line, where lines corresponding
+        # The output of BLAST consists of one HSP per line, where lines corresponding
         # to the same (query, subject) pair are ordered by decreasing bitscore.
         #
         # See http://www.metagenomics.wiki/tools/blast/blastn-output-format-6

@@ -33,7 +33,7 @@ BLAST_OUTPUT_SCHEMA = {
 # Additional blastn output columns.
 BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_SCHEMA).update({
     "qlen": int,      # query sequence length, helpful for computing qcov
-    "slen": int,      # subject sequence length, unused...
+    "slen": int,      # subject sequence length, so far unused in IDseq
 })
 
 
