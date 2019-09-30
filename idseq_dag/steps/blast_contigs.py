@@ -155,8 +155,7 @@ class PipelineStepBlastContigs(PipelineStep):
             return #FIXME return in the middle of the function
 
         (read_dict, accession_dict, _selected_genera) = m8.summarize_hits(hit_summary)
-        PipelineStepBlastContigs.run_blast(db_type, assembled_contig, reference_fasta,
-                                           blast_m8, blast_top_m8)
+        PipelineStepBlastContigs.run_blast(db_type, blast_m8, assembled_contig, reference_fasta, blast_top_m8)
         read2contig = {}
         contig_stats = defaultdict(int)
         PipelineStepRunAssembly.generate_info_from_sam(bowtie_sam, read2contig, contig_stats)
@@ -200,12 +199,13 @@ class PipelineStepBlastContigs(PipelineStep):
         self.additional_files_to_upload.append(contig2lineage_json)
 
     @staticmethod
-    def run_blast(db_type, *args):
+    def run_blast(db_type, blast_m8, *args):
+        blast_index_path = os.path.join(os.path.dirname(blast_m8), f"{db_type}_blastindex")
         if db_type == 'nt':
-            PipelineStepBlastContigs.run_blast_nt(db_type, *args)
+            PipelineStepBlastContigs.run_blast_nt(blast_index_path, blast_m8, *args)
         else:
             assert db_type == 'nr'
-            PipelineStepBlastContigs.run_blast_nr(db_type, *args)
+            PipelineStepBlastContigs.run_blast_nr(blast_index_path, blast_m8, *args)
 
     @staticmethod
     def generate_taxon_summary(read2contig, contig2lineage, read_dict, added_reads_dict, db_type):
@@ -308,8 +308,7 @@ class PipelineStepBlastContigs(PipelineStep):
 
 
     @staticmethod
-    def run_blast_nt(db_type, assembled_contig, reference_fasta, blast_m8, blast_top_m8):
-        blast_index_path = os.path.join(os.path.dirname(blast_m8), f"{db_type}_blastindex")
+    def run_blast_nt(blast_index_path, blast_m8, assembled_contig, reference_fasta, blast_top_m8):
         blast_type = 'nucl'
         blast_command = 'blastn'
         min_alignment_length = NT_MIN_ALIGNMENT_LEN
@@ -353,8 +352,7 @@ class PipelineStepBlastContigs(PipelineStep):
 
 
     @staticmethod
-    def run_blast_nr(db_type, assembled_contig, reference_fasta, blast_m8, blast_top_m8):
-        blast_index_path = os.path.join(os.path.dirname(blast_m8), f"{db_type}_blastindex")
+    def run_blast_nr(blast_index_path, blast_m8, assembled_contig, reference_fasta, blast_top_m8):
         blast_type = 'prot'
         blast_command = 'blastx'
         command.execute(
@@ -419,11 +417,29 @@ class PipelineStepBlastContigs(PipelineStep):
     @staticmethod
     def get_top_m8_nt(blast_output, blast_top_m8, min_alignment_length, min_pident):
         '''
-        For each contig Q (query) and reference S (subject), extend the highest-scoring fragment alignment of Q to S with other non-overlapping fragments as far as possible, to maximize cumulative bitscore while avoiding overlap in Q.
+        For each contig Q (query) and reference S (subject), extend the highest-scoring
+        fragment alignment of Q to S with other non-overlapping fragments as far as
+        possible, forming a set of fragments called HSPs(Q, S) that maximizes cumulative
+        bitscore while avoiding overlap in Q.
 
-        For each Q, output the S with highest agscore(Q, S), which is defined as the number of matching base pairs in all fragments that belong to HSP(Q, S).
+        For each Q, output the S with highest agscore(Q, S), which is defined as the
+        number of matching base pairs in all fragments that belong to HSPs(Q, S).
 
-        Note that agscore(Q, S) is NOT the sum of bitscores in HSP(Q, S) because of concerns that cumulative bitscores might not be directly comparable across different reference sequences S.  TODO:  Document and discuss these concerns and score choices.'''
+        Note that agscore(Q, S) is NOT the sum of bitscores in HSPs(Q, S) because of
+        concerns that cumulative bitscores might not be directly comparable across
+        different reference sequences S.
+
+        TODO:  Document and discuss these concerns and score choices.'''
+
+        # HSP is a BLAST term that stands for "highest-scoring pair", i.e., a local
+        # alignment with no gaps that achieves one of the highest alignment scores
+        # in a given search.
+        #
+        # The output of BLAST consits of one HSP per line, where lines corresponding
+        # to the same (query, subject) pair are ordered by decreasing bitscore.
+        #
+        # See http://www.metagenomics.wiki/tools/blast/blastn-output-format-6
+        # for documentation of Blast output.
 
         # Group blast output HSPs by (query_id, subject_id).
         HSPs = defaultdict(list)
