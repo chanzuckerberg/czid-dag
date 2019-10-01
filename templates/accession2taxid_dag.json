@@ -30,6 +30,18 @@
       "nr_loc.sqlite3",
       "nr_info.sqlite3",
       "nr_loc.db"
+    ],
+    "accession2taxid_out_lz4": [
+      "accession2taxid.sqlite3",
+      "taxid2wgs_accession.sqlite3",
+      "accession2taxid.db",
+      "taxid2wgs_accession.db"
+      "nt_loc.sqlite3",
+      "nt_info.sqlite3",
+      "nt_loc.db",
+      "nr_loc.sqlite3",
+      "nr_info.sqlite3",
+      "nr_loc.db"
     ]
   },
   "steps": [
@@ -56,7 +68,12 @@
       "module": "idseq_dag.steps.generate_loc_db",
       "additional_files": {},
       "additional_attributes": {}
+    },
+    {
+      "in": ["accession2taxid_out", "nt_loc_out", "nr_loc_out"],
+      "out": ["accession2taxid_out_lz4"]
     }
+
   ],
   "given_targets": {
     "accession2taxid_input": {

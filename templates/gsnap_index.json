@@ -4,8 +4,11 @@
     "nt_db": [
       "nt"
     ],
-    "nt_index_tar": [ 
+    "nt_index_tar": [
        "nt_k16.tar"
+    ],
+    "nt_lz4": [
+      "nt.lz4"
     ]
   },
   "steps": [
@@ -16,6 +19,14 @@
       "module": "idseq_dag.steps.generate_gsnap_index",
       "additional_files": {},
       "additional_attributes": {"k": 16}
+    },
+    {
+      "in": ["nt_db"],
+      "out": "nt_lz4",
+      "class": "PipelineStepGenerateLZ4",
+      "module": "idseq_dag.steps.generate_lz4",
+      "additional_files": {},
+      "additional_attributes": {}
     }
   ],
   "given_targets": {
