@@ -1,11 +1,10 @@
-import abc
-import idseq_dag.util.log as log
-import json
+from typing import List, Union, Dict, Any
 import os
-import subprocess
-
+import json
+import abc
 from collections.abc import Iterable
-from typing import Any, Dict, List, Union
+import subprocess
+import idseq_dag.util.log as log
 
 class CommandPattern(abc.ABC):
     r'''
@@ -20,7 +19,7 @@ class CommandPattern(abc.ABC):
     def __repr__(self):
         r'''
             Returns a more descriptive message when printing this object.
-            for example:
+            for example: 
                 cp = command_patterns.SingleCommand(cmd="echo", args=["test"])
                 print(cp)
             will return something like:
@@ -39,14 +38,10 @@ class CommandPattern(abc.ABC):
         '''
         return {'type': type(self).__name__, 'caller_info': self.caller_info}
 
-    def as_test_str(self):
-        """This method is used to generate a string as it would constructed on the command line."""
-        raise NotImplementedError
-
 
 class SingleCommand(CommandPattern):
     r'''
-        This pattern is used to execute a single command.
+        This pattern is used to execute a single command. 
         This is the preferred pattern and you should favor it over ShellScriptCommand,
         since you don't need to quote parameters when using SingleCommand.
 
@@ -86,9 +81,6 @@ class SingleCommand(CommandPattern):
         result = {'cmd': self.cmd, 'args': self.args, 'cd': self.cd or os.curdir}
         result.update(super().as_dict())
         return result
-
-    def as_test_str(self):
-        return ' '.join(self._command_args())
 
 
 class ShellScriptCommand(CommandPattern):
