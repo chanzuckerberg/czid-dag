@@ -15,7 +15,7 @@ class PipelineStepGenerateLZ4(PipelineStep):
         for file_list in self.input_files:
             for input_file in file_list:
                 if input_file.endswith(('.gz', '.zip', '.lz4')):
-                    log.write(f'Skipping already-compressed file {input_file}')
+                    log.log_event(f'Skipping already-compressed file {input_file}')
                 else:
                     path = os.path.join(self.output_dir_local, input_file)
                     command.execute(self.get_command(path))
