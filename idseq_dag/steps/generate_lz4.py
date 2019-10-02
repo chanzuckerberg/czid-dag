@@ -1,4 +1,5 @@
 """Generate lz4 file given input file"""
+import os
 
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
@@ -16,7 +17,8 @@ class PipelineStepGenerateLZ4(PipelineStep):
                 if input_file.endswith(('.gz', '.zip', '.lz4')):
                     log.write(f'Skipping already-compressed file {input_file}')
                 else:
-                    command.execute(self.get_command(input_file))
+                    path = os.path.join(self.output_dir_local, input_file)
+                    command.execute(self.get_command(path))
 
     def get_command(self, input_file):
         log.write(f"input: {input_file} output: {input_file}.lz4")
