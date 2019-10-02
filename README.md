@@ -227,9 +227,6 @@ TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
 
-- 3.11.0
-  - Use new NCBI indices, dated 2019-09-17
-
 - 3.10.1
   - Increase GSNAP threads to 48 for better utilization of r5d.metal instances.
 
