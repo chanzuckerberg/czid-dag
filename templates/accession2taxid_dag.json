@@ -71,7 +71,7 @@
     },
     {
       "in": ["accession2taxid_out", "nt_loc_out", "nr_loc_out"],
-      "out": ["accession2taxid_out_lz4"]
+      "out": "accession2taxid_out_lz4"
     }
 
   ],
