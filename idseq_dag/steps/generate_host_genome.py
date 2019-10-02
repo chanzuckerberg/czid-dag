@@ -142,7 +142,8 @@ class PipelineStepGenerateHostGenome(PipelineStep):
                 '--runThreadN',
                 str(multiprocessing.cpu_count()), '--runMode', 'genomeGenerate',
                 *gtf_command_part, '--genomeDir', star_genome_part_dir,
-                '--genomeFastaFiles', fasta_file_list[i]
+                '--genomeFastaFiles', fasta_file_list[i],
+                '--limitGenomeGenerateRAM', os.path.getsize(fasta_file)
             ]
             command.execute(
                 command_patterns.SingleCommand(
