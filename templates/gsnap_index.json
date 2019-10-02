@@ -6,9 +6,6 @@
     ],
     "nt_index_tar": [
        "nt_k16.tar"
-    ],
-    "nt_lz4": [
-      "nt.lz4"
     ]
   },
   "steps": [
