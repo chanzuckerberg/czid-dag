@@ -32,16 +32,16 @@
       "nr_loc.db"
     ],
     "accession2taxid_out_lz4": [
-      "accession2taxid.sqlite3",
-      "taxid2wgs_accession.sqlite3",
-      "accession2taxid.db",
-      "taxid2wgs_accession.db",
-      "nt_loc.sqlite3",
-      "nt_info.sqlite3",
-      "nt_loc.db",
-      "nr_loc.sqlite3",
-      "nr_info.sqlite3",
-      "nr_loc.db"
+      "accession2taxid.sqlite3.lz4",
+      "taxid2wgs_accession.sqlite3.lz4",
+      "accession2taxid.db.lz4",
+      "taxid2wgs_accession.db.lz4",
+      "nt_loc.sqlite3.lz4",
+      "nt_info.sqlite3.lz4",
+      "nt_loc.db.lz4",
+      "nr_loc.sqlite3.lz4",
+      "nr_info.sqlite3.lz4",
+      "nr_loc.db.lz4"
     ]
   },
   "steps": [
