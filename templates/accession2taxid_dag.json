@@ -35,7 +35,7 @@
       "accession2taxid.sqlite3",
       "taxid2wgs_accession.sqlite3",
       "accession2taxid.db",
-      "taxid2wgs_accession.db"
+      "taxid2wgs_accession.db",
       "nt_loc.sqlite3",
       "nt_info.sqlite3",
       "nt_loc.db",

@@ -8,7 +8,7 @@
        "nr_rapsearch"
     ],
     "nr_index_lz4": [
-      "nr_rapsearch.lz4",
+      "nr_rapsearch.lz4"
     ]
   },
   "steps": [
