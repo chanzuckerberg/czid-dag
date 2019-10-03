@@ -56,6 +56,7 @@ class PipelineStepRunLZW(PipelineStep):
     #     Residual standard error: 0.01952 on 61 degrees of freedom
     #     Multiple R-squared:  0.9291,    Adjusted R-squared:  0.928 
     #     F-statistic: 799.7 on 1 and 61 DF,  p-value: < 2.2e-16
+    @staticmethod
     def predict_lzw(read_length):
         return -0.113148 * log(read_length) + 1.043456
 
@@ -94,7 +95,7 @@ class PipelineStepRunLZW(PipelineStep):
             # Make sure longer reads don't get excessively penalized
             #adjustment_heuristic = (1 + (seq_length - threshold_readlength) / 1000) # TODO: revisit
             #score = lzw_fraction * adjustment_heuristic
-            predicted_score = predict_lzw(seq_length)
+            predicted_score = PipelineStepRunLZW.predict_lzw(seq_length)
             delta = cutoff - predicted_score
             score = lzw_fraction + delta
         else:
