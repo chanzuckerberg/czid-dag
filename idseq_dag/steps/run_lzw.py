@@ -9,6 +9,7 @@ import idseq_dag.util.log as log
 import idseq_dag.util.count as count
 import idseq_dag.util.fasta as fasta
 from idseq_dag.util.thread_with_result import mt_map
+import math
 
 
 class PipelineStepRunLZW(PipelineStep):
@@ -58,7 +59,7 @@ class PipelineStepRunLZW(PipelineStep):
     #     F-statistic: 799.7 on 1 and 61 DF,  p-value: < 2.2e-16
     @staticmethod
     def predict_lzw(read_length):
-        return -0.113148 * log(read_length) + 1.043456
+        return -0.113148 * math.log(read_length) + 1.043456
 
     @staticmethod
     def lzw_score(sequence, threshold_readlength, cutoff):
