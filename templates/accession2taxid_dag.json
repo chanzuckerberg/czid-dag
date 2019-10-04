@@ -31,7 +31,7 @@
       "nr_info.sqlite3",
       "nr_loc.db"
     ],
-    "accession2taxid_out_lz4": [
+    "lz4_out": [
       "accession2taxid.sqlite3.lz4",
       "taxid2wgs_accession.sqlite3.lz4",
       "accession2taxid.db.lz4",
@@ -71,7 +71,7 @@
     },
     {
       "in": ["accession2taxid_out", "nt_loc_out", "nr_loc_out"],
-      "out": "accession2taxid_out_lz4",
+      "out": "lz4_out",
       "class": "PipelineStepGenerateLZ4",
       "module": "idseq_dag.steps.generate_lz4",
       "additional_files": {},

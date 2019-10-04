@@ -12,13 +12,12 @@ class PipelineStepGenerateLZ4(PipelineStep):
     def run(self):
         # lz4 is "scalable with multi-cores CPU" so we let it parallelize
         # itself. See https://github.com/lz4/lz4 .
-        for file_list in self.input_files:
+        for file_list in self.input_files_local:
             for input_file in file_list:
                 if input_file.endswith(('.gz', '.zip', '.lz4')):
                     log.log_event(f'Skipping already-compressed file {input_file}')
                 else:
-                    path = os.path.join(self.output_dir_local, input_file)
-                    command.execute(self.get_command(path))
+                    command.execute(self.get_command(input_file))
 
     def get_command(self, input_file):
         log.write(f"input: {input_file} output: {input_file}.lz4")
