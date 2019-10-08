@@ -15,12 +15,12 @@ import math
 class PipelineStepRunLZW(PipelineStep):
     """ Remove low-complexity reads to mitigate challenges in aligning repetitive sequences.
 
-    LZW refers to the Lempel-Ziv-Welch (LZW) algorithm, which provides loss-less data compression. 
-    The ratio of LZW-compressed sequence length to the original sequence length is computed for each read. 
-    Reads with a compression ratio greater than the specified threshold of 0.45 are retained. 
-    In the case where all reads are filtered by this threshold, a reduced threshold of 0.42 is used. 
-    If reads are greater than 150 basepairs long, the LZW score is scaled to avoid penalizing long reads. 
-    In particular, for reads longer that 150 basepairs, the raw LZW score is multiplied by the 
+    LZW refers to the Lempel-Ziv-Welch (LZW) algorithm, which provides loss-less data compression.
+    The ratio of LZW-compressed sequence length to the original sequence length is computed for each read.
+    Reads with a compression ratio greater than the specified threshold of 0.45 are retained.
+    In the case where all reads are filtered by this threshold, a reduced threshold of 0.42 is used.
+    If reads are greater than 150 basepairs long, the LZW score is scaled to avoid penalizing long reads.
+    In particular, for reads longer that 150 basepairs, the raw LZW score is multiplied by the
     adjustment_heuristic = (1 + (seq_length - 150) / 1000).
     """
 
@@ -53,9 +53,12 @@ class PipelineStepRunLZW(PipelineStep):
         self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
 
     # predict LZW score from sequence length based on model fit to mean LZW score across mean lengths
+    # Across a total of 63 samples with varying read legths, the average read length and LZW compression 
+    #     score were computed for the first 500 reads. From these values, a linear model was fit using
+    #     the R stats package.
     # model formula: lm(formula = y ~ log(x))
     #     Residual standard error: 0.01952 on 61 degrees of freedom
-    #     Multiple R-squared:  0.9291,    Adjusted R-squared:  0.928 
+    #     Multiple R-squared:  0.9291,    Adjusted R-squared:  0.928
     #     F-statistic: 799.7 on 1 and 61 DF,  p-value: < 2.2e-16
     @staticmethod
     def predict_lzw(read_length):
