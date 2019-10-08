@@ -1,6 +1,7 @@
 ''' Generate Host Genome given a fasta'''
 import os
 import multiprocessing
+from psutil import virtual_memory
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
@@ -143,7 +144,7 @@ class PipelineStepGenerateHostGenome(PipelineStep):
                 str(multiprocessing.cpu_count()), '--runMode', 'genomeGenerate',
                 *gtf_command_part, '--genomeDir', star_genome_part_dir,
                 '--genomeFastaFiles', fasta_file_list[i],
-                '--limitGenomeGenerateRAM', os.path.getsize(fasta_file)
+                '--limitGenomeGenerateRAM', virtual_memory().available
             ]
             command.execute(
                 command_patterns.SingleCommand(
