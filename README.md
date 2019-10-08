@@ -230,7 +230,13 @@ TODO: Move this code over to the idseq-dag repo.
 - 3.11.0
   - Modify the LZW filter to apply a more stringent cutoff at higher read lengths. 
 
-- 3.10
+- 3.10.2
+  - Better logging for a rare AMR bug.
+
+- 3.10.1
+  - Increase GSNAP threads to 48 for better utilization of r5d.metal instances.
+
+- 3.10.0
   - Apply a length filter, requiring all NT alignments (GSNAP and BLAST) be >= 36 nucleotides long.
 
 - 3.9.4
