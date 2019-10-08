@@ -3,9 +3,7 @@
   "targets": {
     "accession2taxid_input": [
       "nucl_wgs.accession2taxid.gz",
-      "nucl_est.accession2taxid.gz",
       "nucl_gb.accession2taxid.gz",
-      "nucl_gss.accession2taxid.gz",
       "pdb.accession2taxid.gz",
       "prot.accession2taxid.gz"
     ],
@@ -19,15 +17,31 @@
       "accession2taxid.gz",
       "accession2taxid_wgs.gz",
       "accession2taxid.sqlite3",
-      "taxid2wgs_accession.sqlite3"
+      "taxid2wgs_accession.sqlite3",
+      "accession2taxid.db",
+      "taxid2wgs_accession.db"
     ],
     "nt_loc_out": [
       "nt_loc.sqlite3",
-      "nt_info.sqlite3"
+      "nt_info.sqlite3",
+      "nt_loc.db"
     ],
     "nr_loc_out": [
       "nr_loc.sqlite3",
-      "nr_info.sqlite3"
+      "nr_info.sqlite3",
+      "nr_loc.db"
+    ],
+    "lz4_out": [
+      "accession2taxid.sqlite3.lz4",
+      "taxid2wgs_accession.sqlite3.lz4",
+      "accession2taxid.db.lz4",
+      "taxid2wgs_accession.db.lz4",
+      "nt_loc.sqlite3.lz4",
+      "nt_info.sqlite3.lz4",
+      "nt_loc.db.lz4",
+      "nr_loc.sqlite3.lz4",
+      "nr_info.sqlite3.lz4",
+      "nr_loc.db.lz4"
     ]
   },
   "steps": [
@@ -54,7 +68,16 @@
       "module": "idseq_dag.steps.generate_loc_db",
       "additional_files": {},
       "additional_attributes": {}
+    },
+    {
+      "in": ["accession2taxid_out", "nt_loc_out", "nr_loc_out"],
+      "out": "lz4_out",
+      "class": "PipelineStepGenerateLZ4",
+      "module": "idseq_dag.steps.generate_lz4",
+      "additional_files": {},
+      "additional_attributes": {}
     }
+
   ],
   "given_targets": {
     "accession2taxid_input": {
