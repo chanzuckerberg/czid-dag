@@ -94,8 +94,6 @@ class PipelineStepRunLZW(PipelineStep):
 
         if seq_length > threshold_readlength:
             # Make sure longer reads don't get excessively penalized
-            #adjustment_heuristic = (1 + (seq_length - threshold_readlength) / 1000) # TODO: revisit
-            #score = lzw_fraction * adjustment_heuristic
             predicted_score = PipelineStepRunLZW.predict_lzw(seq_length)
             delta = cutoff - predicted_score
             score = lzw_fraction + delta

@@ -227,6 +227,9 @@ TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
 
+- 3.11.0
+  - Modify the LZW filter to apply a more stringent cutoff at higher read lengths. 
+
 - 3.10
   - Apply a length filter, requiring all NT alignments (GSNAP and BLAST) be >= 36 nucleotides long.
 
