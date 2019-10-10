@@ -24,8 +24,20 @@ NT_MIN_OVERLAP_FRACTION = 0.1
 # TODO: Nevertheless, it may be useful to re-filter blastx results.
 NT_MIN_ALIGNMENT_LEN = 36
 
-# Ignore NT local alignments with sequence similarity below 90%.
-NT_MIN_PIDENT = 90
+# Ignore NT local alignments (in blastn) with sequence similarity below 80%.
+#
+# Considerations:
+#
+#   This should be no higher than the equivalent threshold for GSNAP. That way, if
+#   BLAST finds a better alignment for the contig than GSNAP found for some of the
+#   reads, the BLAST result wouldn't be discarded in favor of an inferior GSNAP
+#   result for those reads.
+#
+#   Conversely, this threshold should be pretty high, with experts agreeing that
+#   a match with lesser than 80% quality here should likely be left for NR/blastx
+#   to identify.
+#
+NT_MIN_PIDENT = 80
 
 
 def intervals_overlap(p, q):
@@ -58,6 +70,7 @@ class CandidateHit:
 
     def __init__(self, hsps):
         '''List of HSPs from the same query to the same subject sequence, ordered by decreasing bitscore.'''
+        # See the comment starting with "HSP is a BLAST term" below for a definition of HSP.
         self.hsps = hsps
         self.optimal_set = None
         # agscores are non-negative
