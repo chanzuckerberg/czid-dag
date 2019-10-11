@@ -21,7 +21,7 @@ NT_MIN_OVERLAP_FRACTION = 0.1
 
 # NT alginments with shorter length are associated with a high rate of false positives.
 # NR doesn't have this problem because Rapsearch contains an equivalent filter.
-# TODO: Nevertheless, it may be useful to re-filter blastx results.
+# Nevertheless, it may be useful to re-filter blastx results.
 NT_MIN_ALIGNMENT_LEN = 36
 
 # Ignore NT local alignments (in blastn) with sequence similarity below 80%.
@@ -61,7 +61,7 @@ def query_interval(row):
 
 
 def hsp_overlap(hsp_1, hsp_2):
-    # TODO:  Should we take into account subject_interval overlap?
+    # Should we take into account subject_interval overlap?
     return intervals_overlap(query_interval(hsp_1), query_interval(hsp_2))
 
 
@@ -86,7 +86,7 @@ class Candidate:
         self.optimal_cover = [self.hsps[0]]
         for next_hsp in self.hsps[1:]:
             if not intersects(next_hsp, self.optimal_cover):
-                optimal_cover.append(next_hsp)
+                self.optimal_cover.append(next_hsp)
         self.agscore = sum(hsp["pident"] * hsp["length"] for hsp in self.optimal_cover)
 
     def summary_row(self):
@@ -168,7 +168,7 @@ class PipelineStepBlastContigs(PipelineStep):
             command.copy_file(hit_summary, refined_hit_summary)
             command.copy_file(orig_counts, refined_counts)
             command.write_text_to_file('[]', contig_summary_json)
-            return #FIXME return in the middle of the function
+            return # return in the middle of the function
 
         (read_dict, accession_dict, _selected_genera) = m8.summarize_hits(hit_summary)
         PipelineStepBlastContigs.run_blast(db_type, blast_m8, assembled_contig, reference_fasta, blast_top_m8)
@@ -427,7 +427,7 @@ class PipelineStepBlastContigs(PipelineStep):
                     top_bitscore = bitscore
                     top_line = line
             if top_line is not None:
-                top_m8f.write(top_line) # TODO: Unify reranked formats for NT and NR
+                top_m8f.write(top_line) # Unify reranked formats for NT and NR
 
 
     @staticmethod
