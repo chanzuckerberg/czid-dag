@@ -28,14 +28,12 @@ NT_MIN_ALIGNMENT_LEN = 36
 #
 # Considerations:
 #
-#   This should be no higher than the equivalent threshold for GSNAP. That way, if
-#   BLAST finds a better alignment for the contig than GSNAP found for some of the
-#   reads, the BLAST result wouldn't be discarded in favor of an inferior GSNAP
-#   result for those reads.
+#   Should not exceed the equivalent threshold for GSNAP.  Otherwise, contigs that
+#   fail the higher BLAST standard would fall back on inferior results from GSNAP.
 #
-#   Conversely, this threshold should be pretty high, with experts agreeing that
-#   a match with lesser than 80% quality here should likely be left for NR/blastx
-#   to identify.
+#   Experts agree that any NT match with less than 80% identity can be safely ignored.
+#   For such highly divergent sequences, we should hope protein search finds a better
+#   match than nucleotide search.
 #
 NT_MIN_PIDENT = 80
 
