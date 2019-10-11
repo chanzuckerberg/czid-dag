@@ -4,6 +4,7 @@ import math
 import random
 from collections import defaultdict
 from collections import Counter
+from functools import reduce
 
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
@@ -31,14 +32,14 @@ BLAST_OUTPUT_SCHEMA = {
 
 
 # Additional blastn output columns.
-BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_SCHEMA).update({
+BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_SCHEMA, **{
     "qlen": int,      # query sequence length, helpful for computing qcov
     "slen": int,      # subject sequence length, so far unused in IDseq
 })
 
 
 # Re-ranked output of blastn.  One row per query.  Two additional columns.
-RERANKED_BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_NT_SCHEMA).update({
+RERANKED_BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_NT_SCHEMA, **{
     "qcov": float,     # fraction of query covered by the optimal set of HSPs
     "hsp_count": int   # cardinality of optimal fragment cover;  see CandidateHit
 })

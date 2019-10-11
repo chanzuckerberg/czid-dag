@@ -49,6 +49,12 @@ def intervals_overlap(p, q):
     return intersection_len > (NT_MIN_OVERLAP_FRACTION * shorter_len)
 
 
+# Note:  HSP is a BLAST term that stands for "highest-scoring pair", i.e., a local
+# alignment with no gaps that achieves one of the highest alignment scores
+# in a given search.  Each HSP spans an interval in the query sequence as well
+# as an interval in the subject sequence.
+
+
 def query_interval(row):
     # decode HSP query interval
     # depending on strand, qstart and qend may be reversed
@@ -66,13 +72,12 @@ def intersects(needle, haystack):
     return any(hsp_overlap(needle, hay) for hay in haystack)
 
 
-class CandidateHit:
+class Candidate:
+    '''A list of blast highest-scoring pairs (HSPs) from the same query to the same subject sequence (candidate), ordered by decreasing bitscore.'''
 
     def __init__(self, hsps):
-        '''List of HSPs from the same query to the same subject sequence, ordered by decreasing bitscore.'''
-        # See the comment starting with "HSP is a BLAST term" below for a definition of HSP.
         self.hsps = hsps
-        self.optimal_set = None
+        self.optimal_cover = None
         # agscores are non-negative
         self.agscore = None
 
@@ -80,30 +85,29 @@ class CandidateHit:
         # Find a subset of disjoint HSPs with maximum sum of bitscores.
         # Initial implementation:  Super greedy.  Takes advantage of the fact
         # that blast results are sorted by bitscore, highest first.
-        optimal_set = [self.hsps[0]]
+        self.optimal_cover = [self.hsps[0]]
         for next_hsp in self.hsps[1:]:
-            if not intersects(next_hsp, optimal_set):
-                optimal_set.append(next_hsp)
-        self.agscore = sum(hsp["pident"] * hsp["length"] for hsp in optimal_set)
-        self.optimal_set = optimal_set
+            if not intersects(next_hsp, self.optimal_cover):
+                optimal_cover.append(next_hsp)
+        self.agscore = sum(hsp["pident"] * hsp["length"] for hsp in self.optimal_cover)
 
     def summary_row(self):
-        '''Aggregate HSP data from the optimal set;  this is used later in generate_coverage_viz.'''
-        r = dict(self.optimal_set[0])
-        # re-define these as aggregates across the optimal set of HSPs
-        r["length"] = sum(hsp["length"] for hsp in self.optimal_set)
+        '''Optimal cover stats are used later in generate_coverage_viz.'''
+        r = dict(self.optimal_cover[0])
+        # aggregate across the optimal cover's HSPs
+        r["length"] = sum(hsp["length"] for hsp in self.optimal_cover)
         if r["length"] == 0:
             # it's never zero, but...
             r["length"] = 1
-        r["pident"] = sum(hsp["pident"] * hsp["length"] for hsp in self.optimal_set) / r["length"]
-        r["bitscore"] = sum(hsp["bitscore"] for hsp in self.optimal_set)
-        r["qstart"] = min(hsp["qstart"] for hsp in self.optimal_set)
-        r["qend"] = max(hsp["qend"] for hsp in self.optimal_set)
-        r["sstart"] = min(hsp["sstart"] for hsp in self.optimal_set)
-        r["send"] = max(hsp["send"] for hsp in self.optimal_set)
+        r["pident"] = sum(hsp["pident"] * hsp["length"] for hsp in self.optimal_cover) / r["length"]
+        r["bitscore"] = sum(hsp["bitscore"] for hsp in self.optimal_cover)
+        r["qstart"] = min(hsp["qstart"] for hsp in self.optimal_cover)
+        r["qend"] = max(hsp["qend"] for hsp in self.optimal_cover)
+        r["sstart"] = min(hsp["sstart"] for hsp in self.optimal_cover)
+        r["send"] = max(hsp["send"] for hsp in self.optimal_cover)
         # add these two
         r["qcov"] = r["length"] / r["qlen"]
-        r["hsp_count"] = len(self.optimal_set)
+        r["hsp_count"] = len(self.optimal_cover)
         return r
 
 
@@ -469,12 +473,12 @@ class PipelineStepBlastContigs(PipelineStep):
         # Identify each query's optimal hit through ranking candidate hits by agscore,
         # where a candidate hit's agscore is determined by its optimal fragment cover.
         argmax = {}
-        for candidate_id, candidate_fragments in HSPs.items():
-            candidate_hit = CandidateHit(candidate_fragments)
-            candidate_hit.find_optimal_fragment_cover()
+        for candidate_id, fragments in HSPs.items():
+            candidate = Candidate(fragments)
+            candidate.find_optimal_fragment_cover()
             (query_id, _) = candidate_id
-            if query_id not in argmax or argmax[query_id].agscore < candidate_hit.agscore:
-                argmax[query_id] = candidate_hit
+            if query_id not in argmax or argmax[query_id].agscore < candidate.agscore:
+                argmax[query_id] = candidate
 
         # Output the optimal hit for each query.
         m8.unparse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_NT_SCHEMA,
