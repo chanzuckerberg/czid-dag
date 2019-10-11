@@ -39,8 +39,8 @@ class PipelineStepRunCDHitDup(PipelineStep):
                         args=[src, dst]
                     )
                 )
-                log.write("INFO:  Omitted cd-hit-dup.")
-                return
+            log.write("INFO:  Omitted cd-hit-dup.")
+            return
         cdhitdup_params = [
             '-i', input_fas[0], '-o', output_fas[0],
             '-e', '0.05', '-u', '70'
