@@ -4,7 +4,6 @@ import math
 import random
 from collections import defaultdict
 from collections import Counter
-from functools import reduce
 
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
@@ -15,6 +14,7 @@ from idseq_dag.util.dict import IdSeqDictValue, open_file_db_by_extension
 
 # blastn output format 6 as documented in
 # http://www.metagenomics.wiki/tools/blast/blastn-output-format-6
+# it's also the format of our GSNAP and RAPSEARCH output
 BLAST_OUTPUT_SCHEMA = {
     "qseqid": str,
     "sseqid": str,
@@ -46,8 +46,14 @@ RERANKED_BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_NT_SCHEMA, **{
 
 
 RERANKED_BLAST_OUTPUT_SCHEMA = {
-    'nt':  RERANKED_BLAST_OUTPUT_NT_SCHEMA,
-    'nr':  BLAST_OUTPUT_SCHEMA,
+    'nt': {
+        'contig_level' : RERANKED_BLAST_OUTPUT_NT_SCHEMA,   # only NT contigs are reranked
+        'read_level' : BLAST_OUTPUT_SCHEMA
+    },
+    'nr': {
+        'contig_level' :  BLAST_OUTPUT_SCHEMA,
+        'read_level' :  BLAST_OUTPUT_SCHEMA,
+    }
 }
 
 
@@ -65,9 +71,6 @@ def parse_tsv(path, schema, expect_headers=False, raw_lines=False):
                 msg = f"{path}:{line_number + 1}:  Parse error.  Input does not conform to schema: {schema}"
                 log.write(msg, warning=True)
                 raise
-            # TODO:  Because we want this to be equally useful for blastn output, rapsearch output,
-            # or anything else with this format, we don't want to bake-in any real filters.
-            # Perhaps take filter predicate lambda as an argument.
             if raw_lines:
                 yield row_dict, raw_line
             else:
@@ -272,8 +275,6 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
 def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                        output_m8, output_summary, min_alignment_length, taxon_blacklist):
     # Helper functions
-    # TODO: Represent taxids by numbers instead of strings to reduce
-    # memory footprint and increase speed.
     lineage_cache = {}
     blacklist_taxids = set()
     if taxon_blacklist:

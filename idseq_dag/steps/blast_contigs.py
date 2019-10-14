@@ -303,7 +303,7 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         contig2lineage = {}
         added_reads = {}
 
-        for row, raw_line in m8.parse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_SCHEMA[db_type], raw_lines=True):
+        for row, raw_line in m8.parse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_SCHEMA[db_type]['contig_level'], raw_lines=True):
             contig_id = row["qseqid"]
             accession_id = row["sseqid"]
             contig2accession[contig_id] = (accession_id, raw_line)
