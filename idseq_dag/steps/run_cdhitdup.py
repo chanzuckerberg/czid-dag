@@ -38,6 +38,7 @@ class PipelineStepRunCDHitDup(PipelineStep):
         if len(input_fas) == 2:
             shutil.copy(input_fas[1], output_fas[1])
             #cdhitdup_params += ['-i2', input_fas[1], '-o2', output_fas[1]]
+        log.write("INFO: Omitted cd-hit-dup")
         '''
         command.execute(
             command_patterns.SingleCommand(
@@ -46,7 +47,6 @@ class PipelineStepRunCDHitDup(PipelineStep):
             )
         )
         '''
-
     def count_reads(self):
         self.should_count_reads = True
         self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
