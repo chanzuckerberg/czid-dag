@@ -3,6 +3,7 @@ import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.count as count
 import shutil
+import idseq_dag.util.log as log
 
 class PipelineStepRunCDHitDup(PipelineStep):
     """ Removes duplicate reads.
