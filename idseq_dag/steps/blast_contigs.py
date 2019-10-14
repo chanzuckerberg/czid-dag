@@ -70,16 +70,15 @@ def intersects(needle, haystack):
     return any(hsp_overlap(needle, hay) for hay in haystack)
 
 
-class Candidate:
-    '''A list of blast highest-scoring pairs (HSPs) from the same query to the same subject sequence (candidate), ordered by decreasing bitscore.'''
+class BlastCandidate:
+    '''Documented in function get_top_m8_nt() below.'''
 
     def __init__(self, hsps):
         self.hsps = hsps
         self.optimal_cover = None
-        # agscores are non-negative
-        self.agscore = None
+        self.total_score = None
 
-    def find_optimal_fragment_cover(self):
+    def optimize(self):
         # Find a subset of disjoint HSPs with maximum sum of bitscores.
         # Initial implementation:  Super greedy.  Takes advantage of the fact
         # that blast results are sorted by bitscore, highest first.
@@ -87,10 +86,11 @@ class Candidate:
         for next_hsp in self.hsps[1:]:
             if not intersects(next_hsp, self.optimal_cover):
                 self.optimal_cover.append(next_hsp)
-        self.agscore = sum(hsp["pident"] * hsp["length"] for hsp in self.optimal_cover)
+        # total_score
+        self.total_score = sum(hsp["pident"] * hsp["length"] for hsp in self.optimal_cover)
 
-    def summary_row(self):
-        '''Optimal cover stats are used later in generate_coverage_viz.'''
+    def summary(self):
+        '''Summary stats are used later in generate_coverage_viz.'''
         r = dict(self.optimal_cover[0])
         # aggregate across the optimal cover's HSPs
         r["length"] = sum(hsp["length"] for hsp in self.optimal_cover)
@@ -109,7 +109,7 @@ class Candidate:
         return r
 
 
-class PipelineStepBlastContigs(PipelineStep):
+class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
     """ The BLAST step is run independently for the contigs. First against the NT-BLAST database
     constructed from putative taxa identified from short read alignments to NCBI NT using GSNAP.
     Then, against the NR-BLAST database constructed from putative taxa identified from short read
@@ -438,10 +438,10 @@ class PipelineStepBlastContigs(PipelineStep):
         possible, forming a set of fragments called HSPs(Q, S) that maximizes cumulative
         bitscore while avoiding overlap in Q.
 
-        For each Q, output the S with highest agscore(Q, S), which is defined as the
+        For each Q, output the S with highest total_score(Q, S), defined as the
         number of matching base pairs in all fragments that belong to HSPs(Q, S).
 
-        Note that agscore(Q, S) is NOT the sum of bitscores in HSPs(Q, S) because of
+        Note that total_score(Q, S) is NOT the sum of bitscores in HSPs(Q, S) because of
         concerns that cumulative bitscores might not be directly comparable across
         different reference sequences S.
 
@@ -465,19 +465,19 @@ class PipelineStepBlastContigs(PipelineStep):
                 continue
             if hsp["pident"] < min_pident:
                 continue
-            candidate_id = (hsp["qseqid"], hsp["sseqid"])
-            HSPs[candidate_id].append(hsp)
+            hit_id = (hsp["qseqid"], hsp["sseqid"])
+            HSPs[hit_id].append(hsp)
 
-        # Identify each query's optimal hit through ranking candidate hits by agscore,
-        # where a candidate hit's agscore is determined by its optimal fragment cover.
-        argmax = {}
-        for candidate_id, fragments in HSPs.items():
-            candidate = Candidate(fragments)
-            candidate.find_optimal_fragment_cover()
-            (query_id, _) = candidate_id
-            if query_id not in argmax or argmax[query_id].agscore < candidate.agscore:
-                argmax[query_id] = candidate
+        # Identify each query's optimal hit through ranking candidate hits by total_score,
+        # where a candidate hit's total_score is determined by its optimal fragment cover.
+        best_hit = {}
+        for hit_id, hit_fragments in HSPs.items():
+            hit = BlastCandidate(hit_fragments)
+            hit.optimize()
+            query_id, _subject_id = hit_id
+            if query_id not in best_hit or best_hit[query_id].total_score < hit.total_score:
+                best_hit[query_id] = hit
 
         # Output the optimal hit for each query.
         m8.unparse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_NT_SCHEMA,
-                       (optimal_hit.summary_row() for optimal_hit in argmax.values()))
+                       (best.summary() for best in best_hit.values()))
