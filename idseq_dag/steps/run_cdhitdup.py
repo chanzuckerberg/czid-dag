@@ -3,9 +3,7 @@ import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.count as count
 import idseq_dag.util.log as log
-
-# TODO:  Make this contingent on DAG param.
-OMIT = True
+import shutil
 
 class PipelineStepRunCDHitDup(PipelineStep):
     """ Removes duplicate reads.
@@ -31,28 +29,23 @@ class PipelineStepRunCDHitDup(PipelineStep):
         ''' Invoking cd-hit-dup '''
         input_fas = self.input_files_local[0]
         output_fas = self.output_files_local()
-        if OMIT:
-            for src, dst in zip(input_fas, output_fas):
-                command.execute(
-                    command_patterns.SingleCommand(
-                        cmd='cp',
-                        args=[src, dst]
-                    )
-                )
+        if self.additional_attributes.get("skip_cdhitdup"):
             log.write("INFO:  Omitted cd-hit-dup.")
-            return
-        cdhitdup_params = [
-            '-i', input_fas[0], '-o', output_fas[0],
-            '-e', '0.05', '-u', '70'
-        ]
-        if len(input_fas) == 2:
-            cdhitdup_params += ['-i2', input_fas[1], '-o2', output_fas[1]]
-        command.execute(
-            command_patterns.SingleCommand(
-                cmd='cd-hit-dup',
-                args=cdhitdup_params
+            for src, dst in zip(input_fas, output_fas):
+                shutil.copy(src, dst)
+        else:
+            cdhitdup_params = [
+                '-i', input_fas[0], '-o', output_fas[0],
+                '-e', '0.05', '-u', '70'
+            ]
+            if len(input_fas) == 2:
+                cdhitdup_params += ['-i2', input_fas[1], '-o2', output_fas[1]]
+            command.execute(
+                command_patterns.SingleCommand(
+                    cmd='cd-hit-dup',
+                    args=cdhitdup_params
+                )
             )
-        )
 
     def count_reads(self):
         self.should_count_reads = True
