@@ -41,7 +41,7 @@ BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_SCHEMA, **{
 # Re-ranked output of blastn.  One row per query.  Two additional columns.
 RERANKED_BLAST_OUTPUT_NT_SCHEMA = dict(BLAST_OUTPUT_NT_SCHEMA, **{
     "qcov": float,     # fraction of query covered by the optimal set of HSPs
-    "hsp_count": int   # cardinality of optimal fragment cover;  see CandidateHit
+    "hsp_count": int   # cardinality of optimal fragment cover;  see BlastCandidate
 })
 
 
