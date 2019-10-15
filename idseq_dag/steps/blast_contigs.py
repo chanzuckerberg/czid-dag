@@ -87,7 +87,7 @@ class BlastCandidate:
             if not intersects(next_hsp, self.optimal_cover):
                 self.optimal_cover.append(next_hsp)
         # total_score
-        self.total_score = sum(hsp["pident"] * hsp["length"] for hsp in self.optimal_cover)
+        self.total_score = sum(hsp["bitscore"] for hsp in self.optimal_cover)
 
     def summary(self):
         '''Summary stats are used later in generate_coverage_viz.'''
@@ -434,18 +434,12 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
     def get_top_m8_nt(blast_output, blast_top_m8, min_alignment_length, min_pident):
         '''
         For each contig Q (query) and reference S (subject), extend the highest-scoring
-        fragment alignment of Q to S with other non-overlapping fragments as far as
-        possible, forming a set of fragments called HSPs(Q, S) that maximizes cumulative
-        bitscore while avoiding overlap in Q.
+        fragment alignment of Q to S with other *non-overlapping* fragments as far as
+        possible;  then output the S with the highest cumulative bitscore for Q.
 
-        For each Q, output the S with highest total_score(Q, S), defined as the
-        number of matching base pairs in all fragments that belong to HSPs(Q, S).
-
-        Note that total_score(Q, S) is NOT the sum of bitscores in HSPs(Q, S) because of
-        concerns that cumulative bitscores might not be directly comparable across
-        different reference sequences S.
-
-        TODO:  Document and discuss these concerns and score choices.'''
+        We assume cumulative bitscores can be compared across subjects for the same
+        query, since that appears to be one of the ranking methods in online-blast.
+        '''
 
         # HSP is a BLAST term that stands for "highest-scoring pair", i.e., a local
         # alignment with no gaps that achieves one of the highest alignment scores
