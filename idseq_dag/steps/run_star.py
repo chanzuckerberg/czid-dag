@@ -163,7 +163,7 @@ class PipelineStepRunStar(PipelineStep):
             '--outFilterMatchNminOverLread', '0.5',
             '--outReadsUnmapped', 'Fastx',
             '--outFilterMismatchNmax', '999',
-            '--outSAMtype', 'BAM Unsorted',
+            '--outSAMtype', 'BAM', 'Unsorted',
             '--outSAMmode', 'NoQS',
             '--clip3pNbases', '0',
             '--runThreadN', cpus,
