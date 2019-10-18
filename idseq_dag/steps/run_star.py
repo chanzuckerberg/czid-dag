@@ -32,7 +32,8 @@ class PipelineStepRunStar(PipelineStep):
     --outFilterMatchNminOverLread 0.5
     --outReadsUnmapped Fastx
     --outFilterMismatchNmax 999
-    --outSAMmode None 
+    --outSAMtype BAM
+    --outSAMmode NoQS 
     --clip3pNbases 0
     --runThreadN {cpus}
     --genomeDir {genome_dir}
@@ -48,7 +49,8 @@ class PipelineStepRunStar(PipelineStep):
     --outFilterMatchNminOverLread 0.5
     --outReadsUnmapped Fastx
     --outFilterMismatchNmax 999
-    --outSAMmode None 
+    --outSAMtype BAM
+    --outSAMmode NoQS
     --clip3pNbases 0
     --runThreadN {cpus}
     --genomeDir {genome_dir}
@@ -161,7 +163,8 @@ class PipelineStepRunStar(PipelineStep):
             '--outFilterMatchNminOverLread', '0.5',
             '--outReadsUnmapped', 'Fastx',
             '--outFilterMismatchNmax', '999',
-            '--outSAMmode', 'None',
+            '--outSAMtype', 'BAM',
+            '--outSAMmode', 'NoQS',
             '--clip3pNbases', '0',
             '--runThreadN', cpus,
             '--genomeDir', genome_dir,
