@@ -138,11 +138,9 @@ class PipelineStepRunStar(PipelineStep):
                     command.move_file(gene_count_file, moved)
                     self.additional_files_to_upload.append(moved)
                 bam_file = os.path.join(tmp, "Aligned.out.bam")
-                if os.path.isfile(bam_file) and output_bam_file:
-                    moved = os.path.join(self.output_dir_local,
-                                         output_bam_file)
+                if os.path.isfile(bam_file):
+                    moved = os.path.join(self.output_dir_local, 'alignments.bam')
                     command.move_file(bam_file, moved)
-                    self.additional_files_to_upload.append(moved)
 
         # Cleanup
         for src, dst in zip(unmapped, output_files_local):

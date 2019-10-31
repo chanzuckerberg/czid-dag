@@ -55,7 +55,9 @@
             ],
             "out": "insert_size_metrics_out",
             "class": "GenerateInsertSizeMetrics",
-            "module": "idseq_dag.steps.generate_insert_size_metrics"
+            "module": "idseq_dag.steps.generate_insert_size_metrics",
+            "additional_files": {},
+            "additional_attributes": {}
         }
     ],
     "given_targets": {
