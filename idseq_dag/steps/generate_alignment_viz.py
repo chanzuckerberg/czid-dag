@@ -95,7 +95,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             for f in files:
                 try:
                     os.remove(f)
-                except:
+                except Exception:
                     pass
 
         deleter_thread = threading.Thread(
@@ -108,7 +108,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
 
         # Write summary file
         summary_msg = f"Read2Seq Size: {len(read2seq)}, M8 lines {line_count}, " \
-                  f"{len(groups)} unique accession ids "
+            f"{len(groups)} unique accession ids "
         summary_file_name = f"{output_json_dir}.summary"
         with open(summary_file_name, 'w') as summary_f:
             summary_f.write(summary_msg)
@@ -212,7 +212,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                     ad['ref_seq'] = '...Reference Seq Too Long ...'
                 if type(ad['ref_seq']) is bytes:
                     ad['ref_seq'] = ad['ref_seq'].decode('utf-8')
-            except:
+            except Exception:
                 ad['ref_seq'] = "ERROR ACCESSING REFERENCE SEQUENCE FOR ACCESSION " \
                                 "ID {}".format(accession_id)
                 if error_count == 0:
@@ -265,8 +265,8 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
     def parse_reads(annotated_fasta, db_type):
         read2seq = {}
         search_string = f"species_{db_type}"
-        adv_search_string = "family_%s:([-\d]+):.*genus_%s:([-\d]+):.*species_%s:(" \
-                            "[-\d]+).*NT:[^:]*:(.*)" % (
+        adv_search_string = r"family_%s:([-\d]+):.*genus_%s:([-\d]+):.*species_%s:(" \
+                            r"[-\d]+).*NT:[^:]*:(.*)" % (
                                 db_type, db_type, db_type)
 
         with open(annotated_fasta, 'r') as af:
@@ -276,7 +276,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                     read_id = line
                 else:
                     sequence = line
-                    m = re.search("%s:([\d-]*)" % search_string, read_id)
+                    m = re.search(r"%s:([\d-]*)" % search_string, read_id)
                     if m:
                         species_id = int(m.group(1))
                         if species_id > 0 or species_id < INVALID_CALL_BASE_ID:
@@ -328,7 +328,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             raise RuntimeError("Error in getting sequences by accession list.")
 
     @staticmethod
-    def get_sequence_for_thread(error_flags,  #pylint: disable=dangerous-default-value
+    def get_sequence_for_thread(error_flags,  # pylint: disable=dangerous-default-value
                                 accession_info,
                                 accession_id,
                                 entry,
@@ -349,7 +349,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                     msg = f"{seq_count[0]} sequences fetched, most recently " \
                           f"{accession_id}"
                     log.write(msg)
-        except:
+        except Exception:
             with mutex:
                 if not error_flags:
                     traceback.print_exc()
@@ -408,7 +408,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             finally:
                 try:
                     os.remove(range_file)
-                except:
+                except Exception:
                     pass
         accession_file_full_path = f"{os.getcwd()}/{accession_file}"
         return seq_len, seq_name, accession_file_full_path

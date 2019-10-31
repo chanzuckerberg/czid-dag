@@ -7,10 +7,12 @@ from enum import IntEnum
 
 import idseq_dag.util.log as log
 
-DICT_DELIMITER = chr(1) # Delimiter for an array of values
+DICT_DELIMITER = chr(1)  # Delimiter for an array of values
 class IdSeqDictValue(IntEnum):
     VALUE_TYPE_SCALAR = 1
     VALUE_TYPE_ARRAY = 2
+
+
 SQLITE_TABLE_NAME = "idseq_dict"
 
 
@@ -56,7 +58,7 @@ class _IdSeqDictBase(object):
             # to start a new transaction for the context block being managed.
             self._ensure_table_exists(conn)
             conn.__enter__()
-        except:
+        except Exception:
             # Try not to leak open connections.  If an exception is raised above,
             # the self.__exit__() method will never run, so we have to close
             # the connection here.
@@ -203,7 +205,7 @@ class IdSeqDictForUpdate(IdSeqDict):
 
 def open_file_db_by_extension(db_path, value_type=IdSeqDictValue.VALUE_TYPE_SCALAR):
     ''' if extension is .sqlite3 open it as an IdSeqDict, otherwise, open as shelve in read mode '''
-    if db_path[-8:] == '.sqlite3': # sqlite3 format
+    if db_path[-8:] == '.sqlite3':  # sqlite3 format
         return IdSeqDict(db_path, value_type)
     # shelve format;  shelve objects can be used as context managers
     return shelve.open(db_path.replace('.db', ''), 'r')

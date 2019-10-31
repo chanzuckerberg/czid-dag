@@ -77,7 +77,7 @@ def touch_s3_file(s3_file_path):
             )
         )
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -86,7 +86,7 @@ def touch_s3_file_list(s3_dir, file_list):
         touch_s3_file(os.path.join(s3_dir, f))
 
 
-def install_s3mi(installed={}, mutex=TraceLock("install_s3mi", threading.RLock())):  #pylint: disable=dangerous-default-value
+def install_s3mi(installed={}, mutex=TraceLock("install_s3mi", threading.RLock())):  # pylint: disable=dangerous-default-value
     with mutex:
         if installed:  # Mutable default value persists
             return
@@ -108,10 +108,10 @@ DEFAULT_ALLOW_S3MI = False
 ZIP_EXTENSIONS = {
     ".lz4": "lz4 -dc",
     ".bz2": "lbzip2 -dc",
-    ".gz": "gzip -dc", # please avoid .gz if you can (slow to decompress)
+    ".gz": "gzip -dc",  # please avoid .gz if you can (slow to decompress)
 }
 
-def fetch_from_s3(src,   #pylint: disable=dangerous-default-value
+def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                   dst,
                   auto_unzip=DEFAULT_AUTO_UNZIP,
                   auto_untar=DEFAULT_AUTO_UNTAR,
@@ -126,8 +126,8 @@ def fetch_from_s3(src,   #pylint: disable=dangerous-default-value
         if auto_unzip:
             file_without_ext, ext = os.path.splitext(dst)
             if ext in ZIP_EXTENSIONS:
-                unzip = " | " + ZIP_EXTENSIONS[ext] # this command will be used to decompress stdin to stdout
-                dst = file_without_ext # remove file extension from dst
+                unzip = " | " + ZIP_EXTENSIONS[ext]  # this command will be used to decompress stdin to stdout
+                dst = file_without_ext  # remove file extension from dst
         untar = auto_untar and dst.lower().endswith(".tar")
         if untar:
             dst = dst[:-4]  # Remove .tar
@@ -160,7 +160,7 @@ def fetch_from_s3(src,   #pylint: disable=dangerous-default-value
                 if allow_s3mi:
                     try:
                         install_s3mi()
-                    except:
+                    except Exception:
                         log.write("s3mi failed to install.")
                         allow_s3mi = False
 
@@ -190,7 +190,7 @@ def fetch_from_s3(src,   #pylint: disable=dangerous-default-value
                             named_args=named_args
                         )
                     )
-                except:
+                except Exception:
                     if allow_s3mi:
                         allow_s3mi = False
                         S3MI_SEM.release()
@@ -216,8 +216,6 @@ def fetch_from_s3(src,   #pylint: disable=dangerous-default-value
             finally:
                 if allow_s3mi:
                     S3MI_SEM.release()
-
-
 
 def fetch_reference(src,
                     dst,
@@ -315,7 +313,7 @@ def upload(from_f, to_f, status, status_lock=TraceLock("upload", threading.RLock
                 upload_with_retries(from_f, to_f)
             with status_lock:
                 status[from_f] = "success"
-    except:
+    except Exception:
         with status_lock:
             status[from_f] = "error"
         raise

@@ -12,8 +12,8 @@ setup(name='idseq_dag',
       install_requires=['pytz'],
       dependency_links=[],
       entry_points={
-        'console_scripts': [
-          'idseq_dag = idseq_dag.__main__:main'
-        ]
+          'console_scripts': [
+              'idseq_dag = idseq_dag.__main__:main'
+          ]
       },
       zip_safe=False)

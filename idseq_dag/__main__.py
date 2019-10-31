@@ -28,7 +28,7 @@ def main():
                             dag_json=args.dag_json,
                             versioned_output=args.versioned_output)
         log.write("everything is awesome. idseq dag is valid~")
-    except:
+    except Exception:
         parser.print_help()
         raise
     log.write("start executing the dag")

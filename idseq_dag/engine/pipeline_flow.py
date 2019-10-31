@@ -66,7 +66,7 @@ class PipelineFlow(object):
         '''
         dag = json.loads(open(dag_json).read())
         log.log_event("pipeline_flow.dag_json_loaded", values={"file": dag_json, "contents": dag})
-        output_dir = dag["output_dir_s3"]
+        output_dir = dag["output_dir_s3"]  # noqa
         targets = dag["targets"]
         steps = dag["steps"]
         given_targets = dag["given_targets"]
@@ -125,14 +125,14 @@ class PipelineFlow(object):
                             break
                         else:
                             depth_max = max(covered_targets[target]['depth'], depth_max)
-                            if covered_targets[target]['lazy_run'] == False:
+                            if covered_targets[target]['lazy_run'] is False:
                                 lazy_run = False
                     if step_can_be_run:  # All the input is satisfied
                         steps_complete.add(step["out"])
                         file_list = self.targets[step["out"]]
                         if lazy_run and idseq_dag.util.s3.check_s3_presence_for_file_list(self.output_dir_s3, file_list):
                             # output can be lazily generated. touch the output
-                            #idseq_dag.util.s3.touch_s3_file_list(self.output_dir_s3, file_list)
+                            # idseq_dag.util.s3.touch_s3_file_list(self.output_dir_s3, file_list)
                             s3_downloadable = True
                         else:
                             # steps need to be run
