@@ -36,7 +36,7 @@ class GenerateInsertSizeMetrics(PipelineStep):
         histogram_file = self.output_files[1]
 
         params = [
-            "CollectInserSizeMetrics",
+            "CollectInsertSizeMetrics",
             f"I={input_file}",
             f"O={metrics_file}",
             f"H={histogram_file}"
