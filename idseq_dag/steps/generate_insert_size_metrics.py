@@ -42,7 +42,7 @@ class GenerateInsertSizeMetrics(PipelineStep):
         ]
 
         command.execute(
-            command_patterns.SingleCommand(
+            command_patterns.ShellScriptCommand(
                 cd=cd,
                 cmd=cmd,
                 args=params
