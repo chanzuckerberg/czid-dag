@@ -31,7 +31,7 @@ class GenerateInsertSizeMetrics(PipelineStep):
         cd = self.output_dir_local
         cmd = 'java -jar /usr/local/bin/picard.jar'
 
-        input_file = self.input_files_local[2]
+        input_file = self.input_files_local[0][2]
         metrics_file = self.output_files[0]
         histogram_file = self.output_files[1]
 
