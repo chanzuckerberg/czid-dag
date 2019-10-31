@@ -28,10 +28,10 @@ class GenerateInsertSizeMetrics(PipelineStep):
     def run(self):
         """Run picard to generate insert metrics."""
 
-        cd = self.output_dir_s3
+        cd = self.output_dir_local
         cmd = 'java -jar /usr/local/bin/picard.jar'
 
-        input_file = self.input_files_local[0]
+        input_file = self.input_files_local[2]
         metrics_file = self.output_files[0]
         histogram_file = self.output_files[1]
 
