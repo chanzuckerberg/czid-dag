@@ -140,6 +140,11 @@ RUN kSNP3
 RUN apt-get -y install liblz4-tool
 RUN apt-get -y install lbzip2
 
+# Picard for average fragment size https://github.com/broadinstitute/picard
+WORKDIR /tmp
+RUN wget https://github.com/broadinstitute/picard/releases/download/2.21.2/picard.jar
+RUN mv picard.jar /usr/local/bin/
+
 # Cleanup
 RUN rm -rf /tmp/*
 

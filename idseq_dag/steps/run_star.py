@@ -89,6 +89,7 @@ class PipelineStepRunStar(PipelineStep):
 
         output_files_local = self.output_files_local()
         output_gene_file = self.additional_attributes.get("output_gene_file")
+        output_bam_file = self.additional_attributes.get("output_bam_file")
 
         genome_dir = s3.fetch_from_s3(
             self.additional_files["star_genome"],
@@ -135,6 +136,12 @@ class PipelineStepRunStar(PipelineStep):
                     moved = os.path.join(self.output_dir_local,
                                          output_gene_file)
                     command.move_file(gene_count_file, moved)
+                    self.additional_files_to_upload.append(moved)
+                bam_file = os.path.join(tmp, "Aligned.out.bam")
+                if os.path.isfile(bam_file) and output_bam_file:
+                    moved = os.path.join(self.output_dir_local,
+                                         output_bam_file)
+                    command.move_file(bam_file, moved)
                     self.additional_files_to_upload.append(moved)
 
         # Cleanup
