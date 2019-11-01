@@ -192,7 +192,7 @@ class PipelineStepRunStar(PipelineStep):
         if self.bam_output:
             params += ['--outSAMtype', 'BAM', 'Unsorted', '--outSAMmode', 'NoQS', ]
         else:
-            params += ['--outSAMmode None']
+            params += ['--outSAMmode', 'None']
 
         if use_starlong:
             params += [
