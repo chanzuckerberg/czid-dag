@@ -84,7 +84,7 @@ class PipelineStepRunStar(PipelineStep):
         super().__init__(*args)
         self.sequence_input_files = None
         self.validated_input_counts_file = None
-        if (len(self.output_files_local())):
+        if (len(self.output_files_local()) == 3):
             self.bam_output = self.output_files_local()[2]
         else:
             self.bam_output = None
