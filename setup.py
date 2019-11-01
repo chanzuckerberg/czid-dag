@@ -10,6 +10,7 @@ setup(name='idseq_dag',
       license='MIT',
       packages=['idseq_dag'],
       install_requires=['pytz'],
+      tests_require=["coverage", "flake8", "wheel"],
       dependency_links=[],
       entry_points={
           'console_scripts': [
