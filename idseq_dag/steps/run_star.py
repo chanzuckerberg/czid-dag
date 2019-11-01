@@ -84,11 +84,13 @@ class PipelineStepRunStar(PipelineStep):
         super().__init__(*args)
         self.sequence_input_files = None
         self.validated_input_counts_file = None
-        self.bam_output = self.output_files_local[2] if len(
-            self.output_files_local) >= 2 else None
+        if (len(self.output_files_local())):
+            self.bam_output = self.output_files_local()[2]
+        else:
+            self.bam_output = None
 
         if self.bam_output:
-            assert(len(self.input_files) >= 3), 'Paired-End samples required for bam output'
+            assert(len(self.input_files[0]) == 3), 'Paired-End samples required for bam output'
 
     def run(self):
         """Run STAR to filter out host reads."""
