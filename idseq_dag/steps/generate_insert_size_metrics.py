@@ -29,7 +29,7 @@ class GenerateInsertSizeMetrics(PipelineStep):
         """Run picard to generate insert metrics."""
 
         cd = self.output_dir_local
-        script = 'java -jar /usr/local/bin/picard.jar'
+        cmd = 'picard'
 
         input_file = self.input_files_local[0][2]
         metrics_file = self.output_files[0]
@@ -43,9 +43,9 @@ class GenerateInsertSizeMetrics(PipelineStep):
         ]
 
         command.execute(
-            command_patterns.ShellScriptCommand(
+            command_patterns.SingleCommand(
                 cd=cd,
-                script=script,
+                cmd=cmd,
                 args=params
             )
         )

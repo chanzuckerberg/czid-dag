@@ -142,8 +142,14 @@ RUN apt-get -y install lbzip2
 
 # Picard for average fragment size https://github.com/broadinstitute/picard
 WORKDIR /tmp
+# r-base is a dependency of collecting input size metrics https://github.com/bioconda/bioconda-recipes/pull/16398
+RUN apt-get -y install r-base
 RUN wget https://github.com/broadinstitute/picard/releases/download/2.21.2/picard.jar
 RUN mv picard.jar /usr/local/bin/
+# Create a single executable so we can use SingleCommand
+RUN echo '#!/bin/bash
+java -jar /usr/local/bin/picard.jar "$@"
+'
 
 # Cleanup
 RUN rm -rf /tmp/*
