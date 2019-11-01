@@ -47,8 +47,6 @@ class PipelineStepRunStar(PipelineStep):
     --outFilterMatchNminOverLread 0.5
     --outReadsUnmapped Fastx
     --outFilterMismatchNmax 999
-    --outSAMtype BAM Unsorted
-    --outSAMmode NoQS
     --clip3pNbases 0
     --runThreadN {cpus}
     --genomeDir {genome_dir}
@@ -66,7 +64,13 @@ class PipelineStepRunStar(PipelineStep):
     --outSAMmode NoQS
     ```
 
-    This output BAM file is used to compute insert size metrics for paired reads.
+    This output BAM file is used to compute insert size metrics for Paired-End reads.
+
+    Otherwise this option is added instead:
+
+    ```
+    --outSAMmode None
+    ```
 
     STAR documentation can be found [here](https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf)
     """
@@ -187,6 +191,8 @@ class PipelineStepRunStar(PipelineStep):
 
         if self.bam_output:
             params += ['--outSAMtype', 'BAM', 'Unsorted', '--outSAMmode', 'NoQS', ]
+        else:
+            params += ['--outSAMmode None']
 
         if use_starlong:
             params += [
