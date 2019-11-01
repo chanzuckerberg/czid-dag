@@ -31,6 +31,9 @@ class GenerateInsertSizeMetrics(PipelineStep):
         cd = self.output_dir_local
         cmd = 'picard'
 
+        assert(len(self.input_files_local[0]) >= 2), \
+            'Alignment bam file required to generate insert metrics'
+
         input_file = self.input_files_local[0][2]
         metrics_file = self.output_files[0]
         histogram_file = self.output_files[1]
