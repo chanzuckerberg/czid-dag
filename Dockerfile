@@ -147,9 +147,8 @@ RUN apt-get -y install r-base
 RUN wget https://github.com/broadinstitute/picard/releases/download/2.21.2/picard.jar
 RUN mv picard.jar /usr/local/bin/
 # Create a single executable so we can use SingleCommand
-RUN echo '#!/bin/bash
-java -jar /usr/local/bin/picard.jar "$@"
-'
+RUN printf '#!/bin/bash java -jar \n/usr/local/bin/picard.jar "$@"\n' > /usr/local/bin/picard
+RUN chmod +x /usr/local/bin/picard
 
 # Cleanup
 RUN rm -rf /tmp/*

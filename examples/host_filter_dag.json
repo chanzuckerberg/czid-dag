@@ -5,7 +5,7 @@
   "targets": {
 
       "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"],
-      "star_out": ["unmapped1.fq", "unmapped2.fq"],
+      "star_out": ["unmapped1.fq", "unmapped2.fq", "alignments.bam"],
       "trimmomatic_out": ["trimmomatic1.fq", "trimmomatic2.fq"],
       "priceseq_out": ["priceseq1.fa", "priceseq2.fa"],
       "cdhitdup_out": ["dedup1.fa", "dedup2.fa"],
@@ -37,6 +37,14 @@
       },
       "additional_attributes": { "truncate_fragments_to": 75000000
                                 ,"output_gene_file": "reads_per_gene.star.tab" }
+    },
+    {
+      "in": ["star_out"],
+      "out": "insert_size_metrics_out",
+      "class": "GenerateInsertSizeMetrics",
+      "module": "idseq_dag.steps.generate_insert_size_metrics",
+      "additional_files": {},
+      "additional_attributes": {}
     },
     {
       "in": ["star_out"],

@@ -3,7 +3,7 @@
   "output_dir_s3": "",
   "targets": {
     "fastqs": ["1.fastq.gz", "2.fastq.gz"],
-    "star_out": ["unmapped1.fq", "unmapped2.fq"],
+    "star_out": ["unmapped1.fq", "unmapped2.fq", "alignments.bam"],
     "priceseq_out": ["priceseq1.fa", "priceseq2.fa"],
     "cdhitdup_out": ["dedup1.fa", "dedup2.fa"],
     "lzw_out": ["lzw1.fa", "lzw2.fa"],
@@ -73,6 +73,14 @@
         "truncate_fragments_to": 75000000,
         "output_gene_file": "reads_per_gene.tab"
       }
+    },
+    {
+      "in": ["star_out"],
+      "out": "insert_size_metrics_out",
+      "class": "GenerateInsertSizeMetrics",
+      "module": "idseq_dag.steps.generate_insert_size_metrics",
+      "additional_files": {},
+      "additional_attributes": {}
     },
     {
       "in": ["star_out"],

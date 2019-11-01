@@ -32,8 +32,6 @@ class PipelineStepRunStar(PipelineStep):
     --outFilterMatchNminOverLread 0.5
     --outReadsUnmapped Fastx
     --outFilterMismatchNmax 999
-    --outSAMtype BAM Unsorted
-    --outSAMmode NoQS 
     --clip3pNbases 0
     --runThreadN {cpus}
     --genomeDir {genome_dir}
@@ -61,6 +59,15 @@ class PipelineStepRunStar(PipelineStep):
     --alignTranscriptsPerReadNmax 100000
     ```
 
+    For Paired-End reads the following options are added to the STAR command:
+    
+    ```
+    --outSAMtype BAM Unsorted
+    --outSAMmode NoQS
+    ```
+
+    This output BAM file is used to compute insert size metrics for paired reads.
+
     STAR documentation can be found [here](https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf)
     """
     # The attributes 'validated_input_counts_file' and 'sequence_input_files' should be
@@ -73,6 +80,10 @@ class PipelineStepRunStar(PipelineStep):
         super().__init__(*args)
         self.sequence_input_files = None
         self.validated_input_counts_file = None
+        self.bam_output = self.input_files[2] if len(self.input_files) >= 2 else None
+
+        if self.bam_output:
+            assert(len(self.input_files) > 2), 'Paired-End samples required for bam output'
 
     def run(self):
         """Run STAR to filter out host reads."""
@@ -139,7 +150,7 @@ class PipelineStepRunStar(PipelineStep):
                     self.additional_files_to_upload.append(moved)
                 bam_file = os.path.join(tmp, "Aligned.out.bam")
                 if os.path.isfile(bam_file):
-                    moved = os.path.join(self.output_dir_local, 'alignments.bam')
+                    moved = os.path.join(self.output_dir_local, self.bam_output)
                     command.move_file(bam_file, moved)
 
         # Cleanup
@@ -168,13 +179,15 @@ class PipelineStepRunStar(PipelineStep):
             '--outFilterMatchNminOverLread', '0.5',
             '--outReadsUnmapped', 'Fastx',
             '--outFilterMismatchNmax', '999',
-            '--outSAMtype', 'BAM', 'Unsorted',
-            '--outSAMmode', 'NoQS',
             '--clip3pNbases', '0',
             '--runThreadN', cpus,
             '--genomeDir', genome_dir,
             '--readFilesIn', *input_files
         ]
+
+        if self.bam_output:
+            params += ['--outSAMtype', 'BAM', 'Unsorted', '--outSAMmode', 'NoQS', ]
+
         if use_starlong:
             params += [
                 '--seedSearchStartLmax', '20',
