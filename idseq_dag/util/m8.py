@@ -338,7 +338,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                     species_taxid = -1
                     genus_taxid = -1
                     family_taxid = -1
-                    if best_accession_id is not None:
+                    if best_accession_id != None:
                         (species_taxid, genus_taxid, family_taxid) = get_lineage(best_accession_id)
 
                     msg = f"{read_id}\t{hit_level}\t{taxid}\t{best_accession_id}"

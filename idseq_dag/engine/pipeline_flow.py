@@ -125,7 +125,7 @@ class PipelineFlow(object):
                             break
                         else:
                             depth_max = max(covered_targets[target]['depth'], depth_max)
-                            if covered_targets[target]['lazy_run'] is False:
+                            if covered_targets[target]['lazy_run'] == False:
                                 lazy_run = False
                     if step_can_be_run:  # All the input is satisfied
                         steps_complete.add(step["out"])

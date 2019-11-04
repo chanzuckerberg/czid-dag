@@ -477,7 +477,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                     finally:
                         # None chunk_status indicates code bug above.  An exception has been raised already
                         # for it, and it says nothing about whether the alignment succeeded or not.
-                        if chunk_status is not None:
+                        if chunk_status != None:
                             chunk_status_tracker(service).note_outcome(instance_ip, chunk_id, elapsed, chunk_status, try_number)
 
             # Upload to s3
