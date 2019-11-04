@@ -58,7 +58,7 @@ class _IdSeqDictBase(object):
             # to start a new transaction for the context block being managed.
             self._ensure_table_exists(conn)
             conn.__enter__()
-        except Exception:
+        except:
             # Try not to leak open connections.  If an exception is raised above,
             # the self.__exit__() method will never run, so we have to close
             # the connection here.

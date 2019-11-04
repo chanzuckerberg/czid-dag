@@ -179,7 +179,7 @@ class PipelineStepDownloadAccessions(PipelineStep):
                         else:
                             msg = f"All retries failed for getting sequence by accession ID {accession}: {e}"
                         raise RuntimeError(msg)
-        except Exception:
+        except:
             with mutex:
                 if not error_flags:
                     traceback.print_exc()

@@ -79,5 +79,5 @@ def can_convert_to_int(x):
     try:
         int(x)
         return True
-    except Exception:
+    except:
         return False

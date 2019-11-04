@@ -37,7 +37,7 @@ class ThreadWithResult(threading.Thread):
         try:
             self.result = self.target(*self.args, **self.kwargs)
             self.exception = False
-        except Exception:
+        except:
             if self.print_traceback:
                 traceback.print_exc()
             self.exception = True
@@ -88,7 +88,7 @@ def _unit_test_1(r=random.Random(time.time())):
             run_all(threads)
         except AssertionError:
             pass
-        except Exception:
+        except:
             print("Unexpected exception.")
             raise
         else:
@@ -102,7 +102,7 @@ def _unit_test_1(r=random.Random(time.time())):
                 assert not t.exception, f"Thread {i} should not have raised an exception."
                 assert t.result == i, f"Thread {i} should have returned result {i}."
         print(f"{test} passed")
-    except Exception:
+    except:
         print(f"{test} failed")
         raise
 
@@ -118,7 +118,7 @@ def _unit_test_2(r=random.Random(time.time())):
             return i
         try:
             results = mt_map(target, range(16))
-        except Exception:  # pylint: disable=bare-except
+        except:  # pylint: disable=bare-except
             print("Unexpected exception.")
             raise
         for i, r in enumerate(results):
@@ -127,7 +127,7 @@ def _unit_test_2(r=random.Random(time.time())):
             else:
                 assert r == i
         print(f"{test} passed")
-    except Exception:
+    except:
         print(f"{test} failed")
         raise
 

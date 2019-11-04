@@ -122,7 +122,7 @@ class PipelineStepRunAssembly(PipelineStep):
 
             PipelineStepRunAssembly.generate_read_to_contig_mapping(assembled_contig, bowtie_fasta,
                                                                     read2contig, bowtie_sam, contig_stats)
-        except Exception:
+        except:
             # Assembly failed. create dummy output files
             command.write_text_to_file(';ASSEMBLY FAILED', assembled_contig)
             command.write_text_to_file(';ASSEMBLY FAILED', assembled_scaffold)

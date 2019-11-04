@@ -95,7 +95,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             for f in files:
                 try:
                     os.remove(f)
-                except Exception:
+                except:
                     pass
 
         deleter_thread = threading.Thread(
@@ -212,7 +212,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                     ad['ref_seq'] = '...Reference Seq Too Long ...'
                 if type(ad['ref_seq']) is bytes:
                     ad['ref_seq'] = ad['ref_seq'].decode('utf-8')
-            except Exception:
+            except:
                 ad['ref_seq'] = "ERROR ACCESSING REFERENCE SEQUENCE FOR ACCESSION " \
                                 "ID {}".format(accession_id)
                 if error_count == 0:
@@ -349,7 +349,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
                     msg = f"{seq_count[0]} sequences fetched, most recently " \
                           f"{accession_id}"
                     log.write(msg)
-        except Exception:
+        except:
             with mutex:
                 if not error_flags:
                     traceback.print_exc()
@@ -408,7 +408,7 @@ class PipelineStepGenerateAlignmentViz(PipelineStep):
             finally:
                 try:
                     os.remove(range_file)
-                except Exception:
+                except:
                     pass
         accession_file_full_path = f"{os.getcwd()}/{accession_file}"
         return seq_len, seq_name, accession_file_full_path

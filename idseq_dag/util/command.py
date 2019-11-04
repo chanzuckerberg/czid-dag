@@ -197,7 +197,7 @@ def retry(operation, randgen=random.Random().random):
         while remaining_attempts > 1:
             try:
                 return operation(*args, **kwargs)
-            except Exception:
+            except:
                 # Random jitter and exponential delay
                 time.sleep(delay * (1.0 + randgen()))
                 delay *= 3.0

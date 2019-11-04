@@ -107,7 +107,7 @@ class PipelineStepFetchTaxInfo(PipelineStep):
                         # query the page directly
                         try:
                             page = wikipedia.page(taxname.replace(" ", "_"))
-                        except Exception:
+                        except:
                             page = None
 
                 if page:
@@ -120,7 +120,7 @@ class PipelineStepFetchTaxInfo(PipelineStep):
                     with mutex:
                         taxid2wikicontent[taxid] = output
                 break
-            except Exception:
+            except:
                 log.write(f"having trouble fetching {taxid} wiki {pageid} attempt {attempt}")
         semaphore.release()
 
@@ -182,7 +182,7 @@ class PipelineStepFetchTaxInfo(PipelineStep):
                             break
                     parsed[taxid] = wikiurl
                 break
-            except Exception:
+            except:
                 log.write(f"failed batch attempt {attempt}")
                 time.sleep(5)
         semaphore.release()

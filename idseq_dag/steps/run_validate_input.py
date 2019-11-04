@@ -51,7 +51,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                                 }
                             )
                         )
-                    except Exception:
+                    except:
                         raise RuntimeError(f"Invalid fastq/fasta/gzip file")
                 else:
                     # Validate and truncate the input file to keep behavior consistent with gz input files
@@ -71,7 +71,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                         )
                         command.remove_file(input_file)
                         command.move_file(tmp_file, input_file)
-                    except Exception:
+                    except:
                         raise RuntimeError(f"Invalid fastq/fasta file")
 
             # keep a dictionary of the distribution of read lengths in the files

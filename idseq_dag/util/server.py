@@ -266,7 +266,7 @@ def get_server_ips(service_name,  # pylint: disable=dangerous-default-value
                                     get_server_ips_work(
                                         service_name, environment, draining_tag))
             return cache[cache_key][1]
-    except Exception:
+    except:
         # return [] causes a sleep of wait_seconds before retrying (see below)
         traceback.print_exc()
         return []

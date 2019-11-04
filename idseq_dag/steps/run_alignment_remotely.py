@@ -162,7 +162,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 ct.join()
             try:
                 chunk_status_tracker(service).log_stats(len(input_chunks))
-            except Exception:
+            except:
                 log.write(f"Problem dumping status report for {service}")
                 log.write(traceback.format_exc())
 
@@ -301,7 +301,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         result = "error"
         try:
             result = target(*args)
-        except Exception:
+        except:
             with mutex:
                 log.write(traceback.format_exc())
         finally:
@@ -417,7 +417,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                         try:
                             command.execute(command.remote(commands, key_path, remote_username, instance_ip),
                                             timeout=chunk_timeout)
-                        except Exception:
+                        except:
                             chunk_status = ChunkStatus.CRASH
                             raise
                         finally:
@@ -440,7 +440,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                                 multihit_remote_outfile, multihit_local_outfile)
                             chunk_status = ChunkStatus.SUCCESS
                             break
-                        except Exception:
+                        except:
                             # If we failed to copy from the server, it's as bad as a crash in alignment.
                             chunk_status = ChunkStatus.CRASH
                             raise

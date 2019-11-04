@@ -77,7 +77,7 @@ def touch_s3_file(s3_file_path):
             )
         )
         return True
-    except Exception:
+    except:
         return False
 
 
@@ -160,7 +160,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                 if allow_s3mi:
                     try:
                         install_s3mi()
-                    except Exception:
+                    except:
                         log.write("s3mi failed to install.")
                         allow_s3mi = False
 
@@ -190,7 +190,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                             named_args=named_args
                         )
                     )
-                except Exception:
+                except:
                     if allow_s3mi:
                         allow_s3mi = False
                         S3MI_SEM.release()
@@ -313,7 +313,7 @@ def upload(from_f, to_f, status, status_lock=TraceLock("upload", threading.RLock
                 upload_with_retries(from_f, to_f)
             with status_lock:
                 status[from_f] = "success"
-    except Exception:
+    except:
         with status_lock:
             status[from_f] = "error"
         raise
