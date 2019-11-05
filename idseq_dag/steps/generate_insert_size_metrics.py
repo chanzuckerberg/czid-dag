@@ -24,7 +24,6 @@ class GenerateInsertSizeMetrics(PipelineStep):
     picard documentation can be found [here](https://broadinstitute.github.io/picard/)
     """
 
-
     def run(self):
         """Run picard to generate insert metrics."""
 
@@ -55,4 +54,3 @@ class GenerateInsertSizeMetrics(PipelineStep):
 
     def count_reads(self):
         pass
-

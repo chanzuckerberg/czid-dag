@@ -58,7 +58,7 @@ class PipelineStepRunStar(PipelineStep):
     ```
 
     For Paired-End reads the following options are added to the STAR command:
-    
+
     ```
     --outSAMtype BAM Unsorted
     --outSAMmode NoQS
