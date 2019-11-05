@@ -105,6 +105,7 @@ def install_s3mi(installed={}, mutex=TraceLock("install_s3mi", threading.RLock()
 
 credentials_cached = {}
 
+
 def cache_AWS_credentials(max_age_seconds=600):
     """
     On EC2/ECS, the AWS CLI calls the instance/container metadata service to fetch instance profile/role credentials
@@ -119,14 +120,17 @@ def cache_AWS_credentials(max_age_seconds=600):
 
     These credentials are short-lived, so we refresh them if we last cached them more than 10 minutes ago.
     """
-    if time.time() - credentials_cached.get("AWS", 0) > max_age_seconds:
-        session = botocore.session.Session()
-        credentials = session.get_credentials()
-        os.environ["AWS_ACCESS_KEY_ID"] = credentials.access_key
-        os.environ["AWS_SECRET_ACCESS_KEY"] = credentials.secret_key
-        os.environ["AWS_SESSION_TOKEN"] = credentials.token
-        os.environ["AWS_DEFAULT_REGION"] = session.create_client("s3").meta.region_name
-    credentials_cached["AWS"] = time.time()
+    if credentials_cached or "AWS_ACCESS_KEY_ID" not in os.environ:
+        if time.time() - credentials_cached.get("AWS", 0) > max_age_seconds:
+            for var in "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_DEFAULT_REGION":
+                os.environ.pop(var, None)
+            session = botocore.session.Session()
+            credentials = session.get_credentials()
+            os.environ["AWS_ACCESS_KEY_ID"] = credentials.access_key
+            os.environ["AWS_SECRET_ACCESS_KEY"] = credentials.secret_key
+            os.environ["AWS_SESSION_TOKEN"] = credentials.token
+            os.environ["AWS_DEFAULT_REGION"] = session.create_client("s3").meta.region_name
+            credentials_cached["AWS"] = time.time()
 
 
 DEFAULT_AUTO_UNZIP = False
