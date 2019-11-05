@@ -8,7 +8,6 @@ import errno
 from urllib.parse import urlparse
 import boto3
 import botocore
-import botocore.session
 from idseq_dag.util.trace_lock import TraceLock
 import idseq_dag.util.command_patterns as command_patterns
 
@@ -103,36 +102,6 @@ def install_s3mi(installed={}, mutex=TraceLock("install_s3mi", threading.RLock()
             installed['time'] = time.time()
 
 
-credentials_cached = {}
-
-
-def cache_AWS_credentials(max_age_seconds=600):
-    """
-    On EC2/ECS, the AWS CLI calls the instance/container metadata service to fetch instance profile/role credentials
-    every time it runs, unless it finds credentials in environment variables or config files.
-
-    There is a rate limit on the metadata service, and we trigger it sometimes with the following error:
-
-        Error when retrieving credentials from container-role: Error retrieving metadata: Received non 200 response
-        (429) from ECS metadata: You have reached maximum request limit.
-
-    To avoid this error, we fetch the credentials using standard botocore logic and cache them in environment variables.
-
-    These credentials are short-lived, so we refresh them if we last cached them more than 10 minutes ago.
-    """
-    if credentials_cached or "AWS_ACCESS_KEY_ID" not in os.environ:
-        if time.time() - credentials_cached.get("AWS", 0) > max_age_seconds:
-            for var in "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_DEFAULT_REGION":
-                os.environ.pop(var, None)
-            session = botocore.session.Session()
-            credentials = session.get_credentials()
-            os.environ["AWS_ACCESS_KEY_ID"] = credentials.access_key
-            os.environ["AWS_SECRET_ACCESS_KEY"] = credentials.secret_key
-            os.environ["AWS_SESSION_TOKEN"] = credentials.token
-            os.environ["AWS_DEFAULT_REGION"] = session.create_client("s3").meta.region_name
-            credentials_cached["AWS"] = time.time()
-
-
 DEFAULT_AUTO_UNZIP = False
 DEFAULT_AUTO_UNTAR = False
 DEFAULT_ALLOW_S3MI = False
@@ -150,7 +119,6 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                   mutex=TraceLock("fetch_from_s3", threading.RLock()),
                   locks={}):
     """Fetch a file from S3 if needed, using either s3mi or aws cp."""
-    cache_AWS_credentials()
     with mutex:
         if os.path.exists(dst) and os.path.isdir(dst):
             dst = os.path.join(dst, os.path.basename(src))
@@ -219,7 +187,8 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                     command.execute(
                         command_patterns.ShellScriptCommand(
                             script=r'set -o pipefail; s3mi cat "${src}" ' + command_params,
-                            named_args=named_args
+                            named_args=named_args,
+                            cache_aws_credentials=True
                         )
                     )
                 except:
@@ -232,7 +201,8 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                     command.execute(
                         command_patterns.ShellScriptCommand(
                             script=r'aws s3 cp --only-show-errors "${src}" - ' + command_params,
-                            named_args=named_args
+                            named_args=named_args,
+                            cache_aws_credentials=True
                         )
                     )
                 return dst

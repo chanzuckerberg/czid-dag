@@ -4,6 +4,10 @@ import json
 import abc
 from collections.abc import Iterable
 import subprocess
+import time
+
+import botocore.session
+
 import idseq_dag.util.log as log
 
 class CommandPattern(abc.ABC):
@@ -38,6 +42,8 @@ class CommandPattern(abc.ABC):
         '''
         return {'type': type(self).__name__, 'caller_info': self.caller_info}
 
+
+credential_cache = {"AWS": {}}
 
 class SingleCommand(CommandPattern):
     r'''
@@ -162,7 +168,12 @@ class ShellScriptCommand(CommandPattern):
                 script.sh <...all parameters here...>
 
     """
-    def __init__(self, script: str, args: List[Union[int, str]] = None, named_args: Dict[str, Union[int, str, List[Union[int, str]]]] = None, cd: str = None):
+    def __init__(self,
+                 script: str,
+                 args: List[Union[int, str]] = None,
+                 named_args: Dict[str, Union[int, str, List[Union[int, str]]]] = None,
+                 cd: str = None,
+                 cache_aws_credentials: bool = False):
         super().__init__()
         assert (args is None) or (named_args is None), "You need to use either args or named_args"
         self.script = script
@@ -170,6 +181,7 @@ class ShellScriptCommand(CommandPattern):
         self.named_args = named_args
         self.popen_handler = None
         self.cd = cd
+        self.cache_aws_credentials = cache_aws_credentials
 
     def _script_named_args(self):
         args = []
@@ -208,6 +220,36 @@ class ShellScriptCommand(CommandPattern):
 
         return iter([script_named_args + self.script, "", *(str(a) for a in args)])
 
+    def get_environment(self, max_age_seconds=900):
+        """
+        On EC2/ECS, the AWS CLI calls the instance/container metadata service to fetch instance profile/role credentials
+        every time it runs, unless it finds credentials in environment variables or config files.
+
+        There is a rate limit on the metadata service, and we trigger it sometimes with the following error:
+
+            Error when retrieving credentials from container-role: Error retrieving metadata: Received non 200 response
+            (429) from ECS metadata: You have reached maximum request limit.
+
+        To avoid this, we fetch the credentials using standard botocore logic and cache them in a process-wide cache.
+        These credentials are short-lived, so we refresh them if we last cached them more than 10 minutes ago.
+
+        This behavior is only active when the constructor is called with cache_aws_credentials=True.
+        """
+        if self.cache_aws_credentials:
+            if time.time() - credential_cache["AWS"].get("cached_at", 0) > max_age_seconds:
+                session = botocore.session.Session()
+                credentials = session.get_credentials()
+                credential_cache["AWS"] = {
+                    "environment": {
+                        "AWS_ACCESS_KEY_ID": credentials.access_key,
+                        "AWS_SECRET_ACCESS_KEY": credentials.secret_key,
+                        "AWS_SESSION_TOKEN": credentials.token,
+                        "AWS_DEFAULT_REGION": session.create_client("s3").meta.region_name
+                    },
+                    "cached_at": time.time()
+                }
+            return dict(os.environ, **credential_cache["AWS"]["environment"])
+
     def open(self, stdin: int = None, stdout: int = None, stderr: int = None) -> subprocess.Popen:
         self.popen_handler = subprocess.Popen(
             self._command_args(),
@@ -216,6 +258,7 @@ class ShellScriptCommand(CommandPattern):
             stdin=stdin,
             stdout=stdout,
             stderr=stderr,
+            env=self.get_environment(),
             executable="/bin/bash"
         )
         return self.popen_handler
