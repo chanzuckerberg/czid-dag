@@ -9,11 +9,12 @@ setup(name='idseq_dag',
       author_email='idseqhelp@chanzuckerberg.com',
       license='MIT',
       packages=['idseq_dag'],
-      install_requires=[],
+      install_requires=['pytz'],
+      tests_require=["coverage", "flake8", "wheel"],
       dependency_links=[],
       entry_points={
-        'console_scripts': [
-          'idseq_dag = idseq_dag.__main__:main'
-        ]
+          'console_scripts': [
+              'idseq_dag = idseq_dag.__main__:main'
+          ]
       },
       zip_safe=False)
