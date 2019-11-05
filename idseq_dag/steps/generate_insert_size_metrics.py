@@ -11,8 +11,8 @@ import idseq_dag.util.command_patterns as command_patterns
 class GenerateInsertSizeMetrics(PipelineStep):
     """ Implements the step for generating insert size metrics.
 
-    Picard computes insert size size metrics.
-    It runs out the output bam from the STAR step.
+    Picard computes insert size metrics.
+    It runs on the output bam from the STAR step.
 
     ```
     java -jar picard.jar CollectInsertSizeMetrics
