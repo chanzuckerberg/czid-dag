@@ -7,7 +7,8 @@ import logging
 import errno
 from urllib.parse import urlparse
 import boto3
-import botocore, botocore.session
+import botocore
+import botocore.session
 from idseq_dag.util.trace_lock import TraceLock
 import idseq_dag.util.command_patterns as command_patterns
 
