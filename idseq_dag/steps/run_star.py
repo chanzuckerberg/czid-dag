@@ -120,6 +120,9 @@ class PipelineStepRunStar(PipelineStep):
         with open(parts_file, 'rb') as parts_f:
             num_parts = int(parts_f.read())
 
+        if self.bam_output:
+            assert(num_parts == 1), "BAM output is not supported for multipart STAR indexes"
+
         # Run STAR on each partition and save the unmapped read info
         unmapped = input_files
 
