@@ -142,7 +142,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
         if untar:
             dst = dst[:-4]  # Remove .tar
         abspath = os.path.abspath(dst)
-        abspath_hash = base64.b64encode(hashlib.sha256(abspath.encode()).digest()).decode()
+        abspath_hash = base64.urlsafe_b64encode(hashlib.sha256(abspath.encode()).digest()).decode()
         parsed_s3_url = urlparse(src, allow_fragments=False)
         if abspath not in locks:
             locks[abspath] = TraceLock(f"fetch_from_s3: {abspath}", threading.RLock())
