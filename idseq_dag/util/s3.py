@@ -159,7 +159,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                 try:
                     with open(os.path.join(config["REF_FETCH_LOG_DIR"], abspath_hash)) as fh:
                         fetch_record = json.load(fh)
-                    obj = s3.Bucket(parsed_s3_url.netloc).Object(parsed_s3_url.path.lstrip('/'))
+                    obj = s3.Bucket(parsed_s3_url.netloc).ObjectSummary(parsed_s3_url.path.lstrip('/'))
                     assert fetch_record["bucket"] == obj.bucket
                     assert fetch_record["key"] == obj.key
                     assert fetch_record["e_tag"] == obj.e_tag
