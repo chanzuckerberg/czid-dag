@@ -231,7 +231,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                 if abspath.startswith(config["REF_DIR"]):
                     os.makedirs(config["REF_FETCH_LOG_DIR"], exist_ok=True)
                     with open(os.path.join(config["REF_FETCH_LOG_DIR"], abspath_hash), "w") as fh:
-                        obj = s3.Bucket(parsed_s3_url.netloc).Object(parsed_s3_url.path.lstrip('/'))
+                        obj = s3.Bucket(parsed_s3_url.netloc).ObjectSummary(parsed_s3_url.path.lstrip('/'))
                         json.dump(dict(bucket_name=obj.bucket_name, key=obj.key, e_tag=obj.e_tag, size=obj.size), fh)
                 return dst
             except subprocess.CalledProcessError:
