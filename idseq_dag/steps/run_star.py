@@ -104,12 +104,12 @@ class PipelineStepRunStar(PipelineStep):
         #  - Paired End Reads
         #  - Recieved an output histogram file or output metrics file destination
 
-        host = self.additional_attributes.get("host", "")
-        host_human = host.lower() == "human"
+        host_genome = self.additional_attributes.get("host_genome", "")
+        host_human = host_genome.lower() == "human"
 
         nucleotide_type = self.additional_attributes.get("nucleotide_type", "")
         dna_type = nucleotide_type.lower() == "dna"
-
+        
         paired = len(self.input_files[0]) == 3
 
         self.output_metrics_file = self.additional_attributes.get("output_metrics_file")
