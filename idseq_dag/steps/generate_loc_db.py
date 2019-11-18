@@ -24,8 +24,8 @@ class PipelineStepGenerateLocDB(PipelineStep):
         self.generate_loc_db_for_sqlite(db_file, loc_db_file_sqlite, info_db_file_sqlite)
 
         loc_db_file = self.output_files_local()[2]
-        self.info_db_file = self.output_files_local()[3]
-        self.generate_loc_db_for_shelf(db_file, loc_db_file)
+        info_db_file = self.output_files_local()[3]
+        self.generate_loc_db_for_shelf(db_file, loc_db_file, info_db_file)
 
     @staticmethod
     def generate_loc_db_work(db_file, loc_db, info_db):
