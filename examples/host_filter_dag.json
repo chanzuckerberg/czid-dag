@@ -5,7 +5,7 @@
   "targets": {
 
       "fastqs": ["RR004_water_2_S23_R1_001.fastq.gz", "RR004_water_2_S23_R2_001.fastq.gz"],
-      "star_out": ["unmapped1.fq", "unmapped2.fq", "alignments.bam"],
+      "star_out": ["unmapped1.fq", "unmapped2.fq"],
       "trimmomatic_out": ["trimmomatic1.fq", "trimmomatic2.fq"],
       "priceseq_out": ["priceseq1.fa", "priceseq2.fa"],
       "cdhitdup_out": ["dedup1.fa", "dedup2.fa"],
@@ -35,16 +35,14 @@
       "additional_files": {
         "star_genome": "s3://idseq-database/host_filter/human/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/human_STAR_genome.tar"
       },
-      "additional_attributes": { "truncate_fragments_to": 75000000
-                                ,"output_gene_file": "reads_per_gene.star.tab" }
-    },
-    {
-      "in": ["star_out"],
-      "out": "insert_size_metrics_out",
-      "class": "GenerateInsertSizeMetrics",
-      "module": "idseq_dag.steps.generate_insert_size_metrics",
-      "additional_files": {},
-      "additional_attributes": {}
+      "additional_attributes": {
+        "truncate_fragments_to": 75000000,
+        "output_gene_file": "reads_per_gene.star.tab",
+        "host": "Human",
+        "nucleotide_type": "DNA",
+        "output_metrics_file": "picard_insert_metrics.txt",
+        "output_histogram_file": "insert_size_histogram.pdf"
+      }
     },
     {
       "in": ["star_out"],

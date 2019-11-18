@@ -108,14 +108,6 @@
     },
     {
       "in": ["star_out"],
-      "out": "insert_size_metrics_out",
-      "class": "GenerateInsertSizeMetrics",
-      "module": "idseq_dag.steps.generate_insert_size_metrics",
-      "additional_files": {},
-      "additional_attributes": {}
-    },
-    {
-      "in": ["star_out"],
       "out": "priceseq_out",
       "class": "PipelineStepRunPriceSeq",
       "module": "idseq_dag.steps.run_priceseq",
