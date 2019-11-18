@@ -121,7 +121,6 @@ class PipelineStepRunStar(PipelineStep):
             paired and \
             requested_insert_size_metrics_output
 
-
     def run(self):
         """Run STAR to filter out host reads."""
         # Setup
@@ -292,7 +291,7 @@ class PipelineStepRunStar(PipelineStep):
                 cmd=cmd,
                 args=params
             )
-        )            
+        )
 
     @staticmethod
     def handle_outstanding_read(r0, r0id, outstanding_r0, outstanding_r1, of0,
