@@ -3,7 +3,7 @@
   "output_dir_s3": "",
   "targets": {
     "fastqs": ["1.fastq.gz", "2.fastq.gz"],
-    "star_out": ["unmapped1.fq", "unmapped2.fq", "alignments.bam"],
+    "star_out": ["unmapped1.fq", "unmapped2.fq"],
     "priceseq_out": ["priceseq1.fa", "priceseq2.fa"],
     "cdhitdup_out": ["dedup1.fa", "dedup2.fa"],
     "lzw_out": ["lzw1.fa", "lzw2.fa"],
@@ -71,7 +71,11 @@
       },
       "additional_attributes": {
         "truncate_fragments_to": 75000000,
-        "output_gene_file": "reads_per_gene.tab"
+        "output_gene_file": "reads_per_gene.tab",
+        "host": "Human",
+        "nucleotide_type": "DNA",
+        "output_metrics_file": "picard_insert_metrics.txt",
+        "output_histogram_file": "insert_size_histogram.pdf"
       }
     },
     {

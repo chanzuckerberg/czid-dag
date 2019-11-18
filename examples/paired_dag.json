@@ -6,7 +6,7 @@
       "RR004_water_2_S23_R1_001.fastq.gz",
       "RR004_water_2_S23_R2_001.fastq.gz"
     ],
-    "star_out": ["unmapped.star.1.fq", "unmapped.star.2.fq", "alignments.bam"],
+    "star_out": ["unmapped.star.1.fq", "unmapped.star.2.fq"],
     "priceseq_out": [
       "priceseqfilter.unmapped.star.1.fasta",
       "priceseqfilter.unmapped.star.2.fasta"
@@ -99,7 +99,11 @@
       },
       "additional_attributes": {
         "truncate_fragments_to": 75000000,
-        "output_gene_file": "reads_per_gene.tab"
+        "output_gene_file": "reads_per_gene.tab",
+        "host": "Human",
+        "nucleotide_type": "DNA",
+        "output_metrics_file": "picard_insert_metrics.txt",
+        "output_histogram_file": "insert_size_histogram.pdf"
       }
     },
     {

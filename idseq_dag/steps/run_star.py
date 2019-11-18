@@ -32,6 +32,7 @@ class PipelineStepRunStar(PipelineStep):
     --outFilterMatchNminOverLread 0.5
     --outReadsUnmapped Fastx
     --outFilterMismatchNmax 999
+    --outSAMmode None
     --clip3pNbases 0
     --runThreadN {cpus}
     --genomeDir {genome_dir}
@@ -47,6 +48,7 @@ class PipelineStepRunStar(PipelineStep):
     --outFilterMatchNminOverLread 0.5
     --outReadsUnmapped Fastx
     --outFilterMismatchNmax 999
+    --outSAMmode None
     --clip3pNbases 0
     --runThreadN {cpus}
     --genomeDir {genome_dir}
@@ -57,22 +59,33 @@ class PipelineStepRunStar(PipelineStep):
     --alignTranscriptsPerReadNmax 100000
     ```
 
-    For Paired-End reads the following options are added to the STAR command:
+    This step also computes insert size metrics for Paired End DNA samples from Human hosts.
+    These metrics are computed by the Broad Institute's Picard toolkit.
+
+    To compute these metrics the STAR command is slightly modified, replacing this option:
+
+    ```
+    --outSAMmode None
+    ```
+
+    With these options:
 
     ```
     --outSAMtype BAM Unsorted
     --outSAMmode NoQS
     ```
 
-    This output BAM file is used to compute insert size metrics for Paired-End reads.
-
-    Otherwise this option is added instead:
+    Then Picard is run on the resulting output BAM file:
 
     ```
-    --outSAMmode None
+    java -jar picard.jar CollectInsertSizeMetrics
+        I=Aligned.out.bam
+        O=picard_insert_metrics.txt
+        H=insert_size_histogram.pdf
     ```
 
     STAR documentation can be found [here](https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf)
+    Picard documentation can be found [here](https://broadinstitute.github.io/picard/)
     """
     # The attributes 'validated_input_counts_file' and 'sequence_input_files' should be
     # initialized in the run() method of any children that are not for execution directly
@@ -84,13 +97,30 @@ class PipelineStepRunStar(PipelineStep):
         super().__init__(*args)
         self.sequence_input_files = None
         self.validated_input_counts_file = None
-        if (len(self.output_files_local()) == 3):
-            self.bam_output = self.output_files_local()[2]
-        else:
-            self.bam_output = None
 
-        if self.bam_output:
-            assert(len(self.input_files[0]) == 3), 'Paired-End samples required for bam output'
+        # Compute insert size metrics if all of the following are true:
+        #  - Host is Human
+        #  - Nucleotide Type is DNA
+        #  - Paired End Reads
+        #  - Recieved an output histogram file or output metrics file destination
+
+        host = self.additional_attributes.get("host", "")
+        host_human = host.lower() == "human"
+
+        nucleotide_type = self.additional_attributes.get("nucleotide_type", "")
+        dna_type = nucleotide_type.lower() == "dna"
+
+        paired = len(self.input_files[0]) == 3
+
+        self.output_metrics_file = self.additional_attributes.get("output_metrics_file")
+        self.output_histogram_file = self.additional_attributes.get("output_histogram_file")
+        requested_insert_size_metrics_output = self.output_metrics_file or self.output_histogram_file
+
+        self.should_generate_insert_size_metrics = host_human and \
+            dna_type and \
+            paired and \
+            requested_insert_size_metrics_output
+
 
     def run(self):
         """Run STAR to filter out host reads."""
@@ -120,8 +150,11 @@ class PipelineStepRunStar(PipelineStep):
         with open(parts_file, 'rb') as parts_f:
             num_parts = int(parts_f.read())
 
-        if self.bam_output:
-            assert(num_parts == 1), "BAM output is not supported for multipart STAR indexes"
+        # Don't compute insert size metrics if the STAR index has more than one part
+        #   Logic for combining BAM output from STAR or insert size metrics not implemented
+        if self.should_generate_insert_size_metrics and num_parts != 1:
+            log.write("Insert size metrics were expected to be generated for sample but were not because the STAR index has more than one part")
+        self.should_generate_insert_size_metrics &= num_parts == 1
 
         # Run STAR on each partition and save the unmapped read info
         unmapped = input_files
@@ -136,7 +169,7 @@ class PipelineStepRunStar(PipelineStep):
             tmp = f"{scratch_dir}/star-part-{part_idx}"
             genome_part = f"{genome_dir}/part-{part_idx}"
             count_genes = part_idx == 0
-            self.run_star_part(tmp, genome_part, unmapped, count_genes, use_starlong)
+            self.run_star_part(tmp, genome_part, unmapped, count_genes, use_starlong, self.should_generate_insert_size_metrics)
 
             unmapped, too_discrepant = PipelineStepRunStar.sync_pairs(
                 PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
@@ -157,11 +190,32 @@ class PipelineStepRunStar(PipelineStep):
                                          output_gene_file)
                     command.move_file(gene_count_file, moved)
                     self.additional_files_to_upload.append(moved)
-                # STAR names the output BAM file Aligned.out.bam
-                bam_file = os.path.join(tmp, "Aligned.out.bam")
-                if os.path.isfile(bam_file):
-                    moved = os.path.join(self.output_dir_local, self.bam_output)
-                    command.move_file(bam_file, moved)
+
+                if self.should_generate_insert_size_metrics:
+                    # STAR names the output BAM file Aligned.out.bam, this doesn't appear to be configurable
+                    bam_path = os.path.join(tmp, "Aligned.out.bam")
+                    metrics_output_path = os.path.join(tmp, self.output_metrics_file)
+                    histogram_output_path = os.path.join(tmp, self.output_histogram_file)
+
+                    # If this file wasn't generated but self.should_generate_insert_size_metrics is True
+                    #   something unexpected has gone wrong
+                    assert(os.path.isfile(bam_path)), \
+                        "Expected STAR to generate Aligned.out.bam but it was not found"
+                    self.generate_insert_size_metrics(tmp, bam_path, metrics_output_path, histogram_output_path)
+
+                    if self.output_metrics_file:
+                        assert(os.path.isfile(metrics_output_path)), \
+                            f"Expected picard to generate metrics output file at: {metrics_output_path}"
+                        output_path = os.path.join(self.output_dir_local, self.output_metrics_file)
+                        command.move_file(gene_count_file, output_path)
+                        self.additional_files_to_upload.append(output_path)
+
+                    if self.output_histogram_file:
+                        assert(os.path.isfile(histogram_output_path)), \
+                            f"Expected picard to generate histogram output file at: {histogram_output_path}"
+                        output_path = os.path.join(self.output_dir_local, self.output_histogram_file)
+                        command.move_file(gene_count_file, output_path)
+                        self.additional_files_to_upload.append(output_path)
 
         # Cleanup
         for src, dst in zip(unmapped, output_files_local):
@@ -172,12 +226,32 @@ class PipelineStepRunStar(PipelineStep):
         self.should_count_reads = True
         self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
 
+    def generate_insert_size_metrics(self, output_dir, alignments_file, metrics_output_path, histogram_output_path):
+        cd = output_dir
+        cmd = "picard"
+
+        params = [
+            "CollectInsertSizeMetrics",
+            f"I={alignments_file}",
+            f"O={metrics_output_path}",
+            f"H={histogram_output_path}"
+        ]
+
+        command.execute(
+            command_patterns.SingleCommand(
+                cd=cd,
+                cmd=cmd,
+                args=params
+            )
+        )
+
     def run_star_part(self,
                       output_dir,
                       genome_dir,
                       input_files,
                       count_genes,
-                      use_starlong):
+                      use_starlong,
+                      generate_output_bam):
         command.make_dirs(output_dir)
 
         cpus = str(multiprocessing.cpu_count())
@@ -195,7 +269,7 @@ class PipelineStepRunStar(PipelineStep):
             '--readFilesIn', *input_files
         ]
 
-        if self.bam_output:
+        if generate_output_bam:
             params += ['--outSAMtype', 'BAM', 'Unsorted', '--outSAMmode', 'NoQS', ]
         else:
             params += ['--outSAMmode', 'None']
@@ -211,13 +285,14 @@ class PipelineStepRunStar(PipelineStep):
 
         if count_genes and os.path.isfile(count_file):
             params += ['--quantMode', 'GeneCounts']
+
         command.execute(
             command_patterns.SingleCommand(
                 cd=cd,
                 cmd=cmd,
                 args=params
             )
-        )
+        )            
 
     @staticmethod
     def handle_outstanding_read(r0, r0id, outstanding_r0, outstanding_r1, of0,
