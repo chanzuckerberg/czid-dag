@@ -114,9 +114,9 @@ class PipelineStepRunStar(PipelineStep):
 
         self.output_metrics_file = self.additional_attributes.get("output_metrics_file")
         self.output_histogram_file = self.additional_attributes.get("output_histogram_file")
-        requested_insert_size_metrics_output = self.output_metrics_file or self.output_histogram_file
+        requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
-        self.should_generate_insert_size_metrics = host_human and \
+        self.should_collect_insert_size_metrics = host_human and \
             dna_type and \
             paired and \
             requested_insert_size_metrics_output
@@ -151,9 +151,9 @@ class PipelineStepRunStar(PipelineStep):
 
         # Don't compute insert size metrics if the STAR index has more than one part
         #   Logic for combining BAM output from STAR or insert size metrics not implemented
-        if self.should_generate_insert_size_metrics and num_parts != 1:
-            log.write("Insert size metrics were expected to be generated for sample but were not because the STAR index has more than one part")
-        self.should_generate_insert_size_metrics &= num_parts == 1
+        if self.should_collect_insert_size_metrics and num_parts != 1:
+            log.write("Insert size metrics were expected to be collected for sample but were not because the STAR index has more than one part")
+        self.should_collect_insert_size_metrics &= num_parts == 1
 
         # Run STAR on each partition and save the unmapped read info
         unmapped = input_files
@@ -168,7 +168,7 @@ class PipelineStepRunStar(PipelineStep):
             tmp = f"{scratch_dir}/star-part-{part_idx}"
             genome_part = f"{genome_dir}/part-{part_idx}"
             count_genes = part_idx == 0
-            self.run_star_part(tmp, genome_part, unmapped, count_genes, use_starlong, self.should_generate_insert_size_metrics)
+            self.run_star_part(tmp, genome_part, unmapped, count_genes, use_starlong, self.should_collect_insert_size_metrics)
 
             unmapped, too_discrepant = PipelineStepRunStar.sync_pairs(
                 PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
@@ -190,17 +190,17 @@ class PipelineStepRunStar(PipelineStep):
                     command.move_file(gene_count_file, moved)
                     self.additional_files_to_upload.append(moved)
 
-                if self.should_generate_insert_size_metrics:
+                if self.should_collect_insert_size_metrics:
                     # STAR names the output BAM file Aligned.out.bam, this doesn't appear to be configurable
                     bam_path = os.path.join(tmp, "Aligned.out.bam")
                     metrics_output_path = os.path.join(tmp, self.output_metrics_file)
                     histogram_output_path = os.path.join(tmp, self.output_histogram_file)
 
-                    # If this file wasn't generated but self.should_generate_insert_size_metrics is True
+                    # If this file wasn't generated but self.should_collect_insert_size_metrics is True
                     #   something unexpected has gone wrong
                     assert(os.path.isfile(bam_path)), \
                         "Expected STAR to generate Aligned.out.bam but it was not found"
-                    self.generate_insert_size_metrics(tmp, bam_path, metrics_output_path, histogram_output_path)
+                    self.collect_insert_size_metrics(tmp, bam_path, metrics_output_path, histogram_output_path)
 
                     if self.output_metrics_file:
                         assert(os.path.isfile(metrics_output_path)), \
@@ -225,7 +225,7 @@ class PipelineStepRunStar(PipelineStep):
         self.should_count_reads = True
         self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
 
-    def generate_insert_size_metrics(self, output_dir, alignments_file, metrics_output_path, histogram_output_path):
+    def collect_insert_size_metrics(self, output_dir, alignments_file, metrics_output_path, histogram_output_path):
         cd = output_dir
         cmd = "picard"
 
