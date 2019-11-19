@@ -37,8 +37,11 @@ class PipelineStepGenerateCoverageViz(PipelineStep):  # pylint: disable=abstract
         num_accessions_per_taxon = self.additional_attributes.get("num_accessions_per_taxon", NUM_ACCESSIONS_PER_TAXON)
         min_contig_size = self.additional_attributes.get("min_contig_size", MIN_CONTIG_SIZE)
 
+        # TODO test stuff delete me
+        log.write("TESTING AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        log.write("s3://idseq-database/alignment_data/2019-10-01/3.13/nt_info.db")
         info_db = s3.fetch_reference(
-            self.additional_files["info_db"],
+            "s3://idseq-database/alignment_data/2019-10-01/3.13/nt_info.db",
             self.ref_dir_local,
             allow_s3mi=True)
         with open_file_db_by_extension(info_db, IdSeqDictValue.VALUE_TYPE_ARRAY) as info_dict:
