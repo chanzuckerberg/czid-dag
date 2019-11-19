@@ -104,16 +104,16 @@ class PipelineStepRunStar(PipelineStep):
         #  - Paired End Reads
         #  - Recieved an output histogram file or output metrics file destination
 
-        host_genome = self.additional_attributes.get("host_genome", "")
+        host_genome = "human"
         host_human = host_genome.lower() == "human"
 
-        nucleotide_type = self.additional_attributes.get("nucleotide_type", "")
+        nucleotide_type = "dna"
         dna_type = nucleotide_type.lower() == "dna"
 
         paired = len(self.input_files[0]) == 3
 
-        self.output_metrics_file = self.additional_attributes.get("output_metrics_file")
-        self.output_histogram_file = self.additional_attributes.get("output_histogram_file")
+        self.output_metrics_file = "picard_insert_metrics.txt"
+        self.output_histogram_file = "insert_size_histogram.pdf"
         requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
         self.should_collect_insert_size_metrics = host_human and \
