@@ -99,9 +99,8 @@ def install_s3mi(installed={}, mutex=TraceLock("install_s3mi", multiprocessing.R
         if installed:  # Mutable default value persists
             return
         try:
-            # This is typically a no-op.
             command.execute(
-                "which s3mi || pip install git+git://github.com/chanzuckerberg/s3mi.git"
+                "pip3 install --upgrade git+https://github.com/chanzuckerberg/s3mi.git@boris/aws_credentials_cache_and_quiet_option"
             )
             command.execute(
                 "s3mi tweak-vm || echo s3mi tweak-vm sometimes fails under docker. Continuing..."
@@ -229,7 +228,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                     assert allow_s3mi
                     command.execute(
                         command_patterns.ShellScriptCommand(
-                            script=r'set -o pipefail; s3mi cat "${src}" ' + command_params,
+                            script=r'set -o pipefail; s3mi cat --quiet "${src}" ' + command_params,
                             named_args=named_args
                         )
                     )
