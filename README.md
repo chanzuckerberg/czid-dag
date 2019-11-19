@@ -227,6 +227,12 @@ TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
 
+- 3.14.1
+  - aws credential caching and other stability improvements
+
+- 3.14
+  - add average insert size computation
+
 - 3.13.1 - 3.13.3
   - Make phylo tree and alignment viz steps more robust to missing accessions in index.
   - Ensure reference caching respects version.
