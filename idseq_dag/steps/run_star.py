@@ -206,14 +206,14 @@ class PipelineStepRunStar(PipelineStep):
                         assert(os.path.isfile(metrics_output_path)), \
                             f"Expected picard to generate metrics output file at: {metrics_output_path}"
                         output_path = os.path.join(self.output_dir_local, self.output_metrics_file)
-                        command.move_file(gene_count_file, output_path)
+                        command.move_file(metrics_output_path, output_path)
                         self.additional_files_to_upload.append(output_path)
 
                     if self.output_histogram_file:
                         assert(os.path.isfile(histogram_output_path)), \
                             f"Expected picard to generate histogram output file at: {histogram_output_path}"
                         output_path = os.path.join(self.output_dir_local, self.output_histogram_file)
-                        command.move_file(gene_count_file, output_path)
+                        command.move_file(histogram_output_path, output_path)
                         self.additional_files_to_upload.append(output_path)
 
         # Cleanup
