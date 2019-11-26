@@ -399,7 +399,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             # Strip the .m8 for RAPSearch as it adds that
         )
 
-        if lazy_run and fetch_from_s3(multihit_s3_outfile, multihit_local_outfile):
+        if lazy_run and fetch_from_s3(multihit_s3_outfile, multihit_local_outfile, okay_if_missing=True):
             log.write(f"finished alignment for chunk {chunk_id} with {service} by lazily fetching last result")
         else:
             chunk_timeout = int(self.additional_attributes.get(f"{service.lower()}_chunk_timeout",
