@@ -85,6 +85,8 @@ class PipelineStepGenerateLocDB(PipelineStep):
 
     @run_in_subprocess
     def generate_loc_db_for_shelf(self, db_file, loc_db_file, info_db_file):
+        # Logic copied from generate_loc_db_work
+        #   slightly changed for writing to shelve format
         loc_dict = shelve.Shelf(dbm.ndbm.open(loc_db_file.replace(".db", ""), 'c'))
         info_dict = shelve.Shelf(dbm.ndbm.open(info_db_file.replace(".db", ""), 'c'))
         with open(db_file) as dbf:
