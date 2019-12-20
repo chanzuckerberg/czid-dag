@@ -427,7 +427,10 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
             )
         )
         column_description_line = column_description_line.strip()
-        additional_columns = column_description_line.split("FORMAT\t")[1].split("\t")
+        if len(column_description_line.split("FORMAT\t")) < 2:
+            additional_columns = []
+        else:
+            additional_columns = column_description_line.split("FORMAT\t")[1].split("\t")
         sample_names_in_order = [
             sample_names_by_run_ids.get(id, f"pipeline_run_{id}") if convert.can_convert_to_int(id) else id
             for id in additional_columns
