@@ -110,6 +110,8 @@ class PipelineStepRunStar(PipelineStep):
         nucleotide_type = self.additional_attributes.get("nucleotide_type", "")
         dna_type = nucleotide_type.lower() == "dna"
 
+        import sys
+        print("*** TAGTEST ***", file=sys.stderr)
         paired = len(self.input_files[0]) == 3
 
         self.output_metrics_file = self.additional_attributes.get("output_metrics_file")
