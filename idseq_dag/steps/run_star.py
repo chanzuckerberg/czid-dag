@@ -112,7 +112,7 @@ class PipelineStepRunStar(PipelineStep):
         self.output_histogram_file = self.additional_attributes.get("output_histogram_file")
         requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
-        star_genome_dir = os.path.dirname(self.additional_attributes.get("star_genome"))
+        star_genome_dir = os.path.dirname(self.additional_files.get("star_genome"))
         gtf_path = os.path.join(star_genome_dir, "ERCC.gtf")
         has_gtf = s3.check_s3_presence(gtf_path)
 
