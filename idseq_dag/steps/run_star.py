@@ -270,20 +270,20 @@ class PipelineStepRunStar(PipelineStep):
             '--readFilesIn', *input_files
         ]
 
-        count_file = f"{genome_dir}/sjdbList.fromGTF.out.tab"
-
         if self.collect_insert_size_metrics_for == "dna":
             params += ['--outSAMtype', 'BAM', 'Unsorted', '--outSAMmode', 'NoQS', ]
         elif self.collect_insert_size_metrics_for == "rna":
             params += [
                 '--outSAMtype', 'BAM', 'Unsorted',
                 '--outSAMmode', 'NoQS',
-                '--quantMode', 'TranscriptomeSAM', 'GeneCounts'
+                '--quantMode', 'TranscriptomeSAM',
             ]
-        elif count_genes and os.path.isfile(count_file):
-            params += ['--quantMode', 'GeneCounts']
         else:
             params += ['--outSAMmode', 'None']
+
+        count_file = f"{genome_dir}/sjdbList.fromGTF.out.tab"
+        if count_genes and os.path.isfile(count_file):
+            params += ['--quantMode', 'GeneCounts']
 
         if use_starlong:
             params += [
