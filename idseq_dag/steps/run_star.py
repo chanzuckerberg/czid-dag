@@ -118,7 +118,10 @@ class PipelineStepRunStar(PipelineStep):
 
         self.collect_insert_size_metrics_for = None
         if paired and requested_insert_size_metrics_output:
-            self.collect_insert_size_metrics_for = nucleotide_type
+            if nucleotide_type == "rna" and has_gtf:
+                self.collect_insert_size_metrics_for = nucleotide_type
+            elif nucleotide_type == "dna":
+                self.collect_insert_size_metrics_for = nucleotide_type
 
     def run(self):
         """Run STAR to filter out host reads."""
