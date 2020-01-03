@@ -118,7 +118,8 @@ class PipelineStepRunStar(PipelineStep):
         requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
         star_genome_dir = os.path.dirname(self.additional_files.get("star_genome", ""))
-        has_gtf = s3.check_s3_presence_for_pattern(star_genome_dir, "\.gtf$")
+        # TODO remove the final x
+        has_gtf = s3.check_s3_presence_for_pattern(star_genome_dir, "\.gtfx$")
 
         self.collect_insert_size_metrics_for = None
         if paired and requested_insert_size_metrics_output:
