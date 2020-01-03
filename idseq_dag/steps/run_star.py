@@ -99,7 +99,7 @@ class PipelineStepRunStar(PipelineStep):
         self.validated_input_counts_file = None
 
         # TODO remove me
-        self.additional_attributes["nucleotide_type"] = "dna"
+        self.additional_attributes["nucleotide_type"] = "rna"
         self.additional_attributes["output_metrics_file"] = "picard_insert_metrics.txt"
         self.additional_attributes["output_histogram_file"] = "insert_size_histogram.pdf"
 
