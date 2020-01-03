@@ -117,10 +117,10 @@ class PipelineStepRunStar(PipelineStep):
         requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
         star_genome_dir = os.path.dirname(self.additional_files.get("star_genome", ""))
-        has_gtf = s3.check_s3_presence_for_pattern(star_genome_dir, "\.gtf$")
+        has_gtf = s3.check_s3_presence_for_pattern(star_genome_dir, r"\.gtf$")
 
         self.collect_insert_size_metrics_for = None
-        # If we have paired end reads and metrics output files were requested 
+        # If we have paired end reads and metrics output files were requested
         #   try to compute insert size metrics
         if paired and requested_insert_size_metrics_output:
             # Compute for RNA if host genome has a gtf file
@@ -199,8 +199,8 @@ class PipelineStepRunStar(PipelineStep):
                     command.move_file(gene_count_file, moved)
                     self.additional_files_to_upload.append(moved)
 
-                # STAR names the output BAM file Aligned.out.bam without TranscriptomeSAM and 
-                #  Aligned.toTranscriptome.out.bam with  TranscriptomeSAM, this doesn't 
+                # STAR names the output BAM file Aligned.out.bam without TranscriptomeSAM and
+                #  Aligned.toTranscriptome.out.bam with  TranscriptomeSAM, this doesn't
                 #  appear to be configurable
                 is_dna = self.collect_insert_size_metrics_for == "dna"
                 bam_filename = "Aligned.out.bam" if is_dna else "Aligned.toTranscriptome.out.bam"
@@ -291,7 +291,7 @@ class PipelineStepRunStar(PipelineStep):
                 params += ['--outSAMtype', 'BAM', 'Unsorted', '--outSAMmode', 'NoQS', ]
             else:
                 params += ['--outSAMmode', 'None']
-            
+
             count_file = f"{genome_dir}/sjdbList.fromGTF.out.tab"
             if count_genes and os.path.isfile(count_file):
                 params += ['--quantMode', 'GeneCounts']
@@ -302,7 +302,7 @@ class PipelineStepRunStar(PipelineStep):
                 '--seedPerReadNmax', '100000',
                 '--seedPerWindowNmax', '1000',
                 '--alignTranscriptsPerReadNmax', '100000',
-                '--alignTranscriptsPerWindowNmax', '10000']            
+                '--alignTranscriptsPerWindowNmax', '10000']
 
         command.execute(
             command_patterns.SingleCommand(

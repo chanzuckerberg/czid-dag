@@ -85,7 +85,7 @@ def check_s3_presence(s3_path, allow_zero_byte_files=True):
 
 def _list_s3_keys(s3_path_prefix):
     """Returns an iterator of s3 keys prefixed by s3_path_prefix."""
-    with log.log_context(context_name="s3.list_s3_objects", values={'s3_path_prefix': s3_path_prefix}, log_context_mode=log.LogContextMode.EXEC_LOG_EVENT) as lc:
+    with log.log_context(context_name="s3.list_s3_objects", values={'s3_path_prefix': s3_path_prefix}, log_context_mode=log.LogContextMode.EXEC_LOG_EVENT):
         parsed_url = urlparse(s3_path_prefix, allow_fragments=False)
         bucket = parsed_url.netloc
         prefix = parsed_url.path.lstrip('/')
