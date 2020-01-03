@@ -105,27 +105,20 @@ class PipelineStepRunStar(PipelineStep):
         #  - Recieved an output histogram file or output metrics file destination
 
         nucleotide_type = self.additional_attributes.get("nucleotide_type", "").lower()
-        log.write(f"FOOOOOOOOOOOOOOOOOOOOOO Nucleotide Type: {nucleotide_type}")
 
         paired = len(self.input_files[0]) == 3
-        log.write(f"FOOOOOOOOOOOOOOOOOOOOOO Paired: {paired}")
 
         self.output_metrics_file = self.additional_attributes.get("output_metrics_file")
-        log.write(f"FOOOOOOOOOOOOOOOOOOOOOO Output Metrics File: {self.output_metrics_file}")
         self.output_histogram_file = self.additional_attributes.get("output_histogram_file")
-        log.write(f"FOOOOOOOOOOOOOOOOOOOOOO Output Histogram File: {self.output_histogram_file}")
         requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
         star_genome_dir = os.path.dirname(self.additional_files.get("star_genome"))
         gtf_path = os.path.join(star_genome_dir, "ERCC.gtf")
-        log.write(f"FOOOOOOOOOOOOOOOOOOOOOO GTF Path: {gtf_path}")
         has_gtf = s3.check_s3_presence(gtf_path)
-        log.write(f"FOOOOOOOOOOOOOOOOOOOOOO Has GTF: {has_gtf}")
 
         self.collect_insert_size_metrics_for = None
         if paired and requested_insert_size_metrics_output:
             self.collect_insert_size_metrics_for = nucleotide_type
-        log.write(f"FOOOOOOOOOOOOOOOOOOOOOO Insert Size Metrics For: {self.collect_insert_size_metrics_for}")
 
     def run(self):
         """Run STAR to filter out host reads."""
@@ -200,11 +193,8 @@ class PipelineStepRunStar(PipelineStep):
                 #  Aligned.toTranscriptome.out.bam with  TranscriptomeSAM, this doesn't 
                 #  appear to be configurable
                 is_dna = self.collect_insert_size_metrics_for == "dna"
-                log.write(f"FOOOOOOOOOOOOOOOOOOOOOO Insert Size Metrics For Two: {self.collect_insert_size_metrics_for}")
                 bam_filename = "Aligned.out.bam" if is_dna else "Aligned.toTranscriptome.out.bam"
-                log.write(f"FOOOOOOOOOOOOOOOOOOOOOO Bam filename: {bam_filename}")
                 if self.collect_insert_size_metrics_for:
-                    log.write(f"FOOOOOOOOOOOOOOOOOOOOOO Uploading")
                     bam_path = os.path.join(tmp, bam_filename)
                     metrics_output_path = os.path.join(tmp, self.output_metrics_file)
                     histogram_output_path = os.path.join(tmp, self.output_histogram_file)
@@ -212,7 +202,7 @@ class PipelineStepRunStar(PipelineStep):
                     # If this file wasn't generated but self.collect_insert_size_metrics_for has a value
                     #   something unexpected has gone wrong
                     assert(os.path.isfile(bam_path)), \
-                        f"Expected STAR to generate {bam_filename} but it was not found"
+                        "Expected STAR to generate Aligned.out.bam but it was not found"
                     self.collect_insert_size_metrics(tmp, bam_path, metrics_output_path, histogram_output_path)
 
                     if self.output_metrics_file:
