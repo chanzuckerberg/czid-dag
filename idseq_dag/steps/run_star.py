@@ -59,7 +59,9 @@ class PipelineStepRunStar(PipelineStep):
     --alignTranscriptsPerReadNmax 100000
     ```
 
-    This step also computes insert size metrics for Paired End DNA samples from Human hosts.
+    This step also computes insert size metrics for Paired End samples.
+    It always computes them for DNA samples and computes them for RNA samples
+    if we have a gtf file for the host genome.
     These metrics are computed by the Broad Institute's Picard toolkit.
 
     To compute these metrics the STAR command is slightly modified, replacing this option:
@@ -68,18 +70,26 @@ class PipelineStepRunStar(PipelineStep):
     --outSAMmode None
     ```
 
-    With these options:
+    With these options (for DNA):
 
     ```
     --outSAMtype BAM Unsorted
     --outSAMmode NoQS
     ```
 
+    Or these options (for RNA):
+
+    ```
+    --outSAMtype BAM Unsorted
+    --outSAMmode NoQS
+    --quantMode TranscriptomeSAM GeneCounts
+    ```
+
     Then Picard is run on the resulting output BAM file:
 
     ```
     java -jar picard.jar CollectInsertSizeMetrics
-        I=Aligned.out.bam
+        I={output bam file}
         O=picard_insert_metrics.txt
         H=insert_size_histogram.pdf
     ```
@@ -98,17 +108,6 @@ class PipelineStepRunStar(PipelineStep):
         self.sequence_input_files = None
         self.validated_input_counts_file = None
 
-        # TODO remove me
-        self.additional_attributes["nucleotide_type"] = "rna"
-        self.additional_attributes["output_metrics_file"] = "picard_insert_metrics.txt"
-        self.additional_attributes["output_histogram_file"] = "insert_size_histogram.pdf"
-
-        # Compute insert size metrics if all of the following are true:
-        #  - Host is Human
-        #  - Nucleotide Type is DNA
-        #  - Paired End Reads
-        #  - Recieved an output histogram file or output metrics file destination
-
         nucleotide_type = self.additional_attributes.get("nucleotide_type", "").lower()
 
         paired = len(self.input_files[0]) == 3
@@ -118,13 +117,16 @@ class PipelineStepRunStar(PipelineStep):
         requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
         star_genome_dir = os.path.dirname(self.additional_files.get("star_genome", ""))
-        # TODO remove the final x
-        has_gtf = s3.check_s3_presence_for_pattern(star_genome_dir, "\.gtfx$")
+        has_gtf = s3.check_s3_presence_for_pattern(star_genome_dir, "\.gtf$")
 
         self.collect_insert_size_metrics_for = None
+        # If we have paired end reads and metrics output files were requested 
+        #   try to compute insert size metrics
         if paired and requested_insert_size_metrics_output:
+            # Compute for RNA if host genome has a gtf file
             if nucleotide_type == "rna" and has_gtf:
                 self.collect_insert_size_metrics_for = nucleotide_type
+            # Always compute for DNA
             elif nucleotide_type == "dna":
                 self.collect_insert_size_metrics_for = nucleotide_type
 
