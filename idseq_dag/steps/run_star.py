@@ -98,6 +98,11 @@ class PipelineStepRunStar(PipelineStep):
         self.sequence_input_files = None
         self.validated_input_counts_file = None
 
+        # TODO remove me
+        self.additional_attributes["nucleotide_type"] = "dna"
+        self.additional_attributes["output_metrics_file"] = "picard_insert_metrics.txt"
+        self.additional_attributes["output_histogram_file"] = "insert_size_histogram.pdf"
+
         # Compute insert size metrics if all of the following are true:
         #  - Host is Human
         #  - Nucleotide Type is DNA
