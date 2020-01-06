@@ -102,6 +102,9 @@ def list_s3_keys(s3_path_prefix):
         return _list_s3_keys(s3_path_prefix)
 
 
+# Something similar to this exist's in s3's REST API
+#  the --query flag, but it doesn't support full regexes and
+#  doesn't appear to be in the python API
 def check_s3_presence_for_pattern(s3_path_prefix, pattern):
     """
     Returns True if s3 contains any keys in s3 that start with the s3 path

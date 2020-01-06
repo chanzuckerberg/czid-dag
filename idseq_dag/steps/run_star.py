@@ -116,6 +116,9 @@ class PipelineStepRunStar(PipelineStep):
         self.output_histogram_file = self.additional_attributes.get("output_histogram_file")
         requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
+        # Check if the STAR genome was generated with a gtf file
+        #  This file will be in the same s3 directory, it is needed to prevent overestimation
+        #  of insert size for RNA because genomic alignments of RNA may cross introns.
         star_genome_dir = os.path.dirname(self.additional_files.get("star_genome", ""))
         has_gtf = s3.check_s3_presence_for_pattern(star_genome_dir, r"\.gtf$")
 
@@ -284,6 +287,9 @@ class PipelineStepRunStar(PipelineStep):
             params += [
                 '--outSAMtype', 'BAM', 'Unsorted',
                 '--outSAMmode', 'NoQS',
+                # Based on experimentation we always want --quantMode TranscriptomeSAM GeneCounts
+                #   for RNA to collect transcriptome-specific results to compute insert size metrics on
+                #   https://czi.quip.com/4niiAhiJsFNx/2019-11-15-CollectInsertSizeMetrics-for-RNA
                 '--quantMode', 'TranscriptomeSAM', 'GeneCounts',
             ]
         else:
