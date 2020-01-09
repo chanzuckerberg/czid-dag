@@ -116,11 +116,12 @@ class PipelineStepRunStar(PipelineStep):
         self.output_histogram_file = self.additional_attributes.get("output_histogram_file")
         requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
-        # Check if the STAR genome was generated with an organism-specific gtf file
+        # Check if the STAR genome was generated with an organism specific gtf file
         #  This file will be in the same s3 directory, it is needed to prevent overestimation
         #  of insert size for RNA because genomic alignments of RNA may cross introns.
-        #  The ERCC.gtf file is not sufficient for this purpose. An organism-specific gtf
-        #  file will have a name other than ERCC.gtf.
+        #  The ERCC.gtf file is not sufficient for this purpose. An organism specific gtf
+        #  file will have a name other than ERCC.gtf. The organism specific gtf files
+        #  come from the RefSeq Database.
         star_genome_dir = os.path.dirname(self.additional_files.get("star_genome", ""))
         has_gtf = s3.check_s3_presence_for_pattern(star_genome_dir, r"(?<!/ERCC)\.gtf$")
 
@@ -128,7 +129,7 @@ class PipelineStepRunStar(PipelineStep):
         # If we have paired end reads and metrics output files were requested
         #   try to compute insert size metrics
         if paired and requested_insert_size_metrics_output:
-            # Compute for RNA if host genome has an origanisn-specific gtf file
+            # Compute for RNA if host genome has an organism specific gtf file
             if nucleotide_type == "rna" and has_gtf:
                 self.collect_insert_size_metrics_for = nucleotide_type
             # Always compute for DNA
