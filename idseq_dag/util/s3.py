@@ -354,6 +354,8 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                             log.write(
                                 "Failed to download with s3mi. Trying with aws s3 cp..."
                             )
+                        else:
+                            raise
                 if try_cli:
                     if okay_if_missing:
                         script = r'aws s3 cp --quiet "${src}" - ' + command_params
@@ -370,7 +372,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                     # Move staged download into final location.
                     command.move_file(tmp_dst, dst)
                 return dst
-            except subprocess.CalledProcessError:
+            except:
                 if okay_if_missing:
                     # We presume.
                     log.write(
