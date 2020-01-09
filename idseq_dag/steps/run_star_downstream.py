@@ -13,4 +13,4 @@ class PipelineStepRunStarDownstream(PipelineStepRunStar):
         self.sequence_input_files = self.input_files_local[0][:2]
         self.validated_input_counts_file = self.input_files_local[1][0]
         # Don't collect insert size metrics at this stage
-        super(insert_size_metrics_enabled=False).run()
+        super(disable_insert_size_metrics=True).run()
