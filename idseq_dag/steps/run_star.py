@@ -108,6 +108,7 @@ class PipelineStepRunStar(PipelineStep):
         self.sequence_input_files = None
         self.validated_input_counts_file = None
 
+        # Used to disable insert size metrics for run_star_downstream.py
         insert_size_metrics_enabled = kwargs.get("insert_size_metrics_enabled", True)
         nucleotide_type = self.additional_attributes.get("nucleotide_type", "").lower()
         paired = len(self.input_files[0]) == 3
