@@ -346,7 +346,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                                 named_args=named_args
                             )
                         )
-                    except:
+                    except subprocess.CalledProcessError:
                         try_cli = not okay_if_missing
                         allow_s3mi = False
                         S3MI_SEM.release()
@@ -372,7 +372,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                     # Move staged download into final location.
                     command.move_file(tmp_dst, dst)
                 return dst
-            except:
+            except subprocess.CalledProcessError:
                 if okay_if_missing:
                     # We presume.
                     log.write(
