@@ -108,10 +108,6 @@ class PipelineStepRunStar(PipelineStep):
         self.sequence_input_files = None
         self.validated_input_counts_file = None
 
-        self.additional_attributes["output_metrics_file"] = "picard_insert_metrics.txt"
-        self.additional_attributes["output_histogram_file"] = "insert_size_histogram.pdf"
-        self.additional_attributes["nucleotide_type"] = "RNA"
-
         # Used to disable insert size metrics for run_star_downstream.py
         disable_insert_size_metrics = kwargs.get("disable_insert_size_metrics")
         nucleotide_type = self.additional_attributes.get("nucleotide_type", "").lower()
