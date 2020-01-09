@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import traceback
 import boto3
 import botocore
+from random import randint
 from idseq_dag.util.trace_lock import TraceLock
 import idseq_dag.util.command_patterns as command_patterns
 
@@ -340,6 +341,10 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                 try_cli = not allow_s3mi
                 if allow_s3mi:
                     try:
+                        if randint(0, 2) != 0:
+                            with open(tmp_dst, "w") as foobar:
+                                foobar.write("foobar!")
+                            assert False
                         command.execute(
                             command_patterns.ShellScriptCommand(
                                 script=r'set -o pipefail; s3mi cat --quiet "${src}" ' + command_params,
