@@ -125,6 +125,7 @@ class PipelineStepGenerateCoverageStats(PipelineStep):
         for fn in output_csv_filenames + output_json_filenames:
             if os.path.exists(fn):
                 os.remove(fn)
+
         @run_in_subprocess
         def compute_slice(slice_idx):
             with open(output_csv_filenames[slice_idx], "w") as output_csv, \
@@ -133,6 +134,7 @@ class PipelineStepGenerateCoverageStats(PipelineStep):
                 for contig_idx, contig_name in enumerate(input_bam.references):
                     if contig_idx % num_slices == slice_idx:
                         PipelineStepGenerateCoverageStats._process_contig(input_bam, output_csv, output_json, contig_name)
+
         # Compute pileup for each slice
         with LongRunningCodeSection("PipelineStepGenerateCoverageStats.calc_contig2coverage.mt_map"):
             mt_map(compute_slice, range(num_slices))
