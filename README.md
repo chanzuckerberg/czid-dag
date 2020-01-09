@@ -234,9 +234,12 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 
 - 3.16.0
   - Only compute insert size metrics for RNA reads if we have an organism-specific gtf file
+- 3.15.1
+  - change PySAM concurrency pattern to improve performance and eliminate deadlock
 - 3.15.0
   - Compute insert size metrics for all hosts for paired end DNA reads
   - Compute insert size metrics for hosts with gtf files for paired end RNA reads
+
 - 3.14.1-4
   - aws credential caching and other stability improvements
   - fix bug that made reverse-strand alignments appear very short in the coverage viz
