@@ -179,7 +179,7 @@ def run_in_subprocess(target):
                 p.start()
             p.join()
             if p.exitcode != 0:
-                raise RuntimeError(f"Failed {target.__qualname__} with code {p.exitcode} on {args}, {kwargs}")
+                raise RuntimeError(f"Failed {target.__qualname__} with code {p.exitcode} on {list(args)}, {kwargs}")  # singleton list prints prettier than singleton tuple
     return wrapper
 
 

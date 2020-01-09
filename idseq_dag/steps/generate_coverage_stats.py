@@ -122,6 +122,9 @@ class PipelineStepGenerateCoverageStats(PipelineStep):
         num_slices = num_physical_cpu
         output_csv_filenames = [f"tmp_slice_{num_slices}_{slice}.csv" for slice in range(num_slices + 1)]
         output_json_filenames = [f"tmp_slice_{num_slices}_{slice}.json" for slice in range(num_slices + 1)]
+        for fn in output_csv_filenames + output_json_filenames:
+            if os.path.exists(fn):
+                os.remove(fn)
         @run_in_subprocess
         def compute_slice(slice_idx):
             with open(output_csv_filenames[slice_idx], "w") as output_csv, \
@@ -134,16 +137,16 @@ class PipelineStepGenerateCoverageStats(PipelineStep):
         with LongRunningCodeSection("PipelineStepGenerateCoverageStats.calc_contig2coverage.mt_map"):
             mt_map(compute_slice, range(num_slices))
         # Output CSV headers
-        with output_csv_filenames[-1] as ocsv:
+        with open(output_csv_filenames[-1], "w") as ocsv:
             ocsv.write(",".join(COVERAGE_STATS_SCHEMA))
             ocsv.write("\n")
         # Output JSON dict open paren
-        with output_json_filenames[-1] as ojson:
+        with open(output_json_filenames[-1], "w") as ojson:
             ojson.write("{")
         # Collate CSV slices
         command.execute(
             command_patterns.ShellScriptCommand(
-                script=r'''cat "${individual_slice_outputs[@]}" > "${collated_csv}";''',
+                script=r'''cat "${individual_slice_outputs[@]}" >> "${collated_csv}";''',  # note >> for appending
                 named_args={
                     'collated_csv': output_csv_filenames[-1],
                     'individual_slice_outputs': output_csv_filenames[:-1]
@@ -155,7 +158,7 @@ class PipelineStepGenerateCoverageStats(PipelineStep):
         # Collate JSON slices, replacing final ", " with "}"
         command.execute(
             command_patterns.ShellScriptCommand(
-                script=r'''cat "${individual_slice_outputs[@]}" | sed 's=, $=}=' > "${collated_json}";''',
+                script=r'''cat "${individual_slice_outputs[@]}" | sed 's=, $=}=' >> "${collated_json}";''',  # note >> for appending
                 named_args={
                     'collated_json': output_json_filenames[-1],
                     'individual_slice_outputs': output_json_filenames[:-1]
