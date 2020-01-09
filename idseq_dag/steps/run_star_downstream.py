@@ -9,11 +9,10 @@ class PipelineStepRunStarDownstream(PipelineStepRunStar):
             because we use the files from (1)
     """
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Don't collect insert size metrics at this stage
-        self.disable_insert_size_metrics = True
+        super().__init__(*args, disable_insert_size_metrics=True, **kwargs)
 
     def run(self):
         self.sequence_input_files = self.input_files_local[0][:2]
         self.validated_input_counts_file = self.input_files_local[1][0]
+        # Don't collect insert size metrics at this stage
         super().run()

@@ -109,8 +109,7 @@ class PipelineStepRunStar(PipelineStep):
         self.validated_input_counts_file = None
 
         # Used to disable insert size metrics for run_star_downstream.py
-        self.disable_insert_size_metrics = False
-
+        disable_insert_size_metrics = kwargs.get("disable_insert_size_metrics")
         nucleotide_type = self.additional_attributes.get("nucleotide_type", "").lower()
         paired = len(self.input_files[0]) == 3
 
@@ -121,7 +120,7 @@ class PipelineStepRunStar(PipelineStep):
         self.collect_insert_size_metrics_for = None
         # If we have paired end reads and metrics output files were requested
         #   try to compute insert size metrics
-        if (not self.disable_insert_size_metrics) and paired and requested_insert_size_metrics_output:
+        if (not disable_insert_size_metrics) and paired and requested_insert_size_metrics_output:
             # Compute for RNA if host genome has an organism specific gtf file
             if nucleotide_type == "rna":
                 # Check if the STAR genome was generated with an organism specific gtf file
