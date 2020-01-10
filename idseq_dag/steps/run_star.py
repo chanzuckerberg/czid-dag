@@ -106,6 +106,11 @@ class PipelineStepRunStar(PipelineStep):
     # disable_insert_size_metrics is used to disable insert size metrics for run_star_downstream.py
     def __init__(self, *args, disable_insert_size_metrics=False, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.additional_attributes["output_metrics_file"] = "picard_insert_metrics.txt"
+        self.additional_attributes["output_histogram_file"] = "insert_size_histogram.pdf"
+        self.additional_attributes["nucleotide_type"] = "RNA"
+
         self.sequence_input_files = None
         self.validated_input_counts_file = None
 
