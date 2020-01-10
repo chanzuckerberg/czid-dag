@@ -103,13 +103,12 @@ class PipelineStepRunStar(PipelineStep):
     # Note that these attributes cannot be set in the __init__ method because required
     # file path information only becomes available once the wait_for_input_files() has run.
 
+    # disable_insert_size_metrics is used to disable insert size metrics for run_star_downstream.py
     def __init__(self, *args, disable_insert_size_metrics=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.sequence_input_files = None
         self.validated_input_counts_file = None
 
-        # Used to disable insert size metrics for run_star_downstream.py
-        disable_insert_size_metrics = kwargs.get("disable_insert_size_metrics")
         nucleotide_type = self.additional_attributes.get("nucleotide_type", "").lower()
         paired = len(self.input_files[0]) == 3
 
