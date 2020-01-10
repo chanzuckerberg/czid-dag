@@ -109,7 +109,7 @@ class PipelineStepRunStar(PipelineStep):
 
         self.additional_attributes["output_metrics_file"] = "picard_insert_metrics.txt"
         self.additional_attributes["output_histogram_file"] = "insert_size_histogram.pdf"
-        self.additional_attributes["nucleotide_type"] = "RNA"
+        self.additional_attributes["nucleotide_type"] = "DNA"
 
         self.sequence_input_files = None
         self.validated_input_counts_file = None
