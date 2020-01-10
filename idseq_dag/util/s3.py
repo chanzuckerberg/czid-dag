@@ -4,6 +4,7 @@ import os
 import multiprocessing
 import errno
 import re
+from random import randint
 from urllib.parse import urlparse
 import traceback
 import boto3
@@ -340,13 +341,18 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                 try_cli = not allow_s3mi
                 if allow_s3mi:
                     try:
+                        if randint(0, 1):
+                            with open(tmp_dst, "w") as foobar:
+                                foobar.write("foobar!\n")
+                            log.write("Testing failure.")
+                            assert False
                         command.execute(
                             command_patterns.ShellScriptCommand(
                                 script=r'set -o pipefail; s3mi cat --quiet "${src}" ' + command_params,
                                 named_args=named_args
                             )
                         )
-                    except subprocess.CalledProcessError:
+                    except:
                         try_cli = not okay_if_missing
                         allow_s3mi = False
                         S3MI_SEM.release()
@@ -372,7 +378,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                     # Move staged download into final location.
                     command.move_file(tmp_dst, dst)
                 return dst
-            except subprocess.CalledProcessError:
+            except:
                 if okay_if_missing:
                     # We presume.
                     log.write(
