@@ -234,11 +234,10 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 
 - 3.16.0
   - Only compute insert size metrics for RNA reads if we have an organism-specific gtf file
-- 3.15.1
-  - change PySAM concurrency pattern to improve performance and eliminate deadlock
-- 3.15.1-2
+- 3.15.1-3
   - change PySAM concurrency pattern to improve performance and eliminate deadlock
   - reduce logging from run_in_subprocess decorator
+  - avoid using corrupt reference downloads
 - 3.15.0
   - Compute insert size metrics for all hosts for paired end DNA reads
   - Compute insert size metrics for hosts with gtf files for paired end RNA reads
