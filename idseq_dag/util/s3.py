@@ -239,6 +239,12 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
 
     IT IS NOT SAFE TO CALL THIS FUNCTION FROM MULTIPLE PROCESSES.
     It is totally fine to call it from multiple threads (it is designed for that).
+
+    If src does not exist or there is a failure fetching it, the function returns None,
+    without raising an exception.  If the download is successful, it returns "dst".
+
+    An exception is raised only if there is a coding error or equivalent problem,
+    not if src simply doesn't exist.
     """
     # Do not be mislead by the multiprocessing.RLock() above -- that just means it won't deadlock
     # if called from multiple processes but does not mean the behaivior will be correct.  It will
@@ -289,6 +295,9 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
             locks[abspath] = TraceLock(f"fetch_from_s3: {abspath}", multiprocessing.RLock())
         destination_lock = locks[abspath]
 
+    # shouldn't happen and makes it impossible to ensure that any dst that exists is complete and correct.
+    assert tmp_dst != dst, f"Problematic use of fetch_from_s3 with tmp_dst==dst=='{dst}'"
+
     with destination_lock:
         # This check is a bit imperfect when untarring... unless you follow the discipline that
         # all contents of file foo.tar are under directory foo/... (which we do follow in IDseq)
@@ -334,11 +343,10 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
 
                 named_args.update({'src': src})
 
-                if os.path.exists(tmp_dst):
-                    command.remove_rf(tmp_dst)
-
                 try_cli = not allow_s3mi
                 if allow_s3mi:
+                    if os.path.exists(tmp_dst):
+                        command.remove_rf(tmp_dst)
                     try:
                         command.execute(
                             command_patterns.ShellScriptCommand(
@@ -357,6 +365,8 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                         else:
                             raise
                 if try_cli:
+                    if os.path.exists(tmp_dst):
+                        command.remove_rf(tmp_dst)
                     if okay_if_missing:
                         script = r'aws s3 cp --quiet "${src}" - ' + command_params
                     else:
@@ -368,11 +378,16 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                             env=dict(os.environ, **refreshed_credentials())
                         )
                     )
-                if tmp_dst != dst:
-                    # Move staged download into final location.
-                    command.move_file(tmp_dst, dst)
+                # Move staged download into final location.  Leave this last, so it only happens if no exception has occurred.
+                # By this point we have already asserted that tmp_dst != dst.
+                command.move_file(tmp_dst, dst)
                 return dst
-            except subprocess.CalledProcessError:
+            except BaseException as e:  # Deliberately super broad to make doubly certain that dst will be removed if there has been any exception
+                if os.path.exists(dst):
+                    command.remove_rf(dst)
+                if not isinstance(e, subprocess.CalledProcessError):
+                    # Coding error of some sort.  Best not hide it.
+                    raise
                 if okay_if_missing:
                     # We presume.
                     log.write(
@@ -382,14 +397,12 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                     log.write(
                         "Failed to fetch file from S3."
                     )
-                if os.path.exists(dst):
-                    command.remove_rf(dst)
-                if os.path.exists(tmp_dst):
-                    command.remove_rf(tmp_dst)
                 return None
             finally:
                 if allow_s3mi:
                     S3MI_SEM.release()
+                if os.path.exists(tmp_dst):  # by this point we have asserted that tmp_dst != dst (and that assert may have failed, but so be it)
+                    command.remove_rf(tmp_dst)
 
 def fetch_reference(src,  # pylint: disable=dangerous-default-value
                     dst,
