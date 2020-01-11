@@ -249,8 +249,8 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
     to update its timestamp.
 
     When touch_only=True, if the destination does not already exist, the function
-    simply returns None (as if the download failed).  This is useful in implementing
-    an LRU refernece caching policy.
+    simply returns None (as if the download failed), after touching the existing
+    destination.  This is useful in implementing an LRU refernece caching policy.
 
     An exception is raised only if there is a coding error or equivalent problem,
     not if src simply doesn't exist.
