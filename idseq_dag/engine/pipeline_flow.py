@@ -49,19 +49,12 @@ class PipelineFlow(object):
     def parse_output_version(version):
         return ".".join(version.split(".")[0:2])
 
-    def prefetch_large_files(self):
-
-        def get_it(f, touch_only=False):
-            idseq_dag.util.s3.fetch_reference(
-                f, self.ref_dir_local, auto_unzip=True, auto_untar=True, allow_s3mi=True, touch_only=touch_only)
-
-        with log.log_context("prefetch_large_files", values={"file_list": self.large_file_list}):
+    def prefetch_large_files(self, touch_only=False):
+        with log.log_context("touch_large_files_and_make_space" if touch_only else "prefetch_large_files", values={"file_list": self.large_file_list}):
             for f in self.large_file_list:
-                get_it(f, touch_only=True)
-            idseq_dag.util.s3.make_space()
-            for f in self.large_file_list:
-                with log.log_context("fetch_reference", values={"file": f}):
-                    get_it(f)
+                with log.log_context("fetch_reference", values={"file": f, "touch_only": touch_only}):
+                    idseq_dag.util.s3.fetch_reference(
+                        f, self.ref_dir_local, auto_unzip=True, auto_untar=True, allow_s3mi=True, touch_only=touch_only)
 
     @staticmethod
     def parse_and_validate_conf(dag_json):
@@ -239,13 +232,15 @@ class PipelineFlow(object):
         # Come up with the plan
         (step_list, self.large_file_list, covered_targets) = self.plan()
 
+        self.prefetch_large_files(touch_only=True)
+        idseq_dag.util.s3.make_space()  # make sure to touch this stage's files before deleting LRU ones
+        threading.Thread(target=self.prefetch_large_files).start()
+
         for step in step_list:  # download the files from s3 when necessary
             for target in step["in"]:
                 target_info = covered_targets[target]
                 if target_info['s3_downloadable']:
                     threading.Thread(target=self.fetch_target_from_s3, args=(target,)).start()
-        # TODO(boris): check the following implementation
-        threading.Thread(target=self.prefetch_large_files).start()
 
         self.create_status_json_file()
         # Start initializing all the steps and start running them and wait until all of them are done
