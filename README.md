@@ -233,7 +233,7 @@ Version numbers for this repo take the form X.Y.Z.
 Changes to X or Y force recomputation of all results when a sample is rerun using idseq-web. Changes to Z do not force recomputation when the sample is rerun - the pipeline will lazily reuse existing outputs in AWS S3.
 
 3.16.1
-  - touch current stage reference downloads before deleting LRU references
+  - implement LRU policy for reference downloads cache
 
 - 3.16.0
   - Only compute insert size metrics for RNA reads if we have an organism-specific gtf file
