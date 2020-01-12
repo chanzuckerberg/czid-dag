@@ -256,6 +256,9 @@ class PipelineFlow(object):
             }
             log.log_event("Reference downloads cache efficiency report", values=structured_report)
         idseq_dag.util.s3.make_space()  # make sure to touch this stage's files before deleting LRU ones
+        # N.B. the default results folder /mnt/idseq/results is removed by the aegea
+        # command sript driven through idseq-web --- so we don't have to worry about
+        # clearing that space here
 
     def start(self):
         # Come up with the plan
