@@ -153,7 +153,8 @@ def refreshed_credentials(credentials_mutex=multiprocessing.RLock(), credentials
 
 def find_oldest_reference(refdir):
     try:
-        ls = subprocess.run(f"ls -t {refdir} | tail -1", shell=True, executable="/bin/bash", check=True, capture_output=True)
+        # To understand this ls command, please see the path forming explained in fetch_from_s3 when is_reference=True.
+        ls = subprocess.run(f"ls -td {refdir}/*/* | tail -1", shell=True, executable="/bin/bash", check=True, capture_output=True)
     except:
         # This happens when there are no reference files to delete.
         return None
@@ -179,7 +180,7 @@ def really_make_space():
         if not lru:
             log.write("WARNING:  Too little available space on instance, and could not find any reference downloads to delete.")
             break
-        command.remove_rf(os.path.join(refdir, lru))
+        command.remove_rf(lru)
 
 
 def make_space(done={}, mutex=TraceLock("make_space", multiprocessing.RLock())):  # pylint: disable=dangerous-default-value
