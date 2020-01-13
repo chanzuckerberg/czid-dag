@@ -80,6 +80,14 @@ class PipelineFlow(object):
         '''
         dag = json.loads(open(dag_json).read())
         log.log_event("pipeline_flow.dag_json_loaded", values={"file": dag_json, "contents": dag})
+
+        for s in dag['steps']:
+        # Fake some things in order to test https://github.com/chanzuckerberg/idseq-web/pull/2945/files and https://github.com/chanzuckerberg/idseq-dag/pull/240/files
+            for classname, afkey in [('PipelineStepDownloadAccessions', 'db'), ('PipelineStepGenerateAlignmentViz', 'nt_db')]:
+                if s['class'] == classname:
+                    s['additional_files'][afkey] = s['additional_attributes'][afkey]
+                    log.write(f"Hacked DAG step json in order to test PR2945: {json.dumps(s)}")
+
         output_dir = dag["output_dir_s3"]  # noqa
         targets = dag["targets"]
         steps = dag["steps"]
