@@ -1,6 +1,7 @@
 import importlib
 import json
 import os
+import time
 import threading
 import traceback
 import datetime
@@ -16,7 +17,8 @@ from idseq_dag.engine.pipeline_step import PipelineStep, InvalidInputFileError
 
 DEFAULT_OUTPUT_DIR_LOCAL = '/mnt/idseq/results/%d' % os.getpid()
 DEFAULT_REF_DIR_LOCAL = '/mnt/idseq/ref'
-
+PURGE_SENTINEL_DIR = DEFAULT_REF_DIR_LOCAL + "/purge_sentinel"
+PURGE_SENTINEL = PURGE_SENTINEL_DIR + "/purge_nothing_newer_than_me"
 
 class PipelineFlow(object):
     def __init__(self, lazy_run, dag_json, versioned_output):
@@ -38,6 +40,7 @@ class PipelineFlow(object):
         self.output_dir_local = dag.get("output_dir_local", DEFAULT_OUTPUT_DIR_LOCAL).rstrip('/')
         self.ref_dir_local = dag.get("ref_dir_local", DEFAULT_REF_DIR_LOCAL)
         idseq_dag.util.s3.config["REF_DIR"] = self.ref_dir_local
+        idseq_dag.util.s3.config["PURGE_SENTINEL"] = PURGE_SENTINEL
         # idseq_dag.util.s3.config["REF_FETCH_LOG_DIR"] = os.path.join(self.ref_dir_local, "fetch_log")
         self.large_file_list = []
 
@@ -61,6 +64,9 @@ class PipelineFlow(object):
                     else:
                         failures.add(f)
         return successes, failures
+
+    def references_roll_call(self):
+        return self.prefetch_large_files(touch_only=True)
 
     @staticmethod
     def parse_and_validate_conf(dag_json):
@@ -235,7 +241,10 @@ class PipelineFlow(object):
         idseq_dag.util.s3.upload_with_retries(self.step_status_local, self.output_dir_s3 + "/")
 
     def manage_reference_downloads_cache(self):
-        present_set, missing_set = self.prefetch_large_files(touch_only=True)
+        command.make_dirs(PURGE_SENTINEL_DIR)
+        command.touch(PURGE_SENTINEL)
+        time.sleep(3)  # 1 should be enough for the sentinel to predate all current stage downloads
+        present_set, missing_set = self.references_roll_call()
         total_set = present_set | missing_set
         if total_set:
             present = len(present_set)

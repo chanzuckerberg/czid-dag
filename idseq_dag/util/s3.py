@@ -28,8 +28,8 @@ IOSTREAM_UPLOADS = multiprocessing.Semaphore(MAX_CONCURRENT_UPLOAD_OPERATIONS)
 
 config = {
     # Configured in idseq_dag.engine.pipeline_flow.PipelineFlow
-    "REF_DIR": "ref",
-    # "REF_FETCH_LOG_DIR": "fetch_log"
+    "REF_DIR": None,
+    "PURGE_SENTINEL": None
 }
 
 def split_identifiers(s3_path):
@@ -158,7 +158,12 @@ def find_oldest_reference(refdir):
     except:
         # This happens when there are no reference files to delete.
         return None
-    return ls.stdout.decode('utf-8').strip()
+    result = ls.stdout.decode('utf-8').strip()
+    assert config["PURGE_SENTINEL"] != None
+    if result == config["PURGE_SENTINEL"]:
+        log.write("WARNING:  Encountered purge sentinel before freeing sufficient space.  Job may run out of space.")
+        return None
+    return result
 
 
 def need_more_space(refdir):
@@ -260,6 +265,9 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
     # if called from multiple processes but does not mean the behaivior will be correct.  It will
     # be incorrect, because the locks dict (cointaining per-file locks) cannot be shared across
     # processes, the way it can be shared across threads.
+
+    if is_reference:
+        assert config["REF_DIR"], "The is_reference code path becomes available only after initializing gloabal config['REF_DIR']"
 
     if os.path.exists(dst) and os.path.isdir(dst):
         dirname, basename = os.path.split(src)
