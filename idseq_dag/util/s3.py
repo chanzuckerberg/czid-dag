@@ -171,7 +171,7 @@ def need_more_space(refdir):
         df = subprocess.run(f"df -m {refdir}" + " | awk '{print $5}' | tail -1 | sed 's=%=='", shell=True, executable="/bin/bash", check=True, capture_output=True)
         percent_used = int(df.stdout.decode('utf-8').strip())
         log.write(f"Disk used space: {percent_used} percent.")
-        return percent_used > 40
+        return percent_used > 0
     except:
         log.write("Error:  Failed to determine available space on instance.  Will assume too little space is available, and will try to delete least recently used reference downloads.")
         traceback.format_exc()
