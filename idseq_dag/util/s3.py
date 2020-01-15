@@ -222,6 +222,18 @@ def install_s3mi(installed={}, mutex=TraceLock("install_s3mi", multiprocessing.R
             installed['time'] = time.time()
 
 
+def install_s3parcp(installed={}, mutex=TraceLock("install_s3parcp", multiprocessing.RLock())):  # pylint: disable=dangerous-default-value
+    with mutex:
+        if installed:  # Mutable default value persists
+            return
+        try:
+            # This is typically a no-op.
+            command.execute(
+                "which s3parcp || (curl -L https://github.com/chanzuckerberg/s3parcp/releases/download/v0.0.11-alpha/s3parcp_0.0.11-alpha_Linux_x86_64.tar.gz | tar zx; mv s3parcp /usr/local/bin)"
+            )
+        finally:
+            installed['time'] = time.time()
+
 DEFAULT_AUTO_UNZIP = False
 DEFAULT_AUTO_UNTAR = False
 DEFAULT_ALLOW_S3MI = False
@@ -524,6 +536,7 @@ def upload_with_retries(from_f, to_f, checksum=False):
                     )
                 )
             else:
+                install_s3parcp()
                 command.execute(
                     command_patterns.SingleCommand(
                         cmd="s3parcp",
