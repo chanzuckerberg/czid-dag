@@ -234,6 +234,7 @@ def install_s3parcp(installed={}, mutex=TraceLock("install_s3parcp", multiproces
         finally:
             installed['time'] = time.time()
 
+
 DEFAULT_AUTO_UNZIP = False
 DEFAULT_AUTO_UNTAR = False
 DEFAULT_ALLOW_S3MI = False
