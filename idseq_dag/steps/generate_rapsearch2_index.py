@@ -22,11 +22,9 @@ class PipelineStepGenerateRapsearch2Index(PipelineStep):
         log.write(f"input: {nr_db} output: {output_nr_index}")
         command.execute(
             command_patterns.SingleCommand(
-                cmd="prerapsearch",
+                cmd="cp",
                 args=[
-                    "-d",
                     nr_db,
-                    "-n",
                     output_nr_index
                 ]
             )
