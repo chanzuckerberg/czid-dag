@@ -25,7 +25,7 @@
   ],
   "given_targets": {
     "nr_db": {
-      "s3_dir":  "s3://idseq-database/ncbi-sources/<NCBI_DATE>", "count_reads": 0
+      "s3_dir":  "s3://idseq-database/alignment_indexes/<NCBI_DATE>", "count_reads": 0
     }
   }
 }
