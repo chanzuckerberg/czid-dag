@@ -30,12 +30,7 @@ class PipelineStepGenerateRapsearch2Index(PipelineStep):
             )
         )
         command.execute(
-            command_patterns.SingleCommand(
-                cmd="touch",
-                args=[
-                    output_nr_info_file
-                ]
-            )
+            command_patterns.ShellScriptCommand(f"echo foo > {output_nr_info_file}")
         )
         self.additional_files_to_upload.append(output_nr_info_file)
 
