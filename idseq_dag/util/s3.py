@@ -105,7 +105,7 @@ def list_s3_keys(s3_path_prefix):
             capture_stdout=True,
         )
         parsed_response = json.loads(raw_response)
-        return [ item['Key'] for item in parsed_response['Contents'] ]
+        return [item['Key'] for item in parsed_response['Contents']]
 
 
 # Something similar to this exist's in s3's REST API
