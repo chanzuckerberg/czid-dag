@@ -91,6 +91,7 @@ def list_s3_keys(s3_path_prefix):
         parsed_url = urlparse(s3_path_prefix, allow_fragments=False)
         bucket = parsed_url.netloc
         prefix = parsed_url.path.lstrip('/')
+        # Use the AWS CLI instead of boto for thread safety
         raw_response = command.execute(
             command_patterns.SingleCommand(
                 cmd="aws",
