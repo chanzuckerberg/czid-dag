@@ -60,7 +60,7 @@ class PipelineStep(object):
         self.should_count_reads = False
 
         self.input_file_error = None
-        self.upload_results_with_checksum = False
+        self.upload_results_with_checksum = True
 
     @abstractmethod
     def run(self):
