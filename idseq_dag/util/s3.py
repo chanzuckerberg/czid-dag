@@ -512,11 +512,9 @@ def upload_with_retries(from_f, to_f, checksum=False):
             if checksum:
                 command.execute(
                     command_patterns.SingleCommand(
-                        cmd="aws",
+                        cmd="s3parcp",
                         args=[
-                            "s3",
-                            "cp",
-                            "--only-show-errors",
+                            "--checksum",
                             from_f,
                             to_f
                         ],
@@ -526,9 +524,11 @@ def upload_with_retries(from_f, to_f, checksum=False):
             else:
                 command.execute(
                     command_patterns.SingleCommand(
-                        cmd="s3parcp",
+                        cmd="aws",
                         args=[
-                            "--checksum",
+                            "s3",
+                            "cp",
+                            "--only-show-errors",
                             from_f,
                             to_f
                         ],
