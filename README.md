@@ -1,6 +1,6 @@
 # [IDseq](https://idseq.net/) &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://github.com/chanzuckerberg/idseq-web/blob/master/LICENSE) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
-![logo](https://assets.idseq.net/Logo_Black.png)
+![logo](https://assets.idseq.net/assets/Logo_Black.png)
 
 #### Infectious Disease Sequencing Platform
 IDseq is a hypothesis-free global software platform that helps scientists identify pathogens in metagenomic sequencing data.
@@ -226,9 +226,45 @@ IDseq DAGs require the use of several indices prepared from files in NCBI. If yo
 TODO: Move this code over to the idseq-dag repo.
 
 ## Release notes
+Version numbers for this repo take the form X.Y.Z.
+- We increase Z for a change that does not add or change results in any way. Example: adding a log statement.
+- We increase Y for a change that adds results, changes results, or has the potential to change results. Example: changing a parameter in the GSNAP command.
+- We increase X for a paradigm shift in how the pipeline is conceived. Example: adding a de-novo assembly step and then reassigning hits based on the assembled contigs.
+Changes to X or Y force recomputation of all results when a sample is rerun using idseq-web. Changes to Z do not force recomputation when the sample is rerun - the pipeline will lazily reuse existing outputs in AWS S3.
 
-- 3.13.1
+- 3.16.2
+  - fix botocore import issue for util.s3
+  - switch to subprocess command for `util.s3.list_s3_keys` for thread safety
+
+- 3.16.1
+  - implement LRU policy for reference downloads cache
+
+- 3.16.0
+  - Only compute insert size metrics for RNA reads if we have an organism-specific gtf file
+
+- 3.15.1-4
+  - change PySAM concurrency pattern to improve performance and eliminate deadlock
+  - reduce logging from run_in_subprocess decorator
+  - avoid using corrupt reference downloads
+  - increase default Rapsearch timeout
+
+- 3.15.0
+  - Compute insert size metrics for all hosts for paired end DNA reads
+  - Compute insert size metrics for hosts with gtf files for paired end RNA reads
+
+- 3.14.1-4
+  - aws credential caching and other stability improvements
+  - fix bug that made reverse-strand alignments appear very short in the coverage viz
+  - limit blastn BATCH_SIZE to avoid out-of-memory errors (results are unchanged)
+  - reduce RAM footprint of blast rerank python to avoid out-of-memory errors (results are unchanged)
+
+- 3.14
+  - add average insert size computation
+
+- 3.13.1 - 3.13.3
   - Make phylo tree and alignment viz steps more robust to missing accessions in index.
+  - Ensure reference caching respects version.
+  - Reduce frequency of s3 requests, other stability fixes.
 
 - 3.13
   - Rerank NT blast results by taking into account all fragments for a given contig and reference sequence, not just the highest scoring one.

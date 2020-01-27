@@ -5,14 +5,12 @@ import sys
 import os
 import threading
 import time
-import datetime
 import glob as _glob
 import shutil
-import shlex
-import pkg_resources
+import pathlib
 from functools import wraps
-import pytz
-from typing import List, Union, Dict, Any
+from typing import Union
+import pkg_resources
 import idseq_dag.util.log as log
 from idseq_dag.util.trace_lock import TraceLock
 import idseq_dag.util.command_patterns as command_patterns
@@ -171,40 +169,44 @@ def run_in_subprocess(target):
 
     @wraps(target)
     def wrapper(*args, **kwargs):
-        original_caller = log.get_caller_info(3)
-
-        def subprocess_scope(*args, **kwargs):
-            with log.log_context("subprocess_scope", {"target": target.__qualname__, "original_caller": original_caller}):
-                target(*args, **kwargs)
-        p = multiprocessing.Process(target=subprocess_scope, args=args, kwargs=kwargs)
-        p.start()
+        with log.print_lock:
+            p = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
+            p.start()
         p.join()
         if p.exitcode != 0:
-            raise RuntimeError("Failed {} on {}, {}".format(
-                target.__name__, args, kwargs))
-
+            raise RuntimeError(f"Failed {target.__qualname__} with code {p.exitcode} on {list(args)}, {kwargs}")  # singleton list prints prettier than singleton tuple
     return wrapper
 
 
-def retry(operation, randgen=random.Random().random):
+def retry(operation, MAX_TRIES=3):
     """Retry decorator for external commands."""
     # Note the use of a separate random generator for retries so transient
     # errors won't perturb other random streams used in the application.
+    invocation = [0]  # a python trick, without which the nested function would not increment a counter defined in the parent
     @wraps(operation)
     def wrapped_operation(*args, **kwargs):
-        remaining_attempts = 3
+        randgen = None
+        remaining_attempts = MAX_TRIES
         delay = 1.0
         while remaining_attempts > 1:
             try:
+                t_start = time.time()
                 return operation(*args, **kwargs)
             except:
-                # Random jitter and exponential delay
-                time.sleep(delay * (1.0 + randgen()))
+                t_end = time.time()
+                if randgen == None:
+                    invocation[0] += 1
+                    randgen = random.Random(os.getpid() * 10000 + invocation[0]).random  # seed based on pid so subprocesses won't retry in lockstep
+                if t_end - t_start > 30:
+                    # For longer operations, the delay should increase, so that the backoff will meaningfully reduce load on the failing service.
+                    delay = (t_end - t_start) * 0.2
+                wait_time = delay * (1.0 + 2.0 * randgen())
+                log.write(f"Sleeping {wait_time} seconds before retry {MAX_TRIES - remaining_attempts + 1} of {operation} with {args}, {kwargs}.")
+                time.sleep(wait_time)
                 delay *= 3.0
                 remaining_attempts -= 1
         # The last attempt is outside try/catch so caller can handle exception
         return operation(*args, **kwargs)
-
     return wrapped_operation
 
 
@@ -313,6 +315,16 @@ def move_file(src: str, dst: str):
         shutil.move(src, dst)
 
 
+def rename(src: str, dst: str):
+    with log.log_context(context_name='command.rename', values={'src': src, 'dest': dst}, log_context_mode=log.LogContextMode.EXEC_LOG_EVENT):
+        os.rename(src, dst)
+
+
+def touch(path, exist_ok=True):
+    with log.log_context(context_name='command.touch', values={'path': path}, log_context_mode=log.LogContextMode.EXEC_LOG_EVENT):
+        pathlib.Path(path).touch(exist_ok=exist_ok)
+
+
 def remove_file(file_path: str):
     with log.log_context(context_name='command.remove_file', values={'path': file_path}, log_context_mode=log.LogContextMode.EXEC_LOG_EVENT):
         os.remove(file_path)
@@ -411,3 +423,26 @@ def get_resource_filename(root_relative_path, package='idseq_dag'):
             /app/idseq_dag/scripts/fastq-fasta-line-validation.awk
     '''
     return pkg_resources.resource_filename(package, root_relative_path)
+
+
+class LongRunningCodeSection(Updater):
+    """
+    Make sure we print something periodically while a long section of code is running.
+    """
+    lock = TraceLock("LongRunningCodeSection", multiprocessing.RLock())
+    count = multiprocessing.Value('i', 0)
+
+    def __init__(self, name, update_period=15):
+        super(LongRunningCodeSection, self).__init__(
+            update_period, self.print_update)
+        with LongRunningCodeSection.lock:
+            self.id = LongRunningCodeSection.count.value
+            LongRunningCodeSection.count.value += 1
+        self.name = name
+
+    def print_update(self, t_elapsed):
+        """Log an update after every polling period to indicate the code section is
+        still active.
+        """
+        log.write("LongRunningCodeSection %d (%s) still running after %3.1f seconds." %
+                  (self.id, self.name, t_elapsed))

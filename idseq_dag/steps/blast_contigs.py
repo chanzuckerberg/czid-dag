@@ -77,6 +77,12 @@ class BlastCandidate:
         self.hsps = hsps
         self.optimal_cover = None
         self.total_score = None
+        if hsps:
+            # All HSPs here must be for the same query and subject sequence.
+            h_0 = hsps[0]
+            for h_i in self.hsps[1:]:
+                assert h_i["qseqid"] == h_0["qseqid"]
+                assert h_i["sseqid"] == h_0["sseqid"]
 
     def optimize(self):
         # Find a subset of disjoint HSPs with maximum sum of bitscores.
@@ -99,10 +105,11 @@ class BlastCandidate:
             r["length"] = 1
         r["pident"] = sum(hsp["pident"] * hsp["length"] for hsp in self.optimal_cover) / r["length"]
         r["bitscore"] = sum(hsp["bitscore"] for hsp in self.optimal_cover)
-        r["qstart"] = min(hsp["qstart"] for hsp in self.optimal_cover)
-        r["qend"] = max(hsp["qend"] for hsp in self.optimal_cover)
-        r["sstart"] = min(hsp["sstart"] for hsp in self.optimal_cover)
-        r["send"] = max(hsp["send"] for hsp in self.optimal_cover)
+        # min(min(... and max(max(... below because, depending on strand, qstart and qend may be reversed
+        r["qstart"] = min(min(hsp["qstart"], hsp["qend"]) for hsp in self.optimal_cover)
+        r["qend"] = max(max(hsp["qstart"], hsp["qend"]) for hsp in self.optimal_cover)
+        r["sstart"] = min(min(hsp["sstart"], hsp["send"]) for hsp in self.optimal_cover)
+        r["send"] = max(max(hsp["sstart"], hsp["send"]) for hsp in self.optimal_cover)
         # add these two
         r["qcov"] = r["length"] / r["qlen"]
         r["hsp_count"] = len(self.optimal_cover)
@@ -183,15 +190,15 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                                          refined_hit_summary, refined_m8)
 
         # Generating taxon counts based on updated results
-        lineage_db = s3.fetch_from_s3(
+        lineage_db = s3.fetch_reference(
             self.additional_files["lineage_db"],
             self.ref_dir_local,
             allow_s3mi=False)  # Too small to waste s3mi
         deuterostome_db = None
         evalue_type = 'raw'
         if self.additional_files.get("deuterostome_db"):
-            deuterostome_db = s3.fetch_from_s3(self.additional_files["deuterostome_db"],
-                                               self.ref_dir_local, allow_s3mi=False)  # Too small for s3mi
+            deuterostome_db = s3.fetch_reference(self.additional_files["deuterostome_db"],
+                                                 self.ref_dir_local, allow_s3mi=False)  # Too small for s3mi
         with TraceLock("PipelineStepBlastContigs-CYA", PipelineStepBlastContigs.cya_lock, debug=False):
             with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_count_json_from_m8", "db_type": db_type, "refined_counts": refined_counts}):
                 m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
@@ -338,7 +345,7 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                     blast_type,
                     "-out",
                     blast_index_path
-                ]
+                ],
             )
         )
         command.execute(
@@ -359,7 +366,13 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                     5000,
                     "-num_threads",
                     16
-                ]
+                ],
+                # We can only pass BATCH_SIZE as an env var.  The default is 100,000 for blastn;  10,000 for blastp.
+                # Blast concatenates input queries until they exceed this size, then runs them together, for efficiency.
+                # Unfortunately if too many short and low complexity queries are in the input, this can expand too
+                # much the memory required.  We have found empirically 10,000 to be a better default.  It is also the
+                # value used as default for remote blast.
+                env=dict(os.environ, BATCH_SIZE="10000")
             )
         )
         # further processing of getting the top m8 entry for each contig.
@@ -427,6 +440,45 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                 top_m8f.write(top_line)  # Unify reranked formats for NT and NR
 
     @staticmethod
+    def filter_and_group_hits_by_query(blast_output, min_alignment_length, min_pident):
+        # Filter and group results by query, yielding one result group at a time.
+        # A result group consists of all hits for a query, grouped by subject.
+        # Please see comment in get_top_m8_nt for more context.
+        current_query = None
+        current_query_hits = None
+        previously_seen_queries = set()
+        # Please see comments explaining the definition of "hsp" elsewhere in this file.
+        for hsp in m8.parse_tsv(blast_output, m8.BLAST_OUTPUT_NT_SCHEMA):
+            # filter local alignment HSPs based on minimum length and sequence similarity
+            if hsp["length"] < min_alignment_length:
+                continue
+            if hsp["pident"] < min_pident:
+                continue
+            query, subject = hsp["qseqid"], hsp["sseqid"]
+            if query != current_query:
+                assert query not in previously_seen_queries, "blastn output appears out of order, please resort by (qseqid, sseqid, score)"
+                previously_seen_queries.add(query)
+                if current_query_hits:
+                    yield current_query_hits
+                current_query = query
+                current_query_hits = defaultdict(list)
+            current_query_hits[subject].append(hsp)
+        if current_query_hits:
+            yield current_query_hits
+
+    @staticmethod
+    def optimal_hit_for_each_query(blast_output, min_alignment_length, min_pident):
+        # Yield the optimal hit for each query, from amongst the many subjects hit by the query.  The hit is a list of fragments that together maximize a certain score.  Please see comment in get_top_m8_nt for more context.
+        for query_hits in PipelineStepBlastContigs.filter_and_group_hits_by_query(blast_output, min_alignment_length, min_pident):
+            best_hit = None
+            for _subject, hit_fragments in query_hits.items():
+                hit = BlastCandidate(hit_fragments)
+                hit.optimize()
+                if not best_hit or best_hit.total_score < hit.total_score:
+                    best_hit = hit
+            yield best_hit.summary()
+
+    @staticmethod
     def get_top_m8_nt(blast_output, blast_top_m8, min_alignment_length, min_pident):
         '''
         For each contig Q (query) and reference S (subject), extend the highest-scoring
@@ -447,27 +499,6 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         # See http://www.metagenomics.wiki/tools/blast/blastn-output-format-6
         # for documentation of Blast output.
 
-        # Group blast output HSPs by (query_id, subject_id).
-        HSPs = defaultdict(list)
-        for hsp in m8.parse_tsv(blast_output, m8.BLAST_OUTPUT_NT_SCHEMA):
-            # filter local alignment HSPs based on minimum length and sequence similarity
-            if hsp["length"] < min_alignment_length:
-                continue
-            if hsp["pident"] < min_pident:
-                continue
-            hit_id = (hsp["qseqid"], hsp["sseqid"])
-            HSPs[hit_id].append(hsp)
-
-        # Identify each query's optimal hit through ranking candidate hits by total_score,
-        # where a candidate hit's total_score is determined by its optimal fragment cover.
-        best_hit = {}
-        for hit_id, hit_fragments in HSPs.items():
-            hit = BlastCandidate(hit_fragments)
-            hit.optimize()
-            query_id, _subject_id = hit_id
-            if query_id not in best_hit or best_hit[query_id].total_score < hit.total_score:
-                best_hit[query_id] = hit
-
         # Output the optimal hit for each query.
         m8.unparse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_NT_SCHEMA,
-                       (best.summary() for best in best_hit.values()))
+                       PipelineStepBlastContigs.optimal_hit_for_each_query(blast_output, min_alignment_length, min_pident))
