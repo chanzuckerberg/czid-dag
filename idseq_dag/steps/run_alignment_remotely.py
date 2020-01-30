@@ -363,6 +363,16 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             )
         )
 
+    @command.retry
+    def __delete_remote_dir(self, remote_dir, key_path, remote_username, instance_ip):
+        """
+        Delete a directory on a remote machine
+        This needs to happen while we are holding the machine reservation,
+        i.e., inside the "with ASGInstnace" context.
+        """
+        rm_command = command_patterns.SingleCommand("rm", ["-r", remote_dir])
+        command.execute(command.remote(rm_command, key_path, remote_username, instance_ip))
+
     def run_chunk(self, part_suffix, remote_home_dir, remote_index_dir, remote_work_dir,
                   remote_username, input_files, key_path, service, lazy_run):
         """Dispatch a chunk to worker machines for distributed GSNAP or RAPSearch
@@ -447,6 +457,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                             self.__copy_multihit_remote_outfile(
                                 key_path, remote_username, instance_ip,
                                 multihit_remote_outfile, multihit_local_outfile)
+                            self.__delete_remote_dir(remote_work_dir, key_path, remote_username, instance_ip)
                             chunk_status = ChunkStatus.SUCCESS
                             break
                         except:
