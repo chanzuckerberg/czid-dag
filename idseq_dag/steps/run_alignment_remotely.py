@@ -1,4 +1,3 @@
-import os
 import threading
 import shutil
 import random
@@ -6,6 +5,9 @@ import traceback
 import multiprocessing
 import time
 import shlex
+
+import os
+from os import path
 
 from idseq_dag.engine.pipeline_step import PipelineStep, InputFileErrors
 
@@ -75,8 +77,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     def __init__(self, *args, **kwrds):
         PipelineStep.__init__(self, *args, **kwrds)
         self.chunks_in_flight = threading.Semaphore(self.additional_attributes['chunks_in_flight'])
-        self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
-        self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
+        self.chunks_result_dir_local = path.join(self.output_dir_local, "chunks")
+        self.chunks_result_dir_s3 = path.join(self.output_dir_s3, "chunks")
         self.iostream_upload = multiprocessing.Semaphore(MAX_CONCURRENT_CHUNK_UPLOADS)
         command.make_dirs(self.chunks_result_dir_local)
 
@@ -118,16 +120,16 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         chunk_size = int(self.additional_attributes["chunk_size"])
         index_dir_suffix = self.additional_attributes.get("index_dir_suffix")
         remote_username = "ec2-user"
-        remote_home_dir = f"/home/{remote_username}"
+        remote_home_dir = path.join("/home", remote_username)
         if service == "gsnap":
-            remote_index_dir = f"{remote_home_dir}/share"
+            remote_index_dir = path.join(remote_home_dir, "share")
         elif service == "rapsearch2":
-            remote_index_dir = f"{remote_home_dir}/references/nr_rapsearch"
+            remote_index_dir = path.join(remote_home_dir, "references", "nr_rapsearch")
 
         if index_dir_suffix:
-            remote_index_dir = os.path.join(remote_index_dir, index_dir_suffix)
+            remote_index_dir = path.join(remote_index_dir, index_dir_suffix)
 
-        remote_work_dir = f"{remote_home_dir}/batch-pipeline-workdir/{sample_name}"
+        sample_remote_work_dir = path.join(remote_home_dir, "batch-pipeline-workdir", sample_name)
 
         # Split files into chunks for performance
         part_suffix, input_chunks = self.chunk_input(input_fas, chunk_size)
@@ -144,13 +146,14 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             for n, chunk_input_files in randomized:
                 self.chunks_in_flight.acquire()
                 self.check_for_errors(mutex, chunk_output_files, input_chunks, service)
+                chunk_remote_work_dir = f"{sample_remote_work_dir}-chunk-{n}"
                 t = threading.Thread(
                     target=PipelineStepRunAlignmentRemotely.run_chunk_wrapper,
                     args=[
                         self.chunks_in_flight, chunk_output_files, n, mutex, self.run_chunk,
                         [
                             part_suffix, remote_home_dir, remote_index_dir,
-                            remote_work_dir, remote_username, chunk_input_files,
+                            chunk_remote_work_dir, remote_username, chunk_input_files,
                             key_path, service, True
                         ]
                     ])
@@ -219,8 +222,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             numparts = (nlines + chunk_nlines - 1) // chunk_nlines
             ndigits = len(str(numparts - 1))
             part_suffix = "-chunksize-%d-numparts-%d-part-" % (chunksize, numparts)
-            out_prefix_base = os.path.basename(input_file) + part_suffix
-            out_prefix = os.path.join(self.chunks_result_dir_local, out_prefix_base)
+            out_prefix_base = path.basename(input_file) + part_suffix
+            out_prefix = path.join(self.chunks_result_dir_local, out_prefix_base)
 
             # Split large file into smaller named pieces
             command.execute(
@@ -244,8 +247,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                         "s3",
                         "sync",
                         "--only-show-errors",
-                        os.path.join(self.chunks_result_dir_local, ""),
-                        os.path.join(self.chunks_result_dir_s3, ""),
+                        path.join(self.chunks_result_dir_local, ""),
+                        path.join(self.chunks_result_dir_s3, ""),
                         "--exclude",
                         "*",
                         "--include",
@@ -369,19 +372,22 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         chunk_id = int(input_files[0].split(part_suffix)[-1])
         multihit_basename = f"multihit-{service}-out{part_suffix}{chunk_id}.m8"
-        multihit_local_outfile = os.path.join(self.chunks_result_dir_local, multihit_basename)
-        multihit_remote_outfile = os.path.join(remote_work_dir, multihit_basename)
-        multihit_s3_outfile = os.path.join(self.chunks_result_dir_s3, multihit_basename)
+        multihit_local_outfile = path.join(self.chunks_result_dir_local, multihit_basename)
+        multihit_remote_outfile = path.join(remote_work_dir, multihit_basename)
+        multihit_s3_outfile = path.join(self.chunks_result_dir_s3, multihit_basename)
 
         def aws_cp_operation(input_fa):
             return "aws s3 cp --only-show-errors {src} {dest}".format(
-                src=shlex.quote(os.path.join(self.chunks_result_dir_s3, input_fa)),
-                dest=shlex.quote(os.path.join(remote_work_dir, input_fa))
+                src=shlex.quote(path.join(self.chunks_result_dir_s3, input_fa)),
+                dest=shlex.quote(path.join(remote_work_dir, input_fa))
             )
 
         download_input_from_s3 = " ; ".join(map(aws_cp_operation, input_files))
 
-        base_str = "mkdir -p {remote_work_dir} ; {download_input_from_s3} ; "
+        # Clean up remote work directory before running
+        #   This ensures that files from a failed previous run that may still be on the instance
+        #   are removed so they don't corrupt the current run
+        base_str = "rm -r {remote_work_dir} ; mkdir -p {remote_work_dir} ; {download_input_from_s3} ; "
         environment = self.additional_attributes["environment"]
 
         # See step class docstrings for more parameter details.
@@ -389,6 +395,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             commands = base_str + "{remote_home_dir}/bin/gsnapl -A m8 --batch=0 --use-shared-memory=0 --gmap-mode=none --npaths=100 --ordered -t 48 --max-mismatches=40 -D {remote_index_dir} -d nt_k16 {remote_input_files} > {multihit_remote_outfile}"
         else:
             commands = base_str + "/usr/local/bin/rapsearch -d {remote_index_dir}/nr_rapsearch -e -6 -l 10 -a T -b 0 -v 50 -z 24 -q {remote_input_files} -o {multihit_remote_outfile}"
+
+        commands += " ; rm -r {remote_work_dir}"
 
         commands = commands.format(
             remote_work_dir=shlex.quote(remote_work_dir),
@@ -491,7 +499,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                             "cp",
                             "--only-show-errors",
                             multihit_local_outfile,
-                            os.path.join(self.chunks_result_dir_s3, "")
+                            path.join(self.chunks_result_dir_s3, "")
                         ]
                     )
                 )
