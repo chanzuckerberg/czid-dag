@@ -406,8 +406,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         else:
             commands = base_str + "/usr/local/bin/rapsearch -d {remote_index_dir}/nr_rapsearch -e -6 -l 10 -a T -b 0 -v 50 -z 24 -q {remote_input_files} -o {multihit_remote_outfile}"
 
-        commands += " ; rm -r {remote_work_dir}"
-
         commands = commands.format(
             remote_work_dir=shlex.quote(remote_work_dir),
             download_input_from_s3=download_input_from_s3,
