@@ -370,7 +370,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         This needs to happen while we are holding the machine reservation,
         i.e., inside the "with ASGInstnace" context.
         """
-        rm_command = command_patterns.SingleCommand("rm", ["-r", remote_dir])
+        rm_command = f"rm -r {remote_dir}"
         command.execute(command.remote(rm_command, key_path, remote_username, instance_ip))
 
     def run_chunk(self, part_suffix, remote_home_dir, remote_index_dir, remote_work_dir,
