@@ -1,4 +1,4 @@
-import is
+import os
 import threading
 import shutil
 import random
