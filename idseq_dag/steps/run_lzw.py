@@ -46,7 +46,7 @@ class PipelineStepRunLZW(PipelineStep):
         output_fas = self.output_files_local()
         cutoff_scores = self.additional_attributes["thresholds"]
         threshold_readlength = self.additional_attributes.get("threshold_readlength", 150)
-        PipelineStepRunLZW.generate_lzw_filtered(input_fas, output_fas, cutoff_scores, threshold_readlength)
+        self.generate_lzw_filtered(input_fas, output_fas, cutoff_scores, threshold_readlength)
 
     def count_reads(self):
         self.should_count_reads = True
