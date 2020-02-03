@@ -6,7 +6,7 @@ import idseq_dag.util.log as log
 import math
 import os
 
-from idseq_dag.engine.pipeline_step import InputFileErrors, PipelineStep
+from idseq_dag.engine.pipeline_step import InputFileErrors, PipelineStep, StepStatus
 from idseq_dag.util.command import run_in_subprocess
 from idseq_dag.util.thread_with_result import mt_map
 from multiprocessing import cpu_count
