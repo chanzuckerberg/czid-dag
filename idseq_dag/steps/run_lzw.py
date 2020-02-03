@@ -143,8 +143,7 @@ class PipelineStepRunLZW(PipelineStep):
             os.remove(tfn)
         return coalesced_score_file
 
-    @staticmethod
-    def generate_lzw_filtered(fasta_files, output_files, cutoff_scores, threshold_readlength):
+    def generate_lzw_filtered(self, fasta_files, output_files, cutoff_scores, threshold_readlength):
         assert len(fasta_files) == len(output_files)
 
         cutoff_scores.sort(reverse=True)  # Make sure cutoff is from high to low
@@ -207,7 +206,7 @@ class PipelineStepRunLZW(PipelineStep):
                 break
 
         if kept_count == 0:
-            raise RuntimeError("All the reads are filtered by LZW with lowest cutoff: %f" % cutoff_frac)
+            self.input_file_error = InputFileErrors.INSUFFICIENT_READS
 
         kept_ratio = float(kept_count) / float(total_reads)
         msg = "LZW filter: cutoff_frac: %f, total reads: %d, filtered reads: %d, " \
