@@ -1,15 +1,16 @@
-from multiprocessing import cpu_count
-from typing import Iterator
-import os
-from idseq_dag.engine.pipeline_step import PipelineStep, InputFileErrors
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
-from idseq_dag.util.command import run_in_subprocess
-import idseq_dag.util.log as log
 import idseq_dag.util.count as count
 import idseq_dag.util.fasta as fasta
-from idseq_dag.util.thread_with_result import mt_map
+import idseq_dag.util.log as log
 import math
+import os
+
+from idseq_dag.engine.pipeline_step import InputFileErrors, PipelineStep
+from idseq_dag.util.command import run_in_subprocess
+from idseq_dag.util.thread_with_result import mt_map
+from multiprocessing import cpu_count
+from typing import Iterator
 
 
 class PipelineStepRunLZW(PipelineStep):
@@ -207,6 +208,8 @@ class PipelineStepRunLZW(PipelineStep):
 
         if kept_count == 0:
             self.input_file_error = InputFileErrors.INSUFFICIENT_READS
+            self.status = StepStatus.INVALID_INPUT
+            return
 
         kept_ratio = float(kept_count) / float(total_reads)
         msg = "LZW filter: cutoff_frac: %f, total reads: %d, filtered reads: %d, " \
