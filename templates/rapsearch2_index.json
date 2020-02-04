@@ -1,16 +1,12 @@
 {
-  "output_dir_s3": "s3://idseq-database/alignment_indexes/<NCBI_DATE>",
+  "output_dir_s3": "s3://idseq-database/alignment_indexes/2020-02-03",
   "targets": {
     "nr_db": [
       "nr"
     ],
     "nr_index": [
-       "nr_rapsearch",
-       "nr_rapsearch.info"
-    ],
-    "nr_index_lz4": [
-      "nr_rapsearch.lz4",
-      "nr_rapsearch.info.lz4"
+      "nr_rapsearch",
+      "nr_rapsearch.info"
     ]
   },
   "steps": [
@@ -25,7 +21,7 @@
   ],
   "given_targets": {
     "nr_db": {
-      "s3_dir":  "s3://idseq-database/ncbi-sources/<NCBI_DATE>", "count_reads": 0
+      "s3_dir":  "s3://idseq-database/ncbi-sources/2020-02-03", "count_reads": 0
     }
   }
 }
