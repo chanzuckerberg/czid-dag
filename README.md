@@ -232,8 +232,22 @@ Version numbers for this repo take the form X.Y.Z.
 - We increase X for a paradigm shift in how the pipeline is conceived. Example: adding a de-novo assembly step and then reassigning hits based on the assembled contigs.
 Changes to X or Y force recomputation of all results when a sample is rerun using idseq-web. Changes to Z do not force recomputation when the sample is rerun - the pipeline will lazily reuse existing outputs in AWS S3.
 
-- 3.17.0
+- 3.18.0
   - Compute insert size metrics for humans only
+
+- 3.17.0
+  - Version marker: Update NCBI index databases to those downloaded on 2020-02-03.
+
+- 3.16.6
+  - Isolate directories on alignment instances to chunks rather than whole samples
+  - Clean up intermediate files from alignment instances after running alignment on a chunk
+  - Ensure alignment instance is clean before running alignment on a chunk
+
+- 3.16.5
+  - Fix dag validation of Rapsearch index generation template.
+
+- 3.16.4
+  - Fail gracefully with INSUFFICIENT_READS error if all reads drop out during LZW filtering.
 
 - 3.16.3
   - Use s3parcp with checksum for rapsearch index uploads
