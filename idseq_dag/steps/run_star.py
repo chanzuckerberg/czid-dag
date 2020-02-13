@@ -391,7 +391,7 @@ class PipelineStepRunStar(PipelineStep):
             """
 
         return description
-        
+
     @staticmethod
     def handle_outstanding_read(r0, r0id, outstanding_r0, outstanding_r1, of0,
                                 of1, mem, max_mem):
