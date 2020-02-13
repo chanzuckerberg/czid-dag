@@ -312,17 +312,14 @@ class PipelineStepRunStar(PipelineStep):
     def step_description(self, require_docstrings=False):
         outSAMmode = "--outSAMmode None"
 
-        if self.collect_insert_size_metrics_for == 'rna':
-            outSAMmode = """
-                --outSAMtype BAM Unsorted
-                --outSAMmode NoQS
-            """
         if self.collect_insert_size_metrics_for == 'dna':
-            outSAMmode = """
-                --outSAMtype BAM Unsorted
+            outSAMmode = """--outSAMtype BAM Unsorted
+                --outSAMmode NoQS"""
+
+        if self.collect_insert_size_metrics_for == 'rna':
+            outSAMmode = """--outSAMtype BAM Unsorted
                 --outSAMmode NoQS
-                --quantMode TranscriptomeSAM GeneCounts
-            """
+                --quantMode TranscriptomeSAM GeneCounts"""
 
         description = f"""
             Implements the step for running STAR.
