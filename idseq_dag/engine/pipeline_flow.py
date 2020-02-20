@@ -291,8 +291,9 @@ class PipelineFlow(object):
             log.write("Initializing step %s" % step["out"])
             StepClass = getattr(importlib.import_module(step["module"]), step["class"])
             step_output = self.targets[step["out"]]
+            step_optional_output = step.get("optional_out", [])
             step_inputs = [self.targets[itarget] for itarget in step["in"]]
-            step_instance = StepClass(step["out"], step_inputs, step_output,
+            step_instance = StepClass(step["out"], step_inputs, step_output, step_optional_output,
                                       self.output_dir_local, self.output_dir_s3, self.ref_dir_local,
                                       step["additional_files"], step["additional_attributes"],
                                       self.step_status_local, step_status_lock)
