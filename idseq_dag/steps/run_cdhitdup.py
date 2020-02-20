@@ -63,7 +63,6 @@ class PipelineStepRunCDHitDup(PipelineStep):
             self.output_files_local()[0:2])
 
     def _upload_clstr_files(self):
-        # TODO: (gdingle): handle -o2 option
         output_fas = self.output_files_local()
         clstr_file = output_fas + '.clstr'  # clusters
         clstr_file2 = output_fas + '2.clstr'  # chimeric clusters
