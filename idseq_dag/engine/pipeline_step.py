@@ -273,4 +273,4 @@ class PipelineStep(object):
         return {"IDseq Docs": "https://github.com/chanzuckerberg/idseq-dag/wiki"}
 
     def optional_output_file_generated(self, optional_output_file, generated=True):
-        self.optional_output_files_generated[optional_output] = generated
+        self.optional_output_files_generated[optional_output_file] = generated
