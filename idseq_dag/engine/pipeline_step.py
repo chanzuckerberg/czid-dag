@@ -262,3 +262,14 @@ class PipelineStep(object):
         By default, show link to idseq-dag documentation.
         '''
         return {"IDseq Docs": "https://github.com/chanzuckerberg/idseq-dag/wiki"}
+
+    def add_optional_output(self, output_filename):
+        """
+        Adds an output file to the list of optional outputs in status_dict
+
+        Be sure to call this in your step's __init__ function, before the file
+        is generated. This allows us to know if the file was supposed
+        to be generated.
+        """
+        optional_outputs = self.status_dict.get("optional_outputs", [])
+        self.status_dict["optional_outputs"] = optional_outputs + [output_filename]

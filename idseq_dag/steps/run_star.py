@@ -123,6 +123,9 @@ class PipelineStepRunStar(PipelineStep):
         if (not disable_insert_size_metrics) and host_is_human and paired and requested_insert_size_metrics_output:
             # Compute for RNA if host genome has an organism specific gtf file
             self.collect_insert_size_metrics_for = nucleotide_type
+            # Flag that we need to generate these two files
+            self.add_optional_output(self.output_metrics_file)
+            self.add_optional_output(self.output_histogram_file)
 
     def run(self):
         """Run STAR to filter out host reads."""
