@@ -232,6 +232,9 @@ Version numbers for this repo take the form X.Y.Z.
 - We increase X for a paradigm shift in how the pipeline is conceived. Example: adding a de-novo assembly step and then reassigning hits based on the assembled contigs.
 Changes to X or Y force recomputation of all results when a sample is rerun using idseq-web. Changes to Z do not force recomputation when the sample is rerun - the pipeline will lazily reuse existing outputs in AWS S3.
 
+- 3.101
+  - TEST ONLY cdhitdup cluster sizes and nonunique read counts in taxon_counts.json and contig_summary_count.json
+
 - 3.19.5
   - Switch title of STAR description to be above first line of description
 

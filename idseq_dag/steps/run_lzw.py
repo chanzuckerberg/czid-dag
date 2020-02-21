@@ -38,12 +38,15 @@ class PipelineStepRunLZW(PipelineStep):
 
     NUM_SLICES = min(MAX_SUBPROCS, REAL_CORES)
 
+    def input_fas(self):
+        return self.input_files_local[0][:-2]  # the last two inputs are not fastas, they are cdhitdup cluster sizes
+
     def validate_input_files(self):
-        if not count.files_have_min_reads(self.input_files_local[0], 1):
+        if not count.files_have_min_reads(self.input_fas(), 1):
             self.input_file_error = InputFileErrors.INSUFFICIENT_READS
 
     def run(self):
-        input_fas = self.input_files_local[0]
+        input_fas = self.input_fas()
         output_fas = self.output_files_local()
         cutoff_scores = self.additional_attributes["thresholds"]
         threshold_readlength = self.additional_attributes.get("threshold_readlength", 150)

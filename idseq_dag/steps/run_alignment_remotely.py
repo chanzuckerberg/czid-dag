@@ -18,6 +18,8 @@ import idseq_dag.util.m8 as m8
 from idseq_dag.util.s3 import fetch_from_s3, fetch_reference
 from idseq_dag.util.trace_lock import TraceLock
 
+from idseq_dag.util.m8 import NT_MIN_ALIGNMENT_LEN
+
 MAX_CONCURRENT_CHUNK_UPLOADS = 4
 DEFAULT_BLACKLIST_S3 = 's3://idseq-database/taxonomy/2018-04-01-utc-1522569777-unixtime__2018-04-04-utc-1522862260-unixtime/taxon_blacklist.txt'
 CORRECT_NUMBER_OF_OUTPUT_COLUMNS = 12
@@ -69,7 +71,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     """
 
     def validate_input_files(self):
-        if not count.files_have_min_reads(self.input_files_local[0][0:2], 1):
+        if not count.files_have_min_reads(self.input_files_local[0][0:2], 1):  # first two files are gsnap_filter_1.fa and gsnap_filter_2.fa
             self.input_file_error = InputFileErrors.INSUFFICIENT_READS
 
     def __init__(self, *args, **kwrds):
@@ -85,19 +87,27 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def run(self):
         ''' Run alignmment remotely '''
-        input_fas = self.get_input_fas()
-        [output_m8, deduped_output_m8, output_hitsummary, output_counts_json] = self.output_files_local()
-        service = self.additional_attributes["service"]
-        assert service in ("gsnap", "rapsearch2")
-        min_alignment_length = 36 if service == 'gsnap' else 0  # alignments < 36-NT are false positives
 
-        self.run_remotely(input_fas, output_m8, service)
+        gsnap_filter_1, gsnap_filter_2, gsnap_filter_merged = self.input_files_local[0]
+        cdhit_cluster_sizes_path, = self.input_files_local[1]
+        output_m8, deduped_output_m8, output_hitsummary, output_counts_json = self.output_files_local()
+
+        service = self.additional_attributes["service"]
+
+        if service == 'gsnap':
+            self.run_remotely([gsnap_filter_1, gsnap_filter_2], output_m8, 'gsnap')
+        elif service == 'rapsearch2':
+            self.run_remotely([gsnap_filter_merged], output_m8, 'rapsearch2')
+        else:
+            assert False, f"Service '{service}' is neither 'gsnap' nor 'rapsearch2'."
 
         # get database
         lineage_db = fetch_reference(self.additional_files["lineage_db"], self.ref_dir_local)
         accession2taxid_db = fetch_reference(self.additional_files["accession2taxid_db"], self.ref_dir_local, allow_s3mi=True)
         blacklist_s3_file = self.additional_attributes.get('taxon_blacklist', DEFAULT_BLACKLIST_S3)
         taxon_blacklist = fetch_reference(blacklist_s3_file, self.ref_dir_local)
+
+        min_alignment_length = NT_MIN_ALIGNMENT_LEN if service == 'gsnap' else 0
         m8.call_hits_m8(output_m8, lineage_db, accession2taxid_db,
                         deduped_output_m8, output_hitsummary, min_alignment_length, taxon_blacklist)
 
@@ -110,7 +120,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                                               self.ref_dir_local, allow_s3mi=True)
         m8.generate_taxon_count_json_from_m8(
             deduped_output_m8, output_hitsummary, evalue_type, db_type,
-            lineage_db, deuterostome_db, output_counts_json)
+            lineage_db, deuterostome_db, cdhit_cluster_sizes_path, output_counts_json)
 
     def run_remotely(self, input_fas, output_m8, service):
         key_path = self.fetch_key(os.environ['KEY_PATH_S3'])
@@ -173,17 +183,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         assert None not in chunk_output_files
         # Concatenate the pieces and upload results
         self.concatenate_files(chunk_output_files, output_m8)
-
-    def get_input_fas(self):
-        service = self.additional_attributes["service"]
-        if len(self.input_files_local[0]) == 1:
-            return self.input_files_local[0]
-        if len(self.input_files_local[0]) == 3:
-            if service == 'gsnap':
-                return self.input_files_local[0][0:2]
-            if service == 'rapsearch2':
-                return [self.input_files_local[0][2]]
-        return None
 
     def fetch_key(self, key_path_s3):
         key_path = fetch_from_s3(key_path_s3, self.output_dir_local)

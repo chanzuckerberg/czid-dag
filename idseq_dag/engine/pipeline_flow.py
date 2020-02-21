@@ -79,6 +79,22 @@ class PipelineFlow(object):
           "given_targets": input files that are given
         '''
         dag = json.loads(open(dag_json).read())
+
+        # hack -- add some targets here to support cd-hit-dup work
+        cdhitdup_cluster_sizes_path = "cdhitdup_cluster_sizes.tsv"
+        cdhitdup_cluster_sizes_target = "cdhitdup_cluster_sizes"
+        if dag["name"] in ("postprocess", "non_host_alignment"):
+            dag["targets"][cdhitdup_cluster_sizes_target] = [
+                cdhitdup_cluster_sizes_path
+            ]
+            dag["given_targets"][cdhitdup_cluster_sizes_target] = {
+                "s3_dir": dag["given_targets"]["host_filter_out"]["s3_dir"]
+            }
+        if dag["name"] == "host_filter":
+            for fff in ["dedup1.fa.clstr", cdhitdup_cluster_sizes_path]:
+                if fff not in dag["targets"]["cdhitdup_out"]:
+                    dag["targets"]["cdhitdup_out"].append(fff)
+
         log.log_event("pipeline_flow.dag_json_loaded", values={"file": dag_json, "contents": dag})
         output_dir = dag["output_dir_s3"]  # noqa
         targets = dag["targets"]
@@ -87,6 +103,10 @@ class PipelineFlow(object):
         dag['name'] = dag.get("name", _get_name_from_path(dag_json))
         covered_targets = set()
         for s in steps:
+            # hack -- augmnet steps as needed for testing of cdhitdup
+            if s["class"] in ("PipelineStepBlastContigs", "PipelineStepRunAlignmentRemotely", "PipelineStepRunAssembly"):
+                if cdhitdup_cluster_sizes_target not in s["in"]:
+                    s["in"].append(cdhitdup_cluster_sizes_target)
             # validate each step in/out are valid targets
             for itarget in s["in"]:
                 if itarget not in targets:

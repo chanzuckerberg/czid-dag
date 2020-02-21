@@ -11,6 +11,10 @@ import idseq_dag.util.lineage as lineage
 
 from idseq_dag.util.dict import IdSeqDictValue, open_file_db_by_extension
 
+# NT alginments with shorter length are associated with a high rate of false positives.
+# NR doesn't have this problem because Rapsearch contains an equivalent filter.
+# Nevertheless, it may be useful to re-filter blastx results.
+NT_MIN_ALIGNMENT_LEN = 36
 
 # blastn output format 6 as documented in
 # http://www.metagenomics.wiki/tools/blast/blastn-output-format-6
@@ -55,6 +59,10 @@ RERANKED_BLAST_OUTPUT_SCHEMA = {
         'read_level': BLAST_OUTPUT_SCHEMA,
     }
 }
+
+# The minimum read count for a valid contig. We ignore contigs below this read count in most downstream analyses.
+# This constant is hardcoded in at least 4 places in idseq-web.  TODO: Make it a DAG parameter.
+MIN_CONTIG_SIZE = 4
 
 
 def parse_tsv(path, schema, expect_headers=False, raw_lines=False):
@@ -419,12 +427,34 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                     msg += f"\t{species_taxid}\t{genus_taxid}\t{family_taxid}\n"
                     outf_sum.write(msg)
 
+
+def get_read_dcr(cdhit_cluster_sizes, read_id):
+    suffix = None
+    cluster_size = cdhit_cluster_sizes.get(read_id)
+    if cluster_size == None:
+        prefix, suffix = read_id[:-2], read_id[-2:]
+        cluster_size = cdhit_cluster_sizes.get(prefix)
+    assert cluster_size != None and suffix in (None, "/1", "/2"), f"Read ID not found in cdhit_cluster_sizes dict: {read_id}"
+    return cluster_size
+
+
+def load_cdhit_cluster_sizes(filename):
+    cdhit_cluster_sizes = {}
+    with open(filename, "r") as f:
+        for line in f:
+            cluster_size_str, read_id = line.split(None, 1)
+            cdhit_cluster_sizes[read_id.strip()] = int(cluster_size_str)
+    return cdhit_cluster_sizes
+
+
 @command.run_in_subprocess
 def generate_taxon_count_json_from_m8(
         m8_file, hit_level_file, e_value_type, count_type, lineage_map_path,
-        deuterostome_path, output_json_file):
+        deuterostome_path, cdhit_cluster_sizes_path, output_json_file):
     # Parse through hit file and m8 input file and format a JSON file with
     # our desired attributes, including aggregated statistics.
+
+    cdhit_cluster_sizes = load_cdhit_cluster_sizes(cdhit_cluster_sizes_path)
 
     if deuterostome_path:
         with log.log_context("generate_taxon_count_json_from_m8", {"substep": "read_file_into_set"}):
@@ -454,7 +484,7 @@ def generate_taxon_count_json_from_m8(
             while hit_line and m8_line:
                 # Retrieve data values from files
                 hit_line_columns = hit_line.rstrip("\n").split("\t")
-                # _read_id = hit_line_columns[0]
+                read_id = hit_line_columns[0]
                 hit_level = hit_line_columns[1]
                 hit_taxid = hit_line_columns[2]
                 if int(hit_level) < 0:  # Skip negative levels and continue
@@ -508,13 +538,15 @@ def generate_taxon_count_json_from_m8(
                         agg_bucket = aggregation.get(agg_key)
                         if not agg_bucket:
                             agg_bucket = {
-                                'count': 0,
+                                'nonunique_count': 0,
+                                'unique_count': 0,
                                 'sum_percent_identity': 0.0,
                                 'sum_alignment_length': 0.0,
                                 'sum_e_value': 0.0
                             }
                             aggregation[agg_key] = agg_bucket
-                        agg_bucket['count'] += 1
+                        agg_bucket['nonunique_count'] += get_read_dcr(cdhit_cluster_sizes, read_id)
+                        agg_bucket['unique_count'] += 1
                         agg_bucket['sum_percent_identity'] += percent_identity
                         agg_bucket['sum_alignment_length'] += alignment_length
                         agg_bucket['sum_e_value'] += e_value
@@ -528,7 +560,8 @@ def generate_taxon_count_json_from_m8(
     taxon_counts_attributes = []
     with log.log_context("generate_taxon_count_json_from_m8", {"substep": "loop_2"}):
         for agg_key, agg_bucket in aggregation.items():
-            count = agg_bucket['count']
+            unique_count = agg_bucket['unique_count']
+            nonunique_count = agg_bucket['nonunique_count']
             tax_level = num_ranks - len(agg_key) + 1
             # TODO: Extend taxonomic ranks as indicated on the commented out lines.
             taxon_counts_attributes.append({
@@ -546,14 +579,14 @@ def generate_taxon_count_json_from_m8(
                 # 'phyllum_taxid' : agg_key[6 - tax_level] if tax_level <= 6 else "-600",
                 # 'kingdom_taxid' : agg_key[7 - tax_level] if tax_level <= 7 else "-700",
                 # 'domain_taxid' : agg_key[8 - tax_level] if tax_level <= 8 else "-800",
-                "count":
-                count,
+                "count":  # todo:  rename to "nonunique_count" -- since count originally meant unique_count
+                nonunique_count,
                 "percent_identity":
-                agg_bucket['sum_percent_identity'] / count,
+                agg_bucket['sum_percent_identity'] / unique_count,
                 "alignment_length":
-                agg_bucket['sum_alignment_length'] / count,
+                agg_bucket['sum_alignment_length'] / unique_count,
                 "e_value":
-                agg_bucket['sum_e_value'] / count,
+                agg_bucket['sum_e_value'] / unique_count,
                 "count_type":
                 count_type
             })
