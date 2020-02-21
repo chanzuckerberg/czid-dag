@@ -113,10 +113,9 @@ class PipelineStepRunStar(PipelineStep):
         nucleotide_type = self.additional_attributes.get("nucleotide_type", "").lower()
         paired = len(self.input_files[0]) == 3
 
-        requested_insert_size_metrics_output = len(self.optional_output_files) == 2
-        if requested_insert_size_metrics_output:
-            self.output_metrics_file = self.optional_output_files[0]
-            self.output_histogram_file = self.optional_output_files[1]
+        self.output_metrics_file = self.additional_attributes.get("output_metrics_file")
+        self.output_histogram_file = self.additional_attributes.get("output_histogram_file")
+        requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
         self.collect_insert_size_metrics_for = None
         # If we have paired end reads, a human host genome, and metrics output files were requested
@@ -124,9 +123,6 @@ class PipelineStepRunStar(PipelineStep):
         if (not disable_insert_size_metrics) and host_is_human and paired and requested_insert_size_metrics_output:
             # Compute for RNA if host genome has an organism specific gtf file
             self.collect_insert_size_metrics_for = nucleotide_type
-        else:
-            for optional_output_file in self.optional_output_files:
-                self.optional_output_file_generated(optional_output_file, False)
 
     def run(self):
         """Run STAR to filter out host reads."""
@@ -218,14 +214,14 @@ class PipelineStepRunStar(PipelineStep):
                             f"Expected picard to generate metrics output file at: {metrics_output_path}"
                         output_path = os.path.join(self.output_dir_local, self.output_metrics_file)
                         command.move_file(metrics_output_path, output_path)
-                        self.optional_output_file_generated(self.output_metrics_file)
+                        self.additional_files_to_upload.append(output_path)
 
                     if self.output_histogram_file:
                         assert(os.path.isfile(histogram_output_path)), \
                             f"Expected picard to generate histogram output file at: {histogram_output_path}"
                         output_path = os.path.join(self.output_dir_local, self.output_histogram_file)
                         command.move_file(histogram_output_path, output_path)
-                        self.optional_output_file_generated(self.output_histogram_file)
+                        self.additional_files_to_upload.append(output_path)
 
         # Cleanup
         for src, dst in zip(unmapped, output_files_local):

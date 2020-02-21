@@ -73,12 +73,9 @@
         "truncate_fragments_to": 75000000,
         "output_gene_file": "reads_per_gene.tab",
         "nucleotide_type": "DNA",
-        "host_genome": "human"
-      },
-      "optional_out": [
-        "picard_insert_metrics.txt",
-        "insert_size_histogram.pdf"
-      ]
+        "output_metrics_file": "picard_insert_metrics.txt",
+        "output_histogram_file": "insert_size_histogram.pdf"
+      }
     },
     {
       "in": ["star_out"],

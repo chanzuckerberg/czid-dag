@@ -28,7 +28,7 @@ class InvalidInputFileError(Exception):
 
 class PipelineStep(object):
     ''' Each Pipeline Run Step i.e. run_star, run_bowtie2, etc '''
-    def __init__(self, name, input_files, output_files, optional_output_files,
+    def __init__(self, name, input_files, output_files,
                  output_dir_local, output_dir_s3, ref_dir_local,
                  additional_files, additional_attributes,
                  step_status_local, step_status_lock):
@@ -36,8 +36,6 @@ class PipelineStep(object):
         self.name = name
         self.input_files = input_files  # list of list files
         self.output_files = output_files  # s3 location
-        self.optional_output_files = optional_output_files
-        self.optional_output_files_generated = {}
         self.output_dir_local = output_dir_local
         self.output_dir_s3 = output_dir_s3.rstrip('/')
         self.ref_dir_local = ref_dir_local
@@ -55,6 +53,7 @@ class PipelineStep(object):
         self.upload_thread = None
         self.input_files_local = []
         self.additional_files_to_upload = []
+        self.optional_files_to_upload = []
         self.additional_folders_to_upload = []
         self.counts_dict = {}
         self.should_terminate = False
@@ -86,10 +85,6 @@ class PipelineStep(object):
         ''' Get list of output files on local folder '''
         return [os.path.join(self.output_dir_local, f) for f in self.output_files]
 
-    def optional_output_files_local(self):
-        ''' Get list of optional output files on local folder '''
-        return [os.path.join(self.output_dir_local, f) for f, generated in self.optional_output_files_generated.items() if generated]
-
     def create_local_dirs(self):
         ''' make sure proper local directories are created for files with subdirs '''
         for f in self.output_files_local():
@@ -97,9 +92,7 @@ class PipelineStep(object):
 
     def uploading_results(self):
         ''' Upload output files to s3 '''
-        files_to_upload = self.output_files_local()
-        files_to_upload += self.optional_output_files_local()
-        files_to_upload += self.additional_files_to_upload
+        files_to_upload = self.output_files_local() + self.additional_files_to_upload + [f for f in self.optional_files_to_upload if os.path.isfile(f)]
         for f in files_to_upload:
             # upload to S3 - TODO(Boris): parallelize the following with better calls
             s3_path = self.s3_path(f)
@@ -118,8 +111,6 @@ class PipelineStep(object):
             self.status_dict["resources"] = self.step_resources()
         if "start_time" not in self.status_dict and status == "running":
             self.status_dict["start_time"] = time.time()  # seconds since epoch
-        if len(self.optional_output_files_generated) > 0:
-            self.status_dict["optional_output_files_generated"] = self.optional_output_files_generated
 
         self.status_dict["status"] = status
         if self.input_file_error:
@@ -271,6 +262,3 @@ class PipelineStep(object):
         By default, show link to idseq-dag documentation.
         '''
         return {"IDseq Docs": "https://github.com/chanzuckerberg/idseq-dag/wiki"}
-
-    def optional_output_file_generated(self, optional_output_file, generated=True):
-        self.optional_output_files_generated[optional_output_file] = generated
