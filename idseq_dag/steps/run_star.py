@@ -115,8 +115,8 @@ class PipelineStepRunStar(PipelineStep):
 
         requested_insert_size_metrics_output = len(self.optional_output_files) == 2
         if requested_insert_size_metrics_output:
-            self.output_metrics_file = self.optional_output_files["output_metrics_file"]
-            self.output_histogram_file = self.optional_output_files["output_histogram_file"]
+            self.output_metrics_file = self.optional_output_files[0]
+            self.output_histogram_file = self.optional_output_files[1]
 
         self.collect_insert_size_metrics_for = None
         # If we have paired end reads, a human host genome, and metrics output files were requested
