@@ -63,7 +63,7 @@ class PipelineStepRunCDHitDup(PipelineStep):
             self.output_files_local()[0:2])
 
     def _upload_clstr_files(self):
-        output_fas = self.output_files_local()
+        output_fas = self.output_files_local()[0]
         clstr_file = output_fas + '.clstr'  # clusters
         clstr_file2 = output_fas + '2.clstr'  # chimeric clusters
         if os.path.isfile(clstr_file) and os.path.isfile(clstr_file2):
