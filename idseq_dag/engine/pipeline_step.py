@@ -117,7 +117,7 @@ class PipelineStep(object):
         if status == "uploaded":
             self.status_dict["end_time"] = time.time()
 
-        self.status_dict["additional_files_to_upload"] = \
+        self.status_dict["additional_output"] = \
             [self.relative_path(f) for f in self.additional_files_to_upload]
 
         # Then, update file by reading the json, modifying, and overwriting.
