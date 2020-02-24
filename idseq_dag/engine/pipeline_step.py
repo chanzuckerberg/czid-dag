@@ -244,7 +244,7 @@ class PipelineStep(object):
         return os.path.relpath(local_path, self.output_dir_local)
 
     def s3_path(self, local_path):
-        return os.path.join(self.output_dir_s3, relative_path(local_path))
+        return os.path.join(self.output_dir_s3, self.relative_path(local_path))
 
     def step_description(self, require_docstrings=False):
         ''' Retrieves description for the given step.
