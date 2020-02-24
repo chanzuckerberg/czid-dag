@@ -53,7 +53,6 @@ class PipelineStep(object):
         self.upload_thread = None
         self.input_files_local = []
         self.additional_files_to_upload = []
-        self.optional_files_to_upload = []
         self.additional_folders_to_upload = []
         self.counts_dict = {}
         self.should_terminate = False
@@ -92,7 +91,7 @@ class PipelineStep(object):
 
     def uploading_results(self):
         ''' Upload output files to s3 '''
-        files_to_upload = self.output_files_local() + self.additional_files_to_upload + [f for f in self.optional_files_to_upload if os.path.isfile(f)]
+        files_to_upload = self.output_files_local() + self.additional_files_to_upload
         for f in files_to_upload:
             # upload to S3 - TODO(Boris): parallelize the following with better calls
             s3_path = self.s3_path(f)
@@ -117,6 +116,9 @@ class PipelineStep(object):
             self.status_dict["error"] = self.input_file_error.name
         if status == "uploaded":
             self.status_dict["end_time"] = time.time()
+
+        self.status_dict["additional_files_to_upload"] = \
+            [self.relative_path(f) for f in self.additional_files_to_upload]
 
         # Then, update file by reading the json, modifying, and overwriting.
         with self.step_status_lock:
@@ -238,10 +240,11 @@ class PipelineStep(object):
         self.exec_thread = threading.Thread(target=self.thread_run)
         self.exec_thread.start()
 
+    def relative_path(self, local_path):
+        return os.path.relpath(local_path, self.output_dir_local)
+
     def s3_path(self, local_path):
-        relative_path = os.path.relpath(local_path, self.output_dir_local)
-        s3_path = os.path.join(self.output_dir_s3, relative_path)
-        return s3_path
+        return os.path.join(self.output_dir_s3, relative_path(local_path))
 
     def step_description(self, require_docstrings=False):
         ''' Retrieves description for the given step.
@@ -262,14 +265,3 @@ class PipelineStep(object):
         By default, show link to idseq-dag documentation.
         '''
         return {"IDseq Docs": "https://github.com/chanzuckerberg/idseq-dag/wiki"}
-
-    def add_optional_output(self, output_filename):
-        """
-        Adds an output file to the list of optional outputs in status_dict
-
-        Be sure to call this in your step's __init__ function, before the file
-        is generated. This allows us to know if the file was supposed
-        to be generated.
-        """
-        optional_outputs = self.status_dict.get("optional_outputs", [])
-        self.status_dict["optional_outputs"] = optional_outputs + [output_filename]

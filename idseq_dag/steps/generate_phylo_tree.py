@@ -129,7 +129,9 @@ class PipelineStepGeneratePhyloTree(PipelineStep):
                 "-annotate",
                 os.path.basename(annotated_genome_input)
             ])
-            self.optional_files_to_upload.append(f"{ksnp_output_dir}/SNPs_all_annotated")
+            snps_all_annotated = f"{ksnp_output_dir}/SNPs_all_annotated"
+            if os.path.isfile(snps_all_annotated):
+                self.optional_files_to_upload.append(snps_all_annotated)
 
         # Produce VCF file with respect to first reference genome in annotated_genome_input:
         if os.path.isfile(annotated_genome_input):

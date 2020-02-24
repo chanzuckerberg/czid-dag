@@ -114,7 +114,11 @@ class PipelineStepRunStar(PipelineStep):
         paired = len(self.input_files[0]) == 3
 
         self.output_metrics_file = self.additional_attributes.get("output_metrics_file")
+        if self.output_metrics_file:
+            self.output_metrics_file = os.path.join(self.output_dir_local, self.output_metrics_file)
         self.output_histogram_file = self.additional_attributes.get("output_histogram_file")
+        if self.output_histogram_file:
+            self.output_histogram_file = os.path.join(self.output_dir_local, self.output_histogram_file)
         requested_insert_size_metrics_output = bool(self.output_metrics_file or self.output_histogram_file)
 
         self.collect_insert_size_metrics_for = None
@@ -124,8 +128,10 @@ class PipelineStepRunStar(PipelineStep):
             # Compute for RNA if host genome has an organism specific gtf file
             self.collect_insert_size_metrics_for = nucleotide_type
             # Flag that we need to generate these two files
-            self.add_optional_output(self.output_metrics_file)
-            self.add_optional_output(self.output_histogram_file)
+            if self.output_metrics_file:
+                self.additional_files_to_upload.append(self.output_metrics_file)
+            if self.output_histogram_file:
+                self.additional_files_to_upload.append(self.output_histogram_file)
 
     def run(self):
         """Run STAR to filter out host reads."""
@@ -203,28 +209,12 @@ class PipelineStepRunStar(PipelineStep):
                 bam_filename = "Aligned.out.bam" if is_dna else "Aligned.toTranscriptome.out.bam"
                 if self.collect_insert_size_metrics_for:
                     bam_path = os.path.join(tmp, bam_filename)
-                    metrics_output_path = os.path.join(tmp, self.output_metrics_file)
-                    histogram_output_path = os.path.join(tmp, self.output_histogram_file)
 
                     # If this file wasn't generated but self.collect_insert_size_metrics_for has a value
                     #   something unexpected has gone wrong
                     assert(os.path.isfile(bam_path)), \
                         "Expected STAR to generate Aligned.out.bam but it was not found"
-                    self.collect_insert_size_metrics(tmp, bam_path, metrics_output_path, histogram_output_path)
-
-                    if self.output_metrics_file:
-                        assert(os.path.isfile(metrics_output_path)), \
-                            f"Expected picard to generate metrics output file at: {metrics_output_path}"
-                        output_path = os.path.join(self.output_dir_local, self.output_metrics_file)
-                        command.move_file(metrics_output_path, output_path)
-                        self.additional_files_to_upload.append(output_path)
-
-                    if self.output_histogram_file:
-                        assert(os.path.isfile(histogram_output_path)), \
-                            f"Expected picard to generate histogram output file at: {histogram_output_path}"
-                        output_path = os.path.join(self.output_dir_local, self.output_histogram_file)
-                        command.move_file(histogram_output_path, output_path)
-                        self.additional_files_to_upload.append(output_path)
+                    self.collect_insert_size_metrics(tmp, bam_path, self.output_metrics_file, self.output_histogram_file)
 
         # Cleanup
         for src, dst in zip(unmapped, output_files_local):
