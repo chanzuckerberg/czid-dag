@@ -129,9 +129,9 @@ class PipelineStepRunStar(PipelineStep):
             self.collect_insert_size_metrics_for = nucleotide_type
             # Flag that we need to generate these two files
             if self.output_metrics_file:
-                self.additional_files_to_upload.append(self.output_metrics_file)
+                self.additional_output_files_visible.append(self.output_metrics_file)
             if self.output_histogram_file:
-                self.additional_files_to_upload.append(self.output_histogram_file)
+                self.additional_output_files_visible.append(self.output_histogram_file)
 
     def run(self):
         """Run STAR to filter out host reads."""
@@ -200,7 +200,7 @@ class PipelineStepRunStar(PipelineStep):
                     moved = os.path.join(self.output_dir_local,
                                          output_gene_file)
                     command.move_file(gene_count_file, moved)
-                    self.additional_files_to_upload.append(moved)
+                    self.additional_output_files_hidden.append(moved)
 
                 # STAR names the output BAM file Aligned.out.bam without TranscriptomeSAM and
                 #  Aligned.toTranscriptome.out.bam with  TranscriptomeSAM, this doesn't
