@@ -235,6 +235,9 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 - 3.19.0
   - Compute insert size metrics for humans only
 
+- 3.18.1
+  - Update log statement for AMR bug for alerting purposes.
+
 - 3.18.0
   - Version marker: Update NCBI index databases to those downloaded on 2020-02-10.
 
