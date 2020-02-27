@@ -65,7 +65,6 @@ class PipelineStep(object):
         #   Automatically uploaded to s3
         self.additional_output_folders_hidden = []
 
-
         self.counts_dict = {}
         self.should_terminate = False
         self.should_count_reads = False
