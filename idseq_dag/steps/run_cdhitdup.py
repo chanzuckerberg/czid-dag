@@ -55,14 +55,14 @@ class PipelineStepRunCDHitDup(PipelineStep):
                 args=cdhitdup_params
             )
         )
-        self._upload_clstr_files()
+        self._add_clstr_files()
 
     def count_reads(self):
         self.should_count_reads = True
         self.counts_dict[self.name] = count.reads_in_group(
             self.output_files_local()[0:2])
 
-    def _upload_clstr_files(self):
+    def _add_clstr_files(self):
         output_fas = self.output_files_local()[0]
         clstr_file = output_fas + '.clstr'  # clusters
         clstr_file2 = output_fas + '2.clstr'  # chimeric clusters
