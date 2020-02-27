@@ -54,12 +54,18 @@ class PipelineStep(object):
         self.input_files_local = []
 
         # Extra output files for internal use, not visible to users
+        #   Automatically uploaded to s3
         self.additional_output_files_hidden = []
         # Extra output files available to users
+        #   Automatically uploaded to s3 and
+        #   added to status_dict with key "additional_output"
         self.additional_output_files_visible = []
         # Extra output folders, not visible to users
-        #   currently all extra output folders are hidden
+        #   Currently all extra output folders are hidden
+        #   Automatically uploaded to s3
         self.additional_output_folders_hidden = []
+
+
         self.counts_dict = {}
         self.should_terminate = False
         self.should_count_reads = False
