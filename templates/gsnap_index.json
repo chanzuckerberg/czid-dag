@@ -4,18 +4,19 @@
     "nt_db": [
       "nt"
     ],
-    "nt_index_tar": [
-       "nt_k16.tar"
-    ]
+    "nt_index": []
   },
   "steps": [
     {
       "in": ["nt_db"],
-      "out": "nt_index_tar",
+      "out": "nt_index",
       "class": "PipelineStepGenerateGsnapIndex",
       "module": "idseq_dag.steps.generate_gsnap_index",
       "additional_files": {},
-      "additional_attributes": {"k": 16}
+      "additional_attributes": {
+        "k": 16,
+        "output_nr_index": "nt_k16"
+      }
     }
   ],
   "given_targets": {
