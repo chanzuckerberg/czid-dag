@@ -7,6 +7,10 @@ import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 
 class PipelineStepGenerateGsnapIndex(PipelineStep):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.upload_results_with_checksum = True
+
     ''' Generate  gsnap index '''
     def run(self):
         """
@@ -14,37 +18,25 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
 
         """
         nt_db = self.input_files_local[0][0]
-        output_nt_index_tar = self.output_files_local()[0]
-        output_nt_index_dir = os.path.dirname(output_nt_index_tar)
-        output_base = os.path.basename(output_nt_index_tar)
+        output_nt_index_parent_dir = self.self.output_dir_local
+        output_nt_index_dir = self.additional_attributes["output_nr_index"]
         k = self.additional_attributes.get("k", 16)  # kmer k
-        log.write(f"input: {nt_db} output: {output_nt_index_tar}")
+        log.write(f"input: {nt_db} output: {output_nt_index_dir}")
         command.execute(
             command_patterns.SingleCommand(
                 cmd="gmap_build",
                 args=[
                     "-D",
-                    output_nt_index_dir,
+                    output_nt_index_parent_dir,
                     "-d",
-                    output_base[:-4],
+                    output_nt_index_dir,
                     "-k",
                     k,
                     nt_db
                 ]
             )
         )
-
-        command.execute(
-            command_patterns.SingleCommand(
-                cd=output_nt_index_dir,
-                cmd="tar",
-                args=[
-                    "cvf",
-                    output_base,
-                    output_base[:-4]
-                ]
-            )
-        )
+        self.additional_output_folders_hidden.append(output_nt_index_dir)
 
     def count_reads(self):
         ''' Count reads '''
