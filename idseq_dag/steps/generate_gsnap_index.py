@@ -19,7 +19,7 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
         """
         nt_db = self.input_files_local[0][0]
         output_nt_index_parent_dir = self.self.output_dir_local
-        output_nt_index_dir = self.additional_attributes["output_nr_index"]
+        output_nt_index_dir = self.additional_attributes["output_nt_index"]
         k = self.additional_attributes.get("k", 16)  # kmer k
         log.write(f"input: {nt_db} output: {output_nt_index_dir}")
         command.execute(
