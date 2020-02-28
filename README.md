@@ -232,6 +232,11 @@ Version numbers for this repo take the form X.Y.Z.
 - We increase X for a paradigm shift in how the pipeline is conceived. Example: adding a de-novo assembly step and then reassigning hits based on the assembled contigs.
 Changes to X or Y force recomputation of all results when a sample is rerun using idseq-web. Changes to Z do not force recomputation when the sample is rerun - the pipeline will lazily reuse existing outputs in AWS S3.
 
+- 3.19.3
+  - Switch uploads to s3parcp
+  - Standardized gsnap and rapsearch index location
+  - Update gsnap index generation to upload the raw index directory instead of a tarball
+
 - 3.19.2
   - Use additional_output_files_visible
 
