@@ -22,18 +22,19 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
         output_nt_index_dir = self.additional_attributes["output_nt_index"]
         k = self.additional_attributes.get("k", 16)  # kmer k
         log.write(f"input: {nt_db} output: {output_nt_index_dir}")
+        # DUMMY OPTS
         command.execute(
             command_patterns.SingleCommand(
-                cmd="gmap_build",
-                args=[
-                    "-D",
-                    output_nt_index_parent_dir,
-                    "-d",
-                    output_nt_index_dir,
-                    "-k",
-                    k,
-                    nt_db
-                ]
+                cmd="mkdir",
+                args=[output_nt_index_dir],
+                cd=output_nt_index_parent_dir
+            )
+        )
+        command.execute(
+            command_patterns.SingleCommand(
+                cmd="touch",
+                args=[os.path.join(output_nt_index_dir, "foo")],
+                cd=output_nt_index_parent_dir
             )
         )
         self.additional_output_folders_hidden.append(output_nt_index_dir)
