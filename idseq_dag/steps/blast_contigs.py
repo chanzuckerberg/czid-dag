@@ -177,7 +177,7 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         (read_dict, accession_dict, _selected_genera) = m8.summarize_hits(hit_summary)
         PipelineStepBlastContigs.run_blast(db_type, blast_m8, assembled_contig, reference_fasta, blast_top_m8)
         read2contig = {}
-        _contig_stats = PipelineStepRunAssembly.generate_info_from_sam(bowtie_sam, read2contig, cdhit_cluster_sizes_path)
+        PipelineStepRunAssembly.generate_info_from_sam(bowtie_sam, read2contig, cdhit_cluster_sizes_path)
 
         (updated_read_dict, read2blastm8, contig2lineage, added_reads) = self.update_read_dict(
             read2contig, blast_top_m8, read_dict, accession_dict, db_type)
