@@ -324,7 +324,7 @@ class PipelineStepRunStar(PipelineStep):
                 *Host Subtraction*
             """
 
-        description = f"""
+        description += f"""
             The STAR aligner is used for rapid first-pass host filtration.
             Unmapped reads are passed to the subsequent step. The current implementation of STAR,
             will fail to remove host sequences that map to multiple regions, thus these are filtered
