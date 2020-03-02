@@ -314,8 +314,16 @@ class PipelineStepRunStar(PipelineStep):
                 --outSAMmode NoQS
                 --quantMode TranscriptomeSAM GeneCounts"""
 
+        description = ""
+
+        # TODO: settle on heading choice
+        if self.collect_insert_size_metrics_for:
+            description += """
+                ##### STAR
+            """
+
         description = f"""
-            Implements the step for running STAR.
+            Implements the step for Host Subtraction.
 
             The STAR aligner is used for rapid first-pass host filtration.
             Unmapped reads are passed to the subsequent step. The current implementation of STAR,
@@ -364,7 +372,10 @@ class PipelineStepRunStar(PipelineStep):
         """
 
         if self.collect_insert_size_metrics_for:
+            # TODO: settle on heading choice
             description += """
+                ##### Insert Metrics
+
                 This step also computes insert size metrics for Paired End samples from human hosts.
                 These metrics are computed by the Broad Institute's Picard toolkit.
 
