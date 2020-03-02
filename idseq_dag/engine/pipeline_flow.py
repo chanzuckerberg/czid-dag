@@ -103,8 +103,8 @@ class PipelineFlow(object):
         dag['name'] = dag.get("name", _get_name_from_path(dag_json))
         covered_targets = set()
         for s in steps:
-            # hack -- augmnet steps as needed for testing of cdhitdup
-            if s["class"] in ("PipelineStepBlastContigs", "PipelineStepRunAlignmentRemotely", "PipelineStepRunAssembly"):
+            # hack -- augment steps as needed for testing of cdhitdup
+            if s["class"] in ("PipelineStepBlastContigs", "PipelineStepRunAlignmentRemotely", "PipelineStepRunAssembly", "PipelineStepRunLZW", "PipelineStepRunBowtie2", "PipelineStepRunGsnapFilter", "PipelineStepRunSubsample", "PipelineStepGenerateAnnotatedFasta"):
                 if cdhitdup_cluster_sizes_target not in s["in"]:
                     s["in"].append(cdhitdup_cluster_sizes_target)
             # validate each step in/out are valid targets

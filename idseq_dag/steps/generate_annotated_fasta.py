@@ -1,10 +1,9 @@
-from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.engine.pipeline_step import PipelineCountingStep
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
-import idseq_dag.util.count as count
 import idseq_dag.util.m8 as m8
 
-class PipelineStepGenerateAnnotatedFasta(PipelineStep):
+class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
     '''
     generate annotated fasta
     '''
@@ -17,11 +16,6 @@ class PipelineStepGenerateAnnotatedFasta(PipelineStep):
         unidentified_fasta = self.output_files_local()[1]
         self.annotate_fasta_with_accessions(merged_fasta, gsnap_m8, rapsearch2_m8, annotated_fasta)
         self.generate_unidentified_fasta(annotated_fasta, unidentified_fasta)
-
-    def count_reads(self):
-        # count unidenfitied reads
-        self.should_count_reads = True
-        self.counts_dict["unidentified_fasta"] = count.reads_in_group([self.output_files_local()[1]])
 
     @staticmethod
     def annotate_fasta_with_accessions(merged_input_fasta, nt_m8, nr_m8, output_fasta):

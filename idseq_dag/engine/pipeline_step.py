@@ -1,7 +1,4 @@
 import datetime
-import idseq_dag.util.command as command
-import idseq_dag.util.log as log
-import idseq_dag.util.s3
 import json
 import os
 import pytz
@@ -10,6 +7,13 @@ import time
 
 from abc import abstractmethod
 from enum import Enum, IntEnum
+
+import idseq_dag.util.command as command
+import idseq_dag.util.log as log
+import idseq_dag.util.s3
+import idseq_dag.util.count as count
+
+from idseq_dag.util.m8 import load_cdhit_cluster_sizes
 
 class StepStatus(IntEnum):
     INITIALIZED = 0
@@ -25,6 +29,7 @@ class InputFileErrors(Enum):
 
 class InvalidInputFileError(Exception):
     def __init__(self, json):
+        super().__init__()
         self.json = json
 
 class PipelineStep(object):
@@ -277,3 +282,27 @@ class PipelineStep(object):
         By default, show link to idseq-dag documentation.
         '''
         return {"IDseq Docs": "https://github.com/chanzuckerberg/idseq-dag/wiki"}
+
+
+class PipelineCountingStep(PipelineStep):
+
+    def input_cluster_sizes(self):
+        # The last input to PipelineCountingStep is cluster_sizes.tsv
+        tsv = self.input_files_local[0][-1]
+        assert tsv.endswith(".tsv"), str(self.input_files_local)
+        return tsv
+
+    def non_cluster_size_inputs(self):
+        assert self.input_cluster_sizes()
+        return self.input_files_local[0][:-1]
+
+    def count_reads(self):
+        # Count reads including duplicates (expanding cd-hit-dup clusters).
+        self.should_count_reads = True
+        self.counts_dict[self.name] = count.reads_in_group(
+            self.output_files_local()[0:2],
+            cluster_sizes=load_cdhit_cluster_sizes(self.input_cluster_sizes()))
+
+    @abstractmethod
+    def run(self):
+        ''' implement what is actually being run in this step '''

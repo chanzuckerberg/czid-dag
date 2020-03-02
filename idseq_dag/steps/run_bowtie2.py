@@ -1,6 +1,6 @@
 import os
 import multiprocessing
-from idseq_dag.engine.pipeline_step import PipelineStep, InputFileErrors
+from idseq_dag.engine.pipeline_step import PipelineCountingStep, InputFileErrors
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.count as count
@@ -9,7 +9,7 @@ import idseq_dag.util.log as log
 from idseq_dag.util.s3 import fetch_reference
 
 
-class PipelineStepRunBowtie2(PipelineStep):
+class PipelineStepRunBowtie2(PipelineCountingStep):
     """ Removes remaining host reads.
 
     While STAR provides an initial, rapid removal of host sequences,
@@ -34,11 +34,11 @@ class PipelineStepRunBowtie2(PipelineStep):
     Bowtie2 documentation can be found [here](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#the-bowtie2-aligner)
     """
     def validate_input_files(self):
-        if not count.files_have_min_reads(self.input_files_local[0][0:2], 1):
+        if not count.files_have_min_reads(self.non_cluster_size_inputs()[0:2], 1):
             self.input_file_error = InputFileErrors.INSUFFICIENT_READS
 
     def run(self):
-        input_fas = self.input_files_local[0][0:2]
+        input_fas = self.non_cluster_size_inputs()[0:2]
         output_fas = self.output_files_local()
         genome_dir = fetch_reference(
             self.additional_files["bowtie2_genome"],
@@ -91,8 +91,3 @@ class PipelineStepRunBowtie2(PipelineStep):
         else:
             convert.generate_unmapped_singles_from_sam(output_sam_file,
                                                        output_fas[0])
-
-    def count_reads(self):
-        self.should_count_reads = True
-        self.counts_dict[self.name] = count.reads_in_group(
-            self.output_files_local()[0:2])

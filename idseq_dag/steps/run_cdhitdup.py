@@ -8,7 +8,7 @@ import idseq_dag.util.log as log
 from idseq_dag.engine.pipeline_step import InputFileErrors, PipelineStep
 
 
-class PipelineStepRunCDHitDup(PipelineStep):
+class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountingStep
     """ Removes duplicate reads.
 
     ```
@@ -122,8 +122,8 @@ class PipelineStepRunCDHitDup(PipelineStep):
 
     def count_reads(self):
         self.should_count_reads = True
-        self.counts_dict[self.name] = count.reads_in_group(
-            self.output_files_local()[0:2])
+        # Here we intentionally count unique reads.
+        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
 
     def _add_clstr_files(self):
         output_fas = self.output_files_local()[0]
