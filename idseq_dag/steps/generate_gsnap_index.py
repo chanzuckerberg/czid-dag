@@ -17,7 +17,7 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
         output_nt_index_tar = self.output_files_local()[0]
         output_nt_index_parent_dir = os.path.dirname(output_nt_index_tar)
         output_tar_base = os.path.basename(output_nt_index_tar)
-        output_nt_index_dir = output_tar_base[:-4]
+        output_nt_index_dir_base = output_tar_base[:-4]
         k = self.additional_attributes.get("k", 16)  # kmer k
         log.write(f"input: {nt_db} output: {output_nt_index_tar}")
         command.execute(
@@ -27,7 +27,7 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
                     "-D",
                     output_nt_index_parent_dir,
                     "-d",
-                    output_nt_index_dir,
+                    output_nt_index_dir_base,
                     "-k",
                     k,
                     nt_db
@@ -35,7 +35,7 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
             )
         )
 
-        self.additional_output_folders_hidden.append(output_nt_index_dir)
+        self.additional_output_folders_hidden.append(output_nt_index_dir_base)
 
         command.execute(
             command_patterns.SingleCommand(
@@ -44,7 +44,7 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
                 args=[
                     "cvf",
                     output_tar_base,
-                    output_nt_index_dir
+                    output_nt_index_dir_base
                 ]
             )
         )
