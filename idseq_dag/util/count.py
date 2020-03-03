@@ -98,7 +98,7 @@ def _count_reads_expanding_duplicates(local_file_path, cluster_sizes):
         #
         # The fasta iterator already asserts that read.header[0] is '>'.
         #
-        read_id, _ = read.header.split(None, 1)[1:]
+        read_id, _ = read.header.split(None, 1)[0][1:]
         unique_count += 1
         nonunique_count += get_read_dcr(cluster_sizes, read_id)
     return unique_count, nonunique_count

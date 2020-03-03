@@ -54,6 +54,9 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
         # Require exact match (-e 0) on first 70 nucleotides (-u 70).
         # (Only 70 because sequencer errors increase toward the end of a read;
         # for example, see https://insilicoseq.readthedocs.io/en/latest/iss/model.html)
+        #
+        # Note that cdhit runs without -f here so it would not identify chimeric reads,
+        # and therefore the second .clstr file output would be empty, always.
         cdhitdup_params = [
             '-i', input_fas[0], '-o', output_fas[0],
             '-e', '0.0', '-u', '70'

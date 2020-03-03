@@ -286,14 +286,18 @@ class PipelineStep(object):
 
 class PipelineCountingStep(PipelineStep):
 
-    def input_cluster_sizes(self):
+    """PipelineStep that counts nonunique reads based on back-calculation from cluster sizes
+TSV file emitted by `PipelineStepRunCDHitDup`. Only steps that follow cd-hit-dup are eligible
+for this, and not all of them (not all steps count their outputs)."""
+
+    def input_cluster_sizes_path(self):
         # The last input to PipelineCountingStep is cluster_sizes.tsv
         tsv = self.input_files_local[0][-1]
         assert tsv.endswith(".tsv"), str(self.input_files_local)
         return tsv
 
     def non_cluster_size_inputs(self):
-        assert self.input_cluster_sizes()
+        assert self.input_cluster_sizes_path()
         return self.input_files_local[0][:-1]
 
     def count_reads(self):
@@ -301,7 +305,7 @@ class PipelineCountingStep(PipelineStep):
         self.should_count_reads = True
         self.counts_dict[self.name] = count.reads_in_group(
             self.output_files_local()[0:2],
-            cluster_sizes=load_cdhit_cluster_sizes(self.input_cluster_sizes()))
+            cluster_sizes=load_cdhit_cluster_sizes(self.input_cluster_sizes_path()))
 
     @abstractmethod
     def run(self):
