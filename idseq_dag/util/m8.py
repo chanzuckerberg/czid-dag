@@ -581,6 +581,8 @@ def generate_taxon_count_json_from_m8(
                 # 'domain_taxid' : agg_key[8 - tax_level] if tax_level <= 8 else "-800",
                 "count":  # todo:  rename to "nonunique_count" -- since count originally meant unique_count
                 nonunique_count,
+                "dcr":
+                nonunique_count / unique_count,
                 "percent_identity":
                 agg_bucket['sum_percent_identity'] / unique_count,
                 "alignment_length":
