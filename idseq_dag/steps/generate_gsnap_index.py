@@ -20,6 +20,7 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
         output_nt_index_dir_base = output_tar_base[:-4]
         k = self.additional_attributes.get("k", 16)  # kmer k
         log.write(f"input: {nt_db} output: {output_nt_index_tar}")
+        """
         command.execute(
             command_patterns.SingleCommand(
                 cmd="gmap_build",
@@ -34,9 +35,17 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
                 ]
             )
         )
+        """
+        # create dummy index dir
+        os.mkdir(os.path.join(output_nt_index_parent_dir, output_nt_index_dir_base))
+        with open(os.path.join(output_nt_index_parent_dir, output_nt_index_dir_base, "foo"), 'w') as f:
+            f.write("foo\n")
+        with open(os.path.join(output_nt_index_parent_dir, output_nt_index_dir_base, "bar"), 'w') as f:
+            f.write("bar\n")
 
         self.additional_output_folders_hidden.append(output_nt_index_dir_base)
 
+        """
         command.execute(
             command_patterns.SingleCommand(
                 cd=output_nt_index_parent_dir,
@@ -48,6 +57,10 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
                 ]
             )
         )
+        """
+        # create dummy tar
+        with open(os.path.join(output_nt_index_parent_dir, output_tar_base), 'w') as f:
+            f.write("foo\n")
 
     def count_reads(self):
         ''' Count reads '''
