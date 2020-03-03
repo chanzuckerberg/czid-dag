@@ -34,7 +34,7 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
                 ]
             )
         )
-        
+
         self.additional_output_folders_hidden.append(output_nt_index_dir)
 
         command.execute(
