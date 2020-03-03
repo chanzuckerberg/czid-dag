@@ -234,6 +234,7 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 
 - 3.19.4
   - Copy change for STAR step
+  - Don't break STAR if picard can't generate metrics
 
 - 3.19.3
   - Handle case of null nucleotide type for collecting insert metrics
