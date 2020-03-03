@@ -7,8 +7,11 @@ import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 
 class PipelineStepGenerateGsnapIndex(PipelineStep):
-    ''' Generate  gsnap index '''
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.upload_results_with_checksum = True
 
+    ''' Generate  gsnap index '''
     def run(self):
         """
           Generate GSNAP index. To be called from idseq-infra
