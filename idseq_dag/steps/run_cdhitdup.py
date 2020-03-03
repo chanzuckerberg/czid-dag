@@ -1,9 +1,6 @@
-import os
-
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.count as count
-import idseq_dag.util.log as log
 
 from idseq_dag.engine.pipeline_step import InputFileErrors, PipelineStep
 
@@ -15,24 +12,27 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
     cd-hit-dup
     -i {input_fasta}
     -o {output_fasta}
-    -e 0.05
+    -e 0.0
     -u 70
     ```
 
-    Per the CDHit Documentation, available [here](https://github.com/weizhongli/cdhit/wiki),
-    this command uses a 0.05 threshold for the number of mismatches - indicating that if
-    two reads are > 95% similar they will be considered duplicates. It uses only the
-    first/last 70 bases of each read to do the analysis on sequence similarity.
+    Require exact match (-e 0.0) on first 70 nucleotides (-u 70) to deem fragments identical.
+    Only 70, because sequencer errors increase toward the end of a read.  For an illustration
+    of this effect, look [here](https://insilicoseq.readthedocs.io/en/latest/iss/model.html).
 
-    cd-hit-dup will output three or four files. Two of them are the same as the
-    output files of CD-HIT: one (named exactly the same as the file name
-    specified by the “-o” option) is the cluster (or duplicate) representatives,
-    the other is the clustering file (xxx.clstr) relating each duplicate to its
-    representative. For paired end reads, another file by the “-o2” option is
-    the cluster representatives for R2 reads. The last file (xxx2.clstr)
-    contains the chimeric clusters. In this file, the description for each
-    chimeric cluster contains cluster ids of its parent clusters from the
-    clustering file xxx.clstr.
+    Per the CDHit Documentation, available [here](https://github.com/weizhongli/cdhit/wiki/3.-User's-Guide#cdhitdup),
+    the cd-hit-dup command above will output two or three non-empty files.  The first output is named exactly as
+    directed via the “-o” option, and contains all cluster (or duplicate) representatives.
+    The second output with extension “.clstr” relates each duplicate read ID to its
+    distinct representative.  For paired end reads, a third output named by the “-o2” option
+    lists the cluster representatives for R2 reads.
+
+    (If the “-f” option were to be specified, a second ”.clstr” file would show
+    all chimeric reads;  but that output is empty when “-f” is absent.)
+
+    This step also outputs a TSV file mapping each cluster representative
+    to its cluster size, which is useful when converting counts of clusters
+    to counts of original fragments.
     """
 
     def validate_input_files(self):
@@ -51,12 +51,7 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
         cdhit_clusters_path = output_files[-2]
         cdhit_cluster_sizes_path = output_files[-1]
 
-        # Require exact match (-e 0) on first 70 nucleotides (-u 70).
-        # (Only 70 because sequencer errors increase toward the end of a read;
-        # for example, see https://insilicoseq.readthedocs.io/en/latest/iss/model.html)
-        #
-        # Note that cdhit runs without -f here so it would not identify chimeric reads,
-        # and therefore the second .clstr file output would be empty, always.
+        # See docstring above for explanation of these options.
         cdhitdup_params = [
             '-i', input_fas[0], '-o', output_fas[0],
             '-e', '0.0', '-u', '70'
@@ -69,11 +64,19 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
                 args=cdhitdup_params
             )
         )
-        self._add_clstr_files()
+        PipelineStepRunCDHitDup._emit_cluster_sizes(cdhit_cluster_sizes_path, cdhit_clusters_path)
 
+        # TODO: When the matching idseq-web request is deployed, remove this line, because those would
+        # then become bona-fide outputs of the step and thus would not need to be added here.
+        self.additional_output_files_visible.extend([cdhit_clusters_path, cdhit_cluster_sizes_path])
+
+
+    @staticmethod
+    def _emit_cluster_sizes(cdhit_cluster_sizes_path, cdhit_clusters_path):
         # Emit cluster sizes.  One line per cluster.  Format "<cluster_size> <cluster_read_id>".
-        # The rest of the pipeline operates on unique reads (i.e. on the representatives of these clusters).
-        # In the end, cluster sizes are used to convert unique read counts to original read counts.
+        # This info is loaded in multiple subsequent steps using m8.load_cdhit_cluster_sizes,
+        # and used to convert unique read counts to original read counts, and also to compute
+        # per-taxon DCRs emitted alongside taxon_counts.
         with open(cdhit_cluster_sizes_path, "w") as tsv,\
              open(cdhit_clusters_path, "r") as clusters_file:  # noqa
             read_id = None
@@ -127,13 +130,3 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
         self.should_count_reads = True
         # Here we intentionally count unique reads.
         self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[0:2])
-
-    def _add_clstr_files(self):
-        output_fas = self.output_files_local()[0]
-        clstr_file = output_fas + '.clstr'  # clusters
-        clstr_file2 = output_fas + '2.clstr'  # chimeric clusters
-        if os.path.isfile(clstr_file) and os.path.isfile(clstr_file2):
-            self.additional_output_files_visible += [clstr_file, clstr_file2]
-        else:
-            log.write(
-                f"WARNING: Files not found: {clstr_file} and {clstr_file2}")

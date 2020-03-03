@@ -1,12 +1,12 @@
 import datetime
 import json
 import os
-import pytz
 import threading
 import time
-
 from abc import abstractmethod
 from enum import Enum, IntEnum
+
+import pytz
 
 import idseq_dag.util.command as command
 import idseq_dag.util.log as log
