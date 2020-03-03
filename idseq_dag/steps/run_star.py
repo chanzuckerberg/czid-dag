@@ -212,8 +212,14 @@ class PipelineStepRunStar(PipelineStep):
                     self.collect_insert_size_metrics(tmp, bam_path, self.output_metrics_file, self.output_histogram_file)
                     if os.path.exists(self.output_metrics_file):
                         self.additional_output_files_visible.append(self.output_metrics_file)
+                    else:
+                        message = "expected picard to generate a metrics file but none was found"
+                        log.write(message=message, warning=True)
                     if os.path.exists(self.output_histogram_file):
                         self.additional_output_files_visible.append(self.output_histogram_file)
+                    else:
+                        message = "expected picard to generate a histogram file but none was found"
+                        log.write(message=message, warning=True)
 
         # Cleanup
         for src, dst in zip(unmapped, output_files_local):
