@@ -35,7 +35,8 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
             )
         )
 
-        self.additional_output_folders_hidden.append(output_nt_index_dir_base)
+        output_nt_index_dir = os.path.join(output_nt_index_parent_dir, output_nt_index_dir_base)
+        self.additional_output_folders_hidden.append(output_nt_index_dir)
 
         command.execute(
             command_patterns.SingleCommand(
