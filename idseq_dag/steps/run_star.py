@@ -126,12 +126,7 @@ class PipelineStepRunStar(PipelineStep):
         #   try to compute insert size metrics
         if (not disable_insert_size_metrics) and nucleotide_type and host_is_human and paired and requested_insert_size_metrics_output:
             # Compute for RNA if host genome has an organism specific gtf file
-            self.collect_insert_size_metrics_for = nucleotide_type
-            # Flag that we need to generate these two files
-            if self.output_metrics_file:
-                self.additional_output_files_visible.append(self.output_metrics_file)
-            if self.output_histogram_file:
-                self.additional_output_files_visible.append(self.output_histogram_file)
+            self.collect_insert_size_metrics_for = nucleotide_type                
 
     def run(self):
         """Run STAR to filter out host reads."""
@@ -215,6 +210,8 @@ class PipelineStepRunStar(PipelineStep):
                     assert(os.path.isfile(bam_path)), \
                         "Expected STAR to generate Aligned.out.bam but it was not found"
                     self.collect_insert_size_metrics(tmp, bam_path, self.output_metrics_file, self.output_histogram_file)
+                    self.additional_output_files_visible.append(self.output_metrics_file)
+                    self.additional_output_files_visible.append(self.output_histogram_file)
 
         # Cleanup
         for src, dst in zip(unmapped, output_files_local):
@@ -318,7 +315,6 @@ class PipelineStepRunStar(PipelineStep):
             Implements the step for Host Subtraction.
         """
 
-        # TODO: settle on heading choice
         if self.collect_insert_size_metrics_for:
             description += """
                 **Host Subtraction**
@@ -372,7 +368,6 @@ class PipelineStepRunStar(PipelineStep):
         """
 
         if self.collect_insert_size_metrics_for:
-            # TODO: settle on heading choice
             description += """
                 **Insert Metrics**
 
