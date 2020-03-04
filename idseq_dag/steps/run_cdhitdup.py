@@ -43,13 +43,13 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
         ''' Invoking cd-hit-dup '''
         input_fas = self.input_files_local[0]
 
-        output_files = self.output_files_local()[0]
-        assert len(output_files) == len(input_fas) + 1, f"Context: {input_fas} -> {output_files}."
-        cdhit_cluster_sizes_path = self.output_files_local()[-1][0]
-        assert cdhit_cluster_sizes_path.endswith(".tsv"), str(self.output_files_local())
+        output_files = self.output_files_local()
+        assert len(output_files) == len(input_fas) + 2, f"Context: {input_fas} -> {output_files}."
         output_fas = output_files[:len(input_fas)]
-        cdhit_clusters_path = output_files[-1]
-        assert cdhit_clusters_path.endswith(".clstr"), str(self.output_files_local())
+        cdhit_cluster_sizes_path = output_files[-1]
+        assert cdhit_cluster_sizes_path.endswith(".tsv"), str(output_files)
+        cdhit_clusters_path = output_files[-2]
+        assert cdhit_clusters_path.endswith(".clstr"), str(output_files)
 
         # See docstring above for explanation of these options.
         cdhitdup_params = [

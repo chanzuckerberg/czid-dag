@@ -35,7 +35,7 @@ class PipelineStepRunBowtie2(PipelineCountingStep):
     """
 
     def input_fas(self):
-        self.input_files_local()[0][0:2]
+        return self.input_files_local[0][0:2]
 
     def validate_input_files(self):
         if not count.files_have_min_reads(self.input_fas(), 1):

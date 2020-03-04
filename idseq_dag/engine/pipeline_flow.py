@@ -91,13 +91,9 @@ class PipelineFlow(object):
                 "s3_dir": dag["given_targets"]["host_filter_out"]["s3_dir"]
             }
         if dag["name"] == "host_filter":
-            for fff in ["dedup1.fa.clstr"]:
+            for fff in ["dedup1.fa.clstr", cdhitdup_cluster_sizes_path]:
                 if fff not in dag["targets"]["cdhitdup_out"]:
                     dag["targets"]["cdhitdup_out"].append(fff)
-            if cdhitdup_cluster_sizes_target not in dag["targets"]:
-                dag["targets"][cdhitdup_cluster_sizes_target] = [
-                    cdhitdup_cluster_sizes_path
-                ]
 
         log.log_event("pipeline_flow.dag_json_loaded", values={"file": dag_json, "contents": dag})
         output_dir = dag["output_dir_s3"]  # noqa
@@ -107,16 +103,14 @@ class PipelineFlow(object):
         dag['name'] = dag.get("name", _get_name_from_path(dag_json))
         covered_targets = set()
         for s in steps:
-            # hack -- augment steps as needed for testing of cdhitdup
-            if s["class"] in ("PipelineStepBlastContigs", "PipelineStepRunAlignmentRemotely", "PipelineStepRunAssembly", "PipelineStepRunLZW", "PipelineStepRunBowtie2", "PipelineStepRunGsnapFilter", "PipelineStepRunSubsample", "PipelineStepGenerateAnnotatedFasta"):
+            # hack -- augment post-host-filtering step that need to consume cluster sizes output of cdhitdup (but no other outputs)
+            if s["class"] in ("PipelineStepBlastContigs", "PipelineStepRunAlignmentRemotely", "PipelineStepRunAssembly", "PipelineStepGenerateAnnotatedFasta"):
                 if cdhitdup_cluster_sizes_target not in s["in"]:
                     s["in"].append(cdhitdup_cluster_sizes_target)
-            if s["class"] == "PipelineStepRunCDHitDup":
-                if cdhitdup_cluster_sizes_target not in s["out"]:
-                    s["out"] = [
-                        "cdhitdup_out",
-                        cdhitdup_cluster_sizes_target
-                    ]
+             # hack -- host filtering steps consume cdhitdup_out
+            if s["class"] in ("PipelineStepRunLZW", "PipelineStepRunBowtie2", "PipelineStepRunGsnapFilter", "PipelineStepRunSubsample"):
+                if "cdhitdup_out" not in s["in"]:
+                    s["in"].append("cdhitdup_out")
             # validate each step in/out are valid targets
             for itarget in s["in"]:
                 if itarget not in targets:
