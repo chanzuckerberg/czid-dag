@@ -16,6 +16,8 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
         """
           Generate GSNAP index. To be called from idseq-infra
         """
+        log.write("FOOOOOOOOOOOOOOOOOOOOOOO log start") #
+        print("FOOOOOOOOOOOOOOOOOOOOOOO print start") #
         nt_db = self.input_files_local[0][0]
         output_nt_index_tar = self.output_files_local()[0]
         output_nt_index_parent_dir = os.path.dirname(output_nt_index_tar)
@@ -23,6 +25,7 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
         output_nt_index_dir_base = output_tar_base[:-4]
         k = self.additional_attributes.get("k", 16)  # kmer k
         log.write(f"input: {nt_db} output: {output_nt_index_tar}")
+        """ #
         command.execute(
             command_patterns.SingleCommand(
                 cmd="gmap_build",
@@ -37,10 +40,20 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
                 ]
             )
         )
+        """ #
+        # create dummy index dir #
+        log.write("FOOOOOOOOOOOOOOOOOOOOOOO log dummy dir") #
+        print("FOOOOOOOOOOOOOOOOOOOOOOO print dummy dir") #
 
         output_nt_index_dir = os.path.join(output_nt_index_parent_dir, output_nt_index_dir_base)
+#
+        command.execute(command_patterns.SingleCommand(cmd="mkdir", args=[output_nt_index_dir])) #
+        command.execute(command_patterns.ShellScriptCommand(f"echo foo >> {os.path.join(output_nt_index_dir, 'foo')}")) #
+        command.execute(command_patterns.ShellScriptCommand(f"echo foo >> {os.path.join(output_nt_index_dir, 'bar')}")) #
+#
         self.additional_output_folders_hidden.append(output_nt_index_dir)
 
+        """
         command.execute(
             command_patterns.SingleCommand(
                 cd=output_nt_index_parent_dir,
@@ -52,6 +65,11 @@ class PipelineStepGenerateGsnapIndex(PipelineStep):
                 ]
             )
         )
+        """
+        # create dummy index tar #
+        log.write("FOOOOOOOOOOOOOOOOOOOOOOO log dummy tar") #
+        print("FOOOOOOOOOOOOOOOOOOOOOOO print dummy tar") #
+        command.execute(command_patterns.ShellScriptCommand(f"echo foo >> {os.path.join(output_nt_index_parent_dir, output_tar_base)}"))
 
     def count_reads(self):
         ''' Count reads '''
