@@ -33,12 +33,16 @@ class PipelineStepRunBowtie2(PipelineCountingStep):
     If the input is single-end the `-U [input R, if not paired]` argument is used instead of `-1` and `-2`.
     Bowtie2 documentation can be found [here](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#the-bowtie2-aligner)
     """
+
+    def input_fas(self):
+        self.input_files_local()[0][0:2]
+
     def validate_input_files(self):
-        if not count.files_have_min_reads(self.non_cluster_size_inputs()[0:2], 1):
+        if not count.files_have_min_reads(self.input_fas(), 1):
             self.input_file_error = InputFileErrors.INSUFFICIENT_READS
 
     def run(self):
-        input_fas = self.non_cluster_size_inputs()[0:2]
+        input_fas = self.input_fas()
         output_fas = self.output_files_local()
         genome_dir = fetch_reference(
             self.additional_files["bowtie2_genome"],

@@ -40,7 +40,7 @@ class PipelineStepRunLZW(PipelineCountingStep):
     NUM_SLICES = min(MAX_SUBPROCS, REAL_CORES)
 
     def input_fas(self):
-        return self.input_files_local[0][:-2]  # the last two inputs are not fastas, they are cdhitdup cluster sizes
+        return self.input_files_local[0][:-1]  # the last input is not fasta, it's a .clstr file
 
     def validate_input_files(self):
         if not count.files_have_min_reads(self.input_fas(), 1):

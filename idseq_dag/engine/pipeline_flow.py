@@ -91,9 +91,13 @@ class PipelineFlow(object):
                 "s3_dir": dag["given_targets"]["host_filter_out"]["s3_dir"]
             }
         if dag["name"] == "host_filter":
-            for fff in ["dedup1.fa.clstr", cdhitdup_cluster_sizes_path]:
+            for fff in ["dedup1.fa.clstr"]:
                 if fff not in dag["targets"]["cdhitdup_out"]:
                     dag["targets"]["cdhitdup_out"].append(fff)
+            if cdhitdup_cluster_sizes_target not in dag["targets"]:
+                dag["targets"][cdhitdup_cluster_sizes_target] = [
+                    cdhitdup_cluster_sizes_path
+                ]
 
         log.log_event("pipeline_flow.dag_json_loaded", values={"file": dag_json, "contents": dag})
         output_dir = dag["output_dir_s3"]  # noqa
@@ -107,6 +111,12 @@ class PipelineFlow(object):
             if s["class"] in ("PipelineStepBlastContigs", "PipelineStepRunAlignmentRemotely", "PipelineStepRunAssembly", "PipelineStepRunLZW", "PipelineStepRunBowtie2", "PipelineStepRunGsnapFilter", "PipelineStepRunSubsample", "PipelineStepGenerateAnnotatedFasta"):
                 if cdhitdup_cluster_sizes_target not in s["in"]:
                     s["in"].append(cdhitdup_cluster_sizes_target)
+            if s["class"] == "PipelineStepRunCDHitDup":
+                if cdhitdup_cluster_sizes_target not in s["out"]:
+                    s["out"] = [
+                        "cdhitdup_out",
+                        cdhitdup_cluster_sizes_target
+                    ]
             # validate each step in/out are valid targets
             for itarget in s["in"]:
                 if itarget not in targets:

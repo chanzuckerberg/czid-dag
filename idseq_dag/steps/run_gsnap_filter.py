@@ -35,7 +35,7 @@ class PipelineStepRunGsnapFilter(PipelineCountingStep):
     # Two input FASTAs means paired reads.
 
     def input_fas(self):
-        return self.non_cluster_size_inputs()[0:2]
+        return self.input_files_local()[0:2]
 
     def validate_input_files(self):
         if not count.files_have_min_reads(self.input_fas(), 1):

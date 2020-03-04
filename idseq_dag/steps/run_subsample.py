@@ -18,7 +18,7 @@ class PipelineStepRunSubsample(PipelineCountingStep):
     """
 
     def input_fas(self):
-        return self.non_cluster_size_inputs()
+        return self.input_files_local()[0]
 
     def validate_input_files(self):
         if not count.files_have_min_reads(self.input_fas(), 1):

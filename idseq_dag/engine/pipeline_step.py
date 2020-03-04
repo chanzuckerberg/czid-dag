@@ -291,14 +291,10 @@ TSV file emitted by `PipelineStepRunCDHitDup`. Only steps that follow cd-hit-dup
 for this, and not all of them (not all steps count their outputs)."""
 
     def input_cluster_sizes_path(self):
-        # The last input to PipelineCountingStep is cluster_sizes.tsv
-        tsv = self.input_files_local[0][-1]
+        # The last last input to PipelineCountingStep is cluster_sizes.tsv
+        tsv = self.input_files_local[-1][-1]
         assert tsv.endswith(".tsv"), str(self.input_files_local)
         return tsv
-
-    def non_cluster_size_inputs(self):
-        assert self.input_cluster_sizes_path()
-        return self.input_files_local[0][:-1]
 
     def count_reads(self):
         # Count reads including duplicates (expanding cd-hit-dup clusters).
