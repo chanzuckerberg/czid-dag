@@ -450,7 +450,7 @@ def load_cdhit_cluster_sizes(filename):
 @command.run_in_subprocess
 def generate_taxon_count_json_from_m8(
         m8_file, hit_level_file, e_value_type, count_type, lineage_map_path,
-        deuterostome_path, cdhit_cluster_sizes_path, output_json_file):
+        deuterostome_path, cdhit_cluster_sizes_path, output_json_file, output_json_file_compat=None):
     # Parse through hit file and m8 input file and format a JSON file with
     # our desired attributes, including aggregated statistics.
 
@@ -579,8 +579,10 @@ def generate_taxon_count_json_from_m8(
                 # 'phyllum_taxid' : agg_key[6 - tax_level] if tax_level <= 6 else "-600",
                 # 'kingdom_taxid' : agg_key[7 - tax_level] if tax_level <= 7 else "-700",
                 # 'domain_taxid' : agg_key[8 - tax_level] if tax_level <= 8 else "-800",
-                "count":  # todo:  rename to "nonunique_count" -- since count originally meant unique_count
+                "count":
                 nonunique_count,
+                "unique_count":
+                unique_count,
                 "dcr":
                 nonunique_count / unique_count,
                 "percent_identity":
@@ -600,5 +602,15 @@ def generate_taxon_count_json_from_m8(
 
     with log.log_context("generate_taxon_count_json_from_m8", {"substep": "json_dump", "output_json_file": output_json_file}):
         with open(output_json_file, 'w') as outf:
+            json.dump(output_dict, outf)
+            outf.flush()
+
+    # Now drop the "dcr" and "unique_count" keys to emit a json file that is compatible
+    # with the older webapp.  Todo:  Get rid of this as soon as the webapp is updated.
+    if output_json_file_compat:
+        for tca in taxon_counts_attributes:
+            del tca["dcr"]
+            del tca["unique_count"]
+        with open(output_json_file_compat, 'w') as outf:
             json.dump(output_dict, outf)
             outf.flush()
