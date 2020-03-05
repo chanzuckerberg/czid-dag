@@ -17,6 +17,9 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
         self.annotate_fasta_with_accessions(merged_fasta, gsnap_m8, rapsearch2_m8, annotated_fasta)
         self.generate_unidentified_fasta(annotated_fasta, unidentified_fasta)
 
+    def count_reads(self):
+        super()._count_reads_work(cluster_key=PipelineStepGenerateAnnotatedFasta.old_read_name)
+
     @staticmethod
     def annotate_fasta_with_accessions(merged_input_fasta, nt_m8, nr_m8, output_fasta):
         def get_map(m8_file):
@@ -36,7 +39,7 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
                 while sequence_name and sequence_data:
                     read_id = sequence_name.rstrip().lstrip('>')
                     # Need to annotate NR then NT in this order for alignment viz
-                    new_read_name = "NR:{nr_accession}:NT:{nt_accession}:{read_id}".format(
+                    new_read_name = "NR:{nr_accession}:NT:{nt_accession}:{read_id}".format(  # Its inverse is old_read_name()
                         nr_accession=nr_map.get(read_id, ''),
                         nt_accession=nt_map.get(read_id, ''),
                         read_id=read_id)
@@ -57,3 +60,9 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
                 ]
             )
         )
+
+    @staticmethod
+    def old_read_name(new_read_name):
+        # Inverse of new_read_name creation above.  Needed to cross-reference to original read_id
+        # in order to identify all duplicate reads for this read_id.
+        return new_read_name.split(":", 4)[-1]

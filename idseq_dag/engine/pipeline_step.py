@@ -296,12 +296,20 @@ for this, and not all of them (not all steps count their outputs)."""
         assert tsv.endswith(".tsv"), str(self.input_files_local)
         return tsv
 
-    def count_reads(self):
+    def _count_reads_work(self, cluster_key):
         # Count reads including duplicates (expanding cd-hit-dup clusters).
         self.should_count_reads = True
         self.counts_dict[self.name] = count.reads_in_group(
             self.output_files_local()[0:2],
-            cluster_sizes=load_cdhit_cluster_sizes(self.input_cluster_sizes_path()))
+            cluster_sizes=load_cdhit_cluster_sizes(self.input_cluster_sizes_path()),
+            cluster_key=cluster_key)
+
+    def count_reads(self):
+        # The identity key works in all host filtering steps, but subsequent steps
+        # which decorate their read IDs must override this function to specify
+        # a cluster_key that inverses the read ID decorator so that the original
+        # cluster sizes can be looked up.
+        self._count_reads_work(cluster_key=lambda x: x)
 
     @abstractmethod
     def run(self):

@@ -84,7 +84,7 @@ def files_have_min_reads(input_files, min_reads):
             return False
     return True
 
-def _count_reads_expanding_duplicates(local_file_path, cluster_sizes):
+def _count_reads_expanding_duplicates(local_file_path, cluster_sizes, cluster_key):
     # See documentation for reads_in_group use case with cluster_sizes, below.
     unique_count, nonunique_count = 0, 0
     for read in fasta.iterator(local_file_path):
@@ -98,9 +98,18 @@ def _count_reads_expanding_duplicates(local_file_path, cluster_sizes):
         #
         # The fasta iterator already asserts that read.header[0] is '>'.
         #
+        # As we proceed down along the pipeline, read IDs get annotated with taxonomic information,
+        # changing the above into something like
+        #
+        #   >NT:ABC2433.1:NR:ABC5656.2:M05295:357:000000000-CRPNR:1:1101:22051:10534 OPTIONAL RANDOM STUFF"
+        #    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        #
+        # The underlined annotation has to be stripped out by the cluster_key function,
+        # so that we can use the original read ID to look up the cluster size.
+        #
         read_id = read.header.split(None, 1)[0][1:]
         unique_count += 1
-        nonunique_count += get_read_dcr(cluster_sizes, read_id)
+        nonunique_count += get_read_dcr(cluster_sizes, cluster_key(read_id))
     return unique_count, nonunique_count
 
 def reads(local_file_path):
@@ -110,7 +119,7 @@ def reads(local_file_path):
     '''
     return _count_reads_via_wc(local_file_path, max_reads=None)
 
-def reads_in_group(file_group, max_fragments=None, cluster_sizes=None):
+def reads_in_group(file_group, max_fragments=None, cluster_sizes=None, cluster_key=None):
     '''
     OVERVIEW
 
@@ -167,10 +176,11 @@ def reads_in_group(file_group, max_fragments=None, cluster_sizes=None):
     this better future, and just fail an assert where the present falls short.
     '''
     assert None in (max_fragments, cluster_sizes), "Truncating to max_fragments is not supported at the same time as expanding cluster_sizes.  Consider setting max_fragments=None."
+    assert (cluster_sizes == None) == (cluster_key == None), "Please specify cluster_key when using cluster_sizes."
     first_file = file_group[0]
     unique_fast = _count_reads_via_wc(first_file, max_fragments)  # This is so fast, just do it always as a sanity check.
     if cluster_sizes:
-        unique, nonunique = _count_reads_expanding_duplicates(first_file, cluster_sizes)
+        unique, nonunique = _count_reads_expanding_duplicates(first_file, cluster_sizes, cluster_key)
         assert unique_fast == unique, f"Different read counts from wc ({unique_fast}) and fasta.iterator ({unique}) for file {first_file}."
         assert unique <= nonunique, f"Unique count ({unique}) should not exceed nonunique count ({nonunique}) for file {first_file}."
     reads_in_first_file = nonunique if cluster_sizes else unique_fast

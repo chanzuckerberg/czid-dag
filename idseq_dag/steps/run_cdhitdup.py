@@ -70,7 +70,6 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
         # then become bona-fide outputs of the step and thus would not need to be added here.
         self.additional_output_files_visible.extend([cdhit_clusters_path, cdhit_cluster_sizes_path])
 
-
     @staticmethod
     def _emit_cluster_sizes(cdhit_cluster_sizes_path, cdhit_clusters_path):
         # Emit cluster sizes.  One line per cluster.  Format "<cluster_size> <cluster_read_id>".
