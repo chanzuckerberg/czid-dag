@@ -161,6 +161,18 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         cdhit_cluster_sizes_path, = self.input_files_local[3]
 
         blast_m8, refined_m8, refined_hit_summary, refined_counts, contig_summary_json, blast_top_m8 = self.output_files_local()
+        assert refined_counts.endswith(".json"), self.output_files_local()
+
+        # todo:  after webapp deployment of this feature, remove else case (only counts with dcr will be produced)
+        if refined_counts.endswith("_with_dcr.json"):
+            refined_counts_compat = None
+            refined_counts_with_dcr = refined_counts
+        else:
+            refined_counts_compat = refined_counts
+            refined_counts_base = refined_counts.rsplit(".", 1)[0]
+            refined_counts_with_dcr = refined_counts_base + "_with_dcr.json"
+            self.additional_output_files_visible.append(refined_counts_with_dcr)
+
         db_type = self.additional_attributes["db_type"]
         if os.path.getsize(assembled_contig) < MIN_ASSEMBLED_CONTIG_SIZE or \
            os.path.getsize(reference_fasta) < MIN_REF_FASTA_SIZE:
@@ -199,7 +211,7 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
             with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_count_json_from_m8", "db_type": db_type, "refined_counts": refined_counts}):
                 m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
                                                      evalue_type, db_type.upper(),
-                                                     lineage_db, deuterostome_db, cdhit_cluster_sizes_path, refined_counts)
+                                                     lineage_db, deuterostome_db, cdhit_cluster_sizes_path, refined_counts_with_dcr, refined_counts_compat)
 
         # generate contig stats at genus/species level
         with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_summary"}):

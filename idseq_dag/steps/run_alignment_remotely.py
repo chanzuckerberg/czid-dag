@@ -91,6 +91,17 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         gsnap_filter_1, gsnap_filter_2, gsnap_filter_merged = self.input_files_local[0]
         cdhit_cluster_sizes_path, = self.input_files_local[1]
         output_m8, deduped_output_m8, output_hitsummary, output_counts_json = self.output_files_local()
+        assert output_counts_json.endswith(".json"), self.output_files_local()
+
+        # TODO:  Remove else case after feature deployed to idseq-web (all counts will be with dcr then)
+        if output_counts_json.endswith("_with_dcr.json"):
+            output_counts_json_compat = None
+            output_counts_with_dcr_json = output_counts_json
+        else:
+            output_counts_json_compat = output_counts_json
+            output_counts_base = output_counts_json.rsplit(".", 1)[0]
+            output_counts_with_dcr_json = output_counts_base + "_with_dcr.json"
+            self.additional_output_files_visible.append(output_counts_with_dcr_json)
 
         service = self.additional_attributes["service"]
 
@@ -120,7 +131,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                                               self.ref_dir_local, allow_s3mi=True)
         m8.generate_taxon_count_json_from_m8(
             deduped_output_m8, output_hitsummary, evalue_type, db_type,
-            lineage_db, deuterostome_db, cdhit_cluster_sizes_path, output_counts_json)
+            lineage_db, deuterostome_db, cdhit_cluster_sizes_path, output_counts_with_dcr_json, output_counts_json_compat)
 
     def run_remotely(self, input_fas, output_m8, service):
         key_path = self.fetch_key(os.environ['KEY_PATH_S3'])
