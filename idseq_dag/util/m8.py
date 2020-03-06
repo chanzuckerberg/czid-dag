@@ -274,7 +274,6 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
 
 def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                        output_m8, output_summary, min_alignment_length, taxon_blacklist, taxon_whitelist):
-    # Helper functions
     lineage_cache = {}
     blacklist_taxids = set()
     if taxon_blacklist:
@@ -283,6 +282,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
     if taxon_whitelist:
         whitelist_taxids = read_file_into_set(taxon_whitelist)
 
+    # Helper functions
     def get_lineage(accession_id):
         """Find the lineage of the accession ID and utilize a cache for
         performance by reducing random IOPS, ameliorating a key performance
