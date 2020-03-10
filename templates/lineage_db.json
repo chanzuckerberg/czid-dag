@@ -38,6 +38,9 @@
   "given_targets": {
     "lineage_csv_input": {
       "s3_dir":  "s3://idseq-database/taxonomy/<NCBI_DATE>", "count_reads": 0
+    },
+    "lz4_only_input": {
+      "s3_dir":  "s3://idseq-database/taxonomy/<NCBI_DATE>"
     }
   }
 }
