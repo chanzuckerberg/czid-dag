@@ -269,7 +269,15 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
         * http://www.metagenomics.wiki/tools/blast/evalue
     """
     print("call_hits_m8 taxon blacklist: ", taxon_blacklist)
+    with open(taxon_blacklist, 'r') as f:
+        print("taxon blacklist: ")
+        for i in range(5):
+            print(f.readline())
     print("call_hits_m8 taxon whitelist: ", taxon_whitelist)
+    with open(taxon_whitelist, 'r') as f:
+        print("taxon whitelist: ")
+        for i in range(5):
+            print(f.readline())
     with open_file_db_by_extension(lineage_map_path, IdSeqDictValue.VALUE_TYPE_ARRAY) as lineage_map, \
          open_file_db_by_extension(accession2taxid_dict_path) as accession2taxid_dict:  # noqa
         _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
