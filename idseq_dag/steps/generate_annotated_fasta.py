@@ -18,7 +18,8 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
         self.generate_unidentified_fasta(annotated_fasta, unidentified_fasta)
 
     def count_reads(self):
-        super()._count_reads_work(cluster_key=PipelineStepGenerateAnnotatedFasta.old_read_name)
+        # The webapp expects this count to be called "unidentified_fasta"
+        super()._count_reads_work(cluster_key=PipelineStepGenerateAnnotatedFasta.old_read_name, counter_name="unidentified_fasta")
 
     @staticmethod
     def annotate_fasta_with_accessions(merged_input_fasta, nt_m8, nr_m8, output_fasta):
