@@ -1,6 +1,9 @@
 {
   "output_dir_s3": "s3://idseq-database/alignment_indexes/<NCBI_DATE>",
   "targets": {
+    "nr_db": [
+      "nr"
+    ],
     "nr_index": [
       "nr_rapsearch",
       "nr_rapsearch.info"
