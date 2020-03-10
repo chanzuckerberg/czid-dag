@@ -281,6 +281,8 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
     whitelist_taxids = set()
     if taxon_whitelist:
         whitelist_taxids = read_file_into_set(taxon_whitelist)
+    print("here is the whitelist")
+    print(whitelist_taxids)
 
     # Helper functions
     def get_lineage(accession_id):
@@ -302,9 +304,15 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
         """
         lineage_taxids = get_lineage(accession_id)
         if taxon_whitelist:
-            for taxid in lineage_taxids:
-                if taxid not in whitelist_taxids:
-                    return
+            # Skip this accession_id if none of its lineage taxids are in the
+            # whitelist set.
+            lineage_taxids_set = set(lineage_taxids)
+            matched = whitelist_taxids.intersection(lineage_taxids_set)
+            if matched:
+                print("matched:")
+                print(matched)
+            else:
+                return
         for taxid in lineage_taxids:
             if taxid in blacklist_taxids:
                 return
