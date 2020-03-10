@@ -201,6 +201,7 @@ def iterate_m8(m8_file, min_alignment_length=0, debug_caller=None, logging_inter
 
 def read_file_into_set(file_name):
     with open(file_name, 'r') as f:
+        print("f: ", f)
         S = set(x.rstrip() for x in f)
         S.discard('')
     return S
@@ -281,12 +282,13 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
     if taxon_blacklist:
         print("taxon_blacklist activated")
         blacklist_taxids = read_file_into_set(taxon_blacklist)
+    print("here is the blacklist: ", blacklist_taxids)
+
     whitelist_taxids = set()
     if taxon_whitelist:
         print("taxon_whitelist activated")
         whitelist_taxids = read_file_into_set(taxon_whitelist)
-    print("here is the whitelist")
-    print(whitelist_taxids)
+    print("here is the whitelist: ", whitelist_taxids)
 
     # Helper functions
     def get_lineage(accession_id):
@@ -307,8 +309,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
         each taxonomy level.  Ignore accessions from the blacklist.
         """
         lineage_taxids = get_lineage(accession_id)
-        print("this is the whitelist set:")
-        print(whitelist_taxids)
+        print("this is the whitelist set:", whitelist_taxids)
         if taxon_whitelist:
             # Skip this accession_id if none of its lineage taxids are in the
             # whitelist set.
