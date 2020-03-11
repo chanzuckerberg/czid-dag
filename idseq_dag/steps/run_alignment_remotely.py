@@ -104,7 +104,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         taxon_whitelist = None
         if self.additional_attributes.get('use_taxon_whitelist'):
             whitelist_s3_file = self.additional_attributes.get('taxon_whitelist', DEFAULT_WHITELIST_S3)
-            print("whitelist_s3_file: ", whitelist_s3_file)
             taxon_whitelist = fetch_reference(whitelist_s3_file, self.ref_dir_local)
 
         m8.call_hits_m8(output_m8, lineage_db, accession2taxid_db,

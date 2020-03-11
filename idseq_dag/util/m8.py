@@ -278,12 +278,9 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
     blacklist_taxids = set()
     if taxon_blacklist:
         blacklist_taxids = read_file_into_set(taxon_blacklist)
-    print("here is the blacklist: ", blacklist_taxids)
-
     whitelist_taxids = set()
     if taxon_whitelist:
         whitelist_taxids = read_file_into_set(taxon_whitelist)
-    print("here is the whitelist: ", whitelist_taxids)
 
     # Helper functions
     def get_lineage(accession_id):
@@ -310,7 +307,6 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
             whitelisted = False
             for taxid in lineage_taxids:
                 if taxid in whitelist_taxids:
-                    print("matched: ", taxid)
                     whitelisted = True
                     break
             if not whitelisted:
@@ -318,7 +314,6 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
         for taxid in lineage_taxids:
             if taxid in blacklist_taxids:
                 return
-
         for level, taxid_at_level in enumerate(lineage_taxids):
             if int(taxid_at_level) < 0:
                 # Skip if we have a negative taxid. When an accession doesn't
