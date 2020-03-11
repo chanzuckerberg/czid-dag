@@ -102,8 +102,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         taxon_blacklist = fetch_reference(blacklist_s3_file, self.ref_dir_local)
 
         taxon_whitelist = None
-        if True:
-        # if self.additional_attributes.get('use_taxon_whitelist'):
+        if self.additional_attributes.get('use_taxon_whitelist'):
             whitelist_s3_file = self.additional_attributes.get('taxon_whitelist', DEFAULT_WHITELIST_S3)
             print("whitelist_s3_file: ", whitelist_s3_file)
             taxon_whitelist = fetch_reference(whitelist_s3_file, self.ref_dir_local)
