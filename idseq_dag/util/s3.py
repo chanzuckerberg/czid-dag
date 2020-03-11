@@ -397,7 +397,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                     if os.path.exists(tmp_dst):
                         command.remove_rf(tmp_dst)
                     if okay_if_missing:
-                        script = r'set -o pipefail; aws s3 cp --quiet "${src}" - ' + command_params
+                        script = r'aws s3 cp --quiet "${src}" - ' + command_params
                     else:
                         script = r'set -o pipefail; aws s3 cp --only-show-errors "${src}" - ' + command_params
                     command.execute(
