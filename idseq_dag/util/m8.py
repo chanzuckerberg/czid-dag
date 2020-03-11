@@ -268,16 +268,6 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
         * http://www.metagenomics.wiki/tools/blast/blastn-output-format-6
         * http://www.metagenomics.wiki/tools/blast/evalue
     """
-    print("call_hits_m8 taxon blacklist: ", taxon_blacklist)
-    with open(taxon_blacklist, 'r') as f:
-        print("taxon blacklist: ")
-        for i in range(5):
-            print(f.readline())
-    print("call_hits_m8 taxon whitelist: ", taxon_whitelist)
-    with open(taxon_whitelist, 'r') as f:
-        print("taxon whitelist: ")
-        for i in range(5):
-            print(f.readline())
     with open_file_db_by_extension(lineage_map_path, IdSeqDictValue.VALUE_TYPE_ARRAY) as lineage_map, \
          open_file_db_by_extension(accession2taxid_dict_path) as accession2taxid_dict:  # noqa
         _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
@@ -288,13 +278,11 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
     lineage_cache = {}
     blacklist_taxids = set()
     if taxon_blacklist:
-        print("taxon_blacklist activated")
         blacklist_taxids = read_file_into_set(taxon_blacklist)
     print("here is the blacklist: ", blacklist_taxids)
 
     whitelist_taxids = set()
     if taxon_whitelist:
-        print("taxon_whitelist activated")
         whitelist_taxids = read_file_into_set(taxon_whitelist)
     print("here is the whitelist: ", whitelist_taxids)
 
@@ -317,22 +305,21 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
         each taxonomy level.  Ignore accessions from the blacklist.
         """
         lineage_taxids = get_lineage(accession_id)
-        print("this is the whitelist set:", whitelist_taxids)
         if taxon_whitelist:
             # Skip this accession_id if none of its lineage taxids are in the
             # whitelist set.
-            lineage_taxids_set = set(lineage_taxids)
-            print("This is the lineage set: ")
-            print(lineage_taxids_set)
-            matched = whitelist_taxids.intersection(lineage_taxids_set)
-            if matched:
-                print("matched:")
-                print(matched)
-            else:
+            whitelisted = False
+            for taxid in lineage_taxids:
+                if taxid in whitelist_taxids:
+                    print("matched: ", taxid)
+                    whitelisted = True
+                    break
+            if not whitelisted:
                 return
         for taxid in lineage_taxids:
             if taxid in blacklist_taxids:
                 return
+
         for level, taxid_at_level in enumerate(lineage_taxids):
             if int(taxid_at_level) < 0:
                 # Skip if we have a negative taxid. When an accession doesn't
