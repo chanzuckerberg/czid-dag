@@ -201,7 +201,6 @@ def iterate_m8(m8_file, min_alignment_length=0, debug_caller=None, logging_inter
 
 def read_file_into_set(file_name):
     with open(file_name, 'r') as f:
-        print("f: ", f)
         S = set(x.rstrip() for x in f)
         S.discard('')
     return S
