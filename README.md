@@ -233,7 +233,7 @@ Version numbers for this repo take the form X.Y.Z.
 Changes to X or Y force recomputation of all results when a sample is rerun using idseq-web. Changes to Z do not force recomputation when the sample is rerun - the pipeline will lazily reuse existing outputs in AWS S3.
 
 - 3.20.0
-  - Add a special taxon whitelist mode. Fix taxon blacklist reference downloads.
+  - Add a custom taxon whitelist mode. Fix taxon blacklist reference downloads.
 
 - 3.19.6
   - Finished removal of optional_files_to_upload
