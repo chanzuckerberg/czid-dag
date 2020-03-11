@@ -7,19 +7,29 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
     '''
     generate annotated fasta
     '''
+    def _annotated_fasta(self):
+        return self.output_files_local()[0]
+
+    def _unidentified_fasta(self):
+        return self.output_files_local()[1]
+
     def run(self):
         ''' annotate fasta '''
         merged_fasta = self.input_files_local[0][-1]
         gsnap_m8 = self.input_files_local[1][1]
         rapsearch2_m8 = self.input_files_local[2][1]
-        annotated_fasta = self.output_files_local()[0]
-        unidentified_fasta = self.output_files_local()[1]
+        annotated_fasta = self._annotated_fasta()
+        unidentified_fasta = self._unidentified_fasta()
         self.annotate_fasta_with_accessions(merged_fasta, gsnap_m8, rapsearch2_m8, annotated_fasta)
         self.generate_unidentified_fasta(annotated_fasta, unidentified_fasta)
 
     def count_reads(self):
         # The webapp expects this count to be called "unidentified_fasta"
-        super()._count_reads_work(cluster_key=PipelineStepGenerateAnnotatedFasta.old_read_name, counter_name="unidentified_fasta")
+        super()._count_reads_work(
+            cluster_key=PipelineStepGenerateAnnotatedFasta.old_read_name,
+            counter_name="unidentified_fasta",
+            fasta_files=[self._unidentified_fasta()]
+        )
 
     @staticmethod
     def annotate_fasta_with_accessions(merged_input_fasta, nt_m8, nr_m8, output_fasta):

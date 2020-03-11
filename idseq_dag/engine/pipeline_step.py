@@ -296,11 +296,11 @@ for this, and not all of them (not all steps count their outputs)."""
         assert tsv.endswith(".tsv"), str(self.input_files_local)
         return tsv
 
-    def _count_reads_work(self, cluster_key, counter_name):
+    def _count_reads_work(self, cluster_key, counter_name, fasta_files):
         # Count reads including duplicates (expanding cd-hit-dup clusters).
         self.should_count_reads = True
         self.counts_dict[counter_name] = count.reads_in_group(
-            self.output_files_local()[0:2],
+            file_group=fasta_files,
             cluster_sizes=load_cdhit_cluster_sizes(self.input_cluster_sizes_path()),
             cluster_key=cluster_key)
 
@@ -309,7 +309,7 @@ for this, and not all of them (not all steps count their outputs)."""
         # which decorate their read IDs must override this function to specify
         # a cluster_key that inverses the read ID decorator so that the original
         # cluster sizes can be looked up.
-        self._count_reads_work(cluster_key=lambda x: x, counter_name=self.name)
+        self._count_reads_work(cluster_key=lambda x: x, counter_name=self.name, fasta_files=self.output_files_local()[0:2])
 
     @abstractmethod
     def run(self):
