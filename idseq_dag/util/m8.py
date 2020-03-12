@@ -278,9 +278,11 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
     blacklist_taxids = set()
     if taxon_blacklist:
         blacklist_taxids = read_file_into_set(taxon_blacklist)
+        print("blacklist_taxids: ", blacklist_taxids)
     whitelist_taxids = set()
     if taxon_whitelist:
         whitelist_taxids = read_file_into_set(taxon_whitelist)
+        print("whitelist_taxids: ", whitelist_taxids)
 
     # Helper functions
     def get_lineage(accession_id):
