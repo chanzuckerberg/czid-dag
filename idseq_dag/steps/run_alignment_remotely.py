@@ -73,24 +73,25 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     """
 
     @staticmethod
-    def _restructure_inputs(host_filter_outputs):
-        # Host filtering stage outputs 1 file for unpaired reads, or 3 files for paired-end reads.
-        n = len(host_filter_outputs)
-        assert n in (1, 3)
-        if n == 1:
-            # Unpaired reads.  The single file is usually called "gsnap_filter_1.fa".
+    def _service_inputs(host_filter_outputs):
+        # Destructuring-bind for host filter outputs.
+        # The host filter outputs either 1 file for unpaired reads, let's call it R1;
+        # or, 3 files for paired-end reads, which can be succinctly described
+        # as [R1, R2, R1/1 + R2/2].  All are usually named gsnap_filter_*.
+        try:
+            # Unpaired?
             gsnap_filter_1, = host_filter_outputs
-            return [gsnap_filter_1], [gsnap_filter_1]
-        if n == 3:
-            # Paired-end reads.  The first two files are R1 and R2.  The third file is a concatenation of R1 and R2.
+            return {
+                "gsnap": [gsnap_filter_1],
+                "rapsearch2": [gsnap_filter_1]
+            }
+        except:
+            # Paired!
             gsnap_filter_1, gsnap_filter_2, gsnap_filter_merged = host_filter_outputs
-            return [gsnap_filter_1, gsnap_filter_2], [gsnap_filter_merged]
-
-    def gsnap_inputs(self):
-        return self.input_files_local[0][:-1]
-
-    def rapsearch2_inputs(self):
-        return self.input_files_local[0][-1:]
+            return {
+                "gsnap": [gsnap_filter_1, gsnap_filter_2],
+                "rapsearch2": [gsnap_filter_merged]
+            }
 
     def validate_input_files(self):
         # first two files are gsnap_filter_1.fa and gsnap_filter_2.fa
@@ -111,7 +112,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     def run(self):
         ''' Run alignmment remotely '''
 
-        gsnap_inputs, rapsearch2_inputs = PipelineStepRunAlignmentRemotely._restructure_inputs(self.input_files_local[0])
+        service_inputs = PipelineStepRunAlignmentRemotely._service_inputs(self.input_files_local[0])
         cdhit_cluster_sizes_path, = self.input_files_local[1]
         output_m8, deduped_output_m8, output_hitsummary, output_counts_json = self.output_files_local()
         assert output_counts_json.endswith(".json"), self.output_files_local()
@@ -128,13 +129,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             self.additional_output_files_visible.append(output_counts_with_dcr_json)
 
         service = self.additional_attributes["service"]
-
-        if service == 'gsnap':
-            self.run_remotely(gsnap_inputs, output_m8, 'gsnap')
-        elif service == 'rapsearch2':
-            self.run_remotely(rapsearch2_inputs, output_m8, 'rapsearch2')
-        else:
-            assert False, f"Service '{service}' is neither 'gsnap' nor 'rapsearch2'."
+        self.run_remotely(service_inputs[service], output_m8, service)
 
         # get database
         lineage_db = fetch_reference(self.additional_files["lineage_db"], self.ref_dir_local)
