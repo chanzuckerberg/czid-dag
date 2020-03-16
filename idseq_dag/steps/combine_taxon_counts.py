@@ -21,7 +21,7 @@ class PipelineStepCombineTaxonCounts(PipelineStep):
             assert DAG_SURGERY_HACKS_FOR_READ_COUNTING
             input_files_with_dcr = [input_f.replace(".json", "_with_dcr.json") for input_f in input_files]
             for input_f, input_f_with_dcr in zip(input_files, input_files_with_dcr):
-                os.rename(input_f, input_files_with_dcr)
+                os.rename(input_f, input_f_with_dcr)
             output_file_with_dcr = output_file.replace(".json", "_with_dcr.json")
             self.combine_counts(input_files_with_dcr, output_file_with_dcr)
             self.additional_output_files_visible.append(output_file_with_dcr)
