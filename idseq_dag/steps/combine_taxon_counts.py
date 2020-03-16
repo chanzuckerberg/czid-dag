@@ -1,6 +1,8 @@
 import json
+import os
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.count import DAG_SURGERY_HACKS_FOR_READ_COUNTING
+import idseq_dag.util.log as log
 
 class PipelineStepCombineTaxonCounts(PipelineStep):
     '''
@@ -20,8 +22,13 @@ class PipelineStepCombineTaxonCounts(PipelineStep):
             assert DAG_SURGERY_HACKS_FOR_READ_COUNTING
             input_files = [input_f.replace(".json", "_with_dcr.json") for input_f in input_files]
             output_file = output_file.replace(".json", "_with_dcr.json")
-            self.combine_counts(input_files, output_file)
-            self.additional_output_files_visible.append(output_file)
+            if all(os.path.isfile(f) for f in input_files):
+                self.combine_counts(input_files, output_file)
+                self.additional_output_files_visible.append(output_file)
+            else:
+                # This is fine -- it means the assembler crashed, so we are not going to emit
+                # these files in pipeline v3;  in pipeline v4 this code path will be gone
+                log.write("Post-assembly combined taxon counts with DCR unavailable because assembler crashed.  See pre-assembly combined count.  This problem will diseappear after idseq-web fix to emit correct DAG json, long before v4.")
 
     def count_reads(self):
         pass

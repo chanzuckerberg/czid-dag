@@ -164,6 +164,11 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         blast_m8, refined_m8, refined_hit_summary, refined_counts, contig_summary_json, blast_top_m8 = self.output_files_local()
         assert refined_counts.endswith(".json"), self.output_files_local()
 
+        db_type = self.additional_attributes["db_type"]
+        no_assembled_results = (
+            os.path.getsize(assembled_contig) < MIN_ASSEMBLED_CONTIG_SIZE or
+            os.path.getsize(reference_fasta) < MIN_REF_FASTA_SIZE)
+
         # TODO:  After webapp deployment of this feature, remove else case (only counts with dcr will be produced).
         if refined_counts.endswith("_with_dcr.json"):
             refined_counts_compat = None
@@ -173,11 +178,10 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
             refined_counts_compat = refined_counts
             refined_counts_base = refined_counts.rsplit(".", 1)[0]
             refined_counts_with_dcr = refined_counts_base + "_with_dcr.json"
-            self.additional_output_files_visible.append(refined_counts_with_dcr)
+            if not no_assembled_results:
+                self.additional_output_files_visible.append(refined_counts_with_dcr)
 
-        db_type = self.additional_attributes["db_type"]
-        if os.path.getsize(assembled_contig) < MIN_ASSEMBLED_CONTIG_SIZE or \
-           os.path.getsize(reference_fasta) < MIN_REF_FASTA_SIZE:
+        if no_assembled_results:
             # No assembled results or refseq fasta available.
             # Create empty output files.
             command.write_text_to_file(' ', blast_m8)
