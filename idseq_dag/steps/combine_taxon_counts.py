@@ -1,4 +1,5 @@
 import json
+import os
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.count import DAG_SURGERY_HACKS_FOR_READ_COUNTING
 
@@ -18,10 +19,12 @@ class PipelineStepCombineTaxonCounts(PipelineStep):
         with_dcr = all(input_f.endswith("_with_dcr.json") for input_f in input_files)
         if not with_dcr:
             assert DAG_SURGERY_HACKS_FOR_READ_COUNTING
-            input_files = [input_f.replace(".json", "_with_dcr.json") for input_f in input_files]
-            output_file = output_file.replace(".json", "_with_dcr.json")
-            self.combine_counts(input_files, output_file)
-            self.additional_output_files_visible.append(output_file)
+            input_files_with_dcr = [input_f.replace(".json", "_with_dcr.json") for input_f in input_files]
+            for input_f, input_f_with_dcr in zip(input_files, input_files_with_dcr):
+                os.rename(input_f, input_files_with_dcr)
+            output_file_with_dcr = output_file.replace(".json", "_with_dcr.json")
+            self.combine_counts(input_files_with_dcr, output_file_with_dcr)
+            self.additional_output_files_visible.append(output_file_with_dcr)
 
     def count_reads(self):
         pass
