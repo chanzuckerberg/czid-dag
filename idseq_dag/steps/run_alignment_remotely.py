@@ -353,11 +353,14 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         job_queue = f"idseq-{service}-{environment}-{provisioning_model}-{index_date}-{priority_name}"
         job_definition = f"idseq-{service}-{environment}"
 
+        # TODO: (tmorse) remove once we update env variable names
+        num_map = ["ONE", "TWO"]
+
         environment = [{
-            'name': f'INPUT_PATH_{i}',
+            'name': f"INPUT_PATH_{num_map[i]}",
             'value': os.path.join(self.chunks_result_dir_s3, input_file),
         } for i, input_file in enumerate(input_files)] + [{
-            'name': 'OUTPUT_PATH',
+            'name': "OUTPUT_PATH",
             'value': multihit_s3_outfile,
         }]
 
