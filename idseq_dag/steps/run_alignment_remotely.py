@@ -26,7 +26,9 @@ from idseq_dag.util.m8 import NT_MIN_ALIGNMENT_LEN
 
 MAX_CONCURRENT_CHUNK_UPLOADS = 4
 CORRECT_NUMBER_OF_OUTPUT_COLUMNS = 12
-CHUNK_MAX_TRIES = 3
+CHUNK_MAX_ATTEMPTS = 3
+CHUNK_ATTEMPT_TIMEOUT = 60 * 60 * 12  # 12 hours
+CHUNK_COMPLETE_CHECK_DELAY = 30 # 30 seconds
 
 # Please override this with gsnap_chunk_timeout or rapsearch_chunk_timeout in DAG json.
 # Default is several sigmas beyond the pale and indicates the data has to be QC-ed better.
@@ -324,6 +326,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         response = client.describe_jobs(jobs=[job_id])
         return response['jobs'][0]['status']
 
+
     def run_chunk(self, part_suffix, input_files, service, lazy_run):
         """
         Dispatch a chunk to worker machines for distributed GSNAP or RAPSearch
@@ -340,6 +343,16 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             log.write(f"finished alignment for chunk {chunk_id} with {service} by lazily fetching last result")
             return multihit_local_outfile
 
+        # TODO: (tmorse) parameterize these
+        environment = "dev"
+        index_date = "2020-02-10"
+        priority_name = "normal"
+        provisioning_model = "EC2"
+
+        job_name = f"idseq-{service}-{environment}"
+        job_queue = f"idseq-{service}-{environment}-{provisioning_model}-{index_date}-{priority_name}"
+        job_definition = f"idseq-{service}-{environment}"
+
         environment = [{
             'name': f'INPUT_PATH_{i}',
             'value': os.path.join(self.chunks_result_dir_s3, input_file),
@@ -349,36 +362,28 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         }]
 
         session = boto3.session.Session()
-        client = session.client('batch')
+        client = session.client("batch")
         response = client.submit_job(
-            jobName="",
-            jobQueue="",
-            jobDefinition="",
-            containerOverrides={'environment': environment},
+            jobName=job_name,
+            jobQueue=job_queue,
+            jobDefinition=job_definition,
+            containerOverrides={"environment": environment},
+            retryStrategy={"attempts": CHUNK_MAX_ATTEMPTS},
+            timeout={"attemptDurationSeconds": CHUNK_ATTEMPT_TIMEOUT}
         )
-        job_id = response['jobId']
+        job_id = response["jobId"]
 
-        DELAY = 30 # seconds
-        MAX_ATTEMPTS = 400
-
-        log.write(f"waiting for {service} server for chunk {chunk_id}. Try #{try_number}")
-        for i in range(MAX_ATTEMPTS):
+        log.write(f"waiting for {service} batch queue for chunk {chunk_id}.")
+        total_timeout = CHUNK_MAX_ATTEMPTS * CHUNK_ATTEMPT_TIMEOUT
+        for _ in range((total_timeout // CHUNK_COMPLETE_CHECK_DELAY) + 1):
             status = PipelineStepRunAlignmentRemotely._get_job_status(client, job_id)
-            if status == 'SUCCEEDED':
+            if status == "SUCCEEDED":
                 break
-            if status == 'FAILED':
-                log.er()
-                log.log_event('alignment_remote_error', values={"chunk": chunk_id,
-                                                                "try_number": try_number,
-                                                                "CHUNK_MAX_TRIES": CHUNK_MAX_TRIES,
-                                                                "chunk_status": chunk_status,
-                                                                "elapsed": elapsed,
-                                                                "chunk_timeout": chunk_timeout,
-                                                                "exception": log.parse_exception(e)})
-                raise 'asd'
-            time.sleep(DELAY)
+            if status == "FAILED":
+                log.log_event("alignment_batch_error", values={"job_id": job_id})
+                raise "chunk alignment failed"
+            time.sleep(CHUNK_COMPLETE_CHECK_DELAY)
 
-        
         log.write(f"finished alignment for chunk {chunk_id} on {service}")
 
         return multihit_local_outfile
