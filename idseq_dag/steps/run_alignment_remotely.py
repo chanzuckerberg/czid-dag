@@ -334,6 +334,10 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         """
         assert service in ("gsnap", "rapsearch2")
 
+        # TODO: (tmorse) standardize on rapsearch
+        if service == "rapsearch2":
+            service = "rapsearch"
+
         chunk_id = int(input_files[0].split(part_suffix)[-1])
         multihit_basename = f"multihit-{service}-out{part_suffix}{chunk_id}.m8"
         multihit_local_outfile = os.path.join(self.chunks_result_dir_local, multihit_basename)
