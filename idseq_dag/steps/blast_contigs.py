@@ -16,6 +16,7 @@ from idseq_dag.util.count import get_read_cluster_size, load_cdhit_cluster_sizes
 
 MIN_REF_FASTA_SIZE = 25
 MIN_ASSEMBLED_CONTIG_SIZE = 25
+DEFAULT_WHITELIST_S3 = 's3://idseq-database/taxonomy/2020-02-10/respiratory_taxon_whitelist.txt'
 
 # When composing a query cover from non-overlapping fragments, consider fragments
 # that overlap less than this fraction to be disjoint.
@@ -213,11 +214,15 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         if self.additional_files.get("deuterostome_db"):
             deuterostome_db = s3.fetch_reference(self.additional_files["deuterostome_db"],
                                                  self.ref_dir_local, allow_s3mi=False)  # Too small for s3mi
+        taxon_whitelist = None
+        if self.additional_attributes.get("use_taxon_whitelist"):
+            taxon_whitelist = s3.fetch_reference(self.additional_files.get("taxon_whitelist", DEFAULT_WHITELIST_S3),
+                                                 self.ref_dir_local)
         with TraceLock("PipelineStepBlastContigs-CYA", PipelineStepBlastContigs.cya_lock, debug=False):
             with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_count_json_from_m8", "db_type": db_type, "refined_counts": refined_counts}):
                 m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
                                                      evalue_type, db_type.upper(),
-                                                     lineage_db, deuterostome_db, cdhit_cluster_sizes_path, refined_counts_with_dcr, refined_counts_compat)
+                                                     lineage_db, deuterostome_db, taxon_whitelist, cdhit_cluster_sizes_path, refined_counts_with_dcr, refined_counts_compat)
 
         # generate contig stats at genus/species level
         with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_summary"}):

@@ -216,7 +216,7 @@ def read_file_into_set(file_name):
 
 @command.run_in_subprocess
 def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
-                 output_m8, output_summary, min_alignment_length, taxon_blacklist=None, taxon_whitelist=None):
+                 output_m8, output_summary, min_alignment_length, taxon_blacklist=None):
     """
     Determine the optimal taxon assignment for each read from the alignment
     results. When a read aligns to multiple distinct references, we need to
@@ -279,17 +279,14 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
     with open_file_db_by_extension(lineage_map_path, IdSeqDictValue.VALUE_TYPE_ARRAY) as lineage_map, \
          open_file_db_by_extension(accession2taxid_dict_path) as accession2taxid_dict:  # noqa
         _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
-                           output_m8, output_summary, min_alignment_length, taxon_blacklist, taxon_whitelist)
+                           output_m8, output_summary, min_alignment_length, taxon_blacklist)
 
 def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
-                       output_m8, output_summary, min_alignment_length, taxon_blacklist, taxon_whitelist):
+                       output_m8, output_summary, min_alignment_length, taxon_blacklist):
     lineage_cache = {}
     blacklist_taxids = set()
     if taxon_blacklist:
         blacklist_taxids = read_file_into_set(taxon_blacklist)
-    whitelist_taxids = set()
-    if taxon_whitelist:
-        whitelist_taxids = read_file_into_set(taxon_whitelist)
 
     # Helper functions
     def get_lineage(accession_id):
@@ -310,16 +307,6 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
         each taxonomy level.  Ignore accessions from the blacklist.
         """
         lineage_taxids = get_lineage(accession_id)
-        if taxon_whitelist:
-            # Skip this accession_id if none of its lineage taxids are in the
-            # whitelist set.
-            whitelisted = False
-            for taxid in lineage_taxids:
-                if taxid in whitelist_taxids:
-                    whitelisted = True
-                    break
-            if not whitelisted:
-                return
         for taxid in lineage_taxids:
             if taxid in blacklist_taxids:
                 return
@@ -445,7 +432,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
 @command.run_in_subprocess
 def generate_taxon_count_json_from_m8(
         m8_file, hit_level_file, e_value_type, count_type, lineage_map_path,
-        deuterostome_path, cdhit_cluster_sizes_path, output_json_file, output_json_file_compat=None):
+        deuterostome_path, taxon_whitelist_path, cdhit_cluster_sizes_path, output_json_file, output_json_file_compat=None):
     # Parse through hit file and m8 input file and format a JSON file with
     # our desired attributes, including aggregated statistics.
 
@@ -455,13 +442,28 @@ def generate_taxon_count_json_from_m8(
         with log.log_context("generate_taxon_count_json_from_m8", {"substep": "read_file_into_set"}):
             taxids_to_remove = read_file_into_set(deuterostome_path)
 
-    def any_hits_to_remove(hits):
+    if taxon_whitelist_path:
+        with log.log_context("generate_taxon_count_json_from_m8", {"substep": "read_whitelist_into_set"}):
+            taxids_to_keep = read_file_into_set(taxon_whitelist_path)
+
+    def is_deuterostome_to_be_removed(hits):
         if not deuterostome_path:
             return False
         for taxid in hits:
             if int(taxid) >= 0 and taxid in taxids_to_remove:
                 return True
         return False
+
+    def is_whitelisted(hits):
+        if not taxon_whitelist_path:
+            return True
+        for taxid in hits:
+            if int(taxid) >= 0 and taxid in taxids_to_keep:
+                return True
+        return False
+
+    def should_keep(hits):
+        return is_whitelisted(hits) and not is_deuterostome_to_be_removed(hits)
 
     # Setup
     aggregation = {}
@@ -526,7 +528,7 @@ def generate_taxon_count_json_from_m8(
                     hit_taxids_all_levels, hit_taxid, hit_level)
                 assert num_ranks == len(cleaned_hit_taxids_all_levels)
 
-                if not any_hits_to_remove(cleaned_hit_taxids_all_levels):
+                if should_keep(cleaned_hit_taxids_all_levels):
                     # Aggregate each level and collect statistics
                     agg_key = tuple(cleaned_hit_taxids_all_levels)
                     while agg_key:
