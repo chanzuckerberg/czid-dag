@@ -388,6 +388,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 raise "chunk alignment failed"
             time.sleep(CHUNK_COMPLETE_CHECK_DELAY)
 
+        fetch_from_s3(multihit_s3_outfile, multihit_local_outfile, okay_if_missing=True, allow_s3mi=False)
+
         log.write(f"finished alignment for chunk {chunk_id} on {service}")
 
         return multihit_local_outfile
