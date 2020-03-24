@@ -354,7 +354,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             return multihit_local_outfile
 
         # TODO: (tmorse) parameterize these
-        environment = "dev"
+        environment = "staging"
         index_date = "2020-02-10"
         priority_name = "normal"
         provisioning_model = "EC2"
