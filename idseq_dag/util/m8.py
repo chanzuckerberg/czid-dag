@@ -455,10 +455,17 @@ def generate_taxon_count_json_from_m8(
         return False
 
     def is_whitelisted(hits):
+        # FOR DEBUGGING
+        assert taxon_whitelist_path is not None, "WHITELIST BUG: taxon_whitelist_path was None"
+        assert len(taxids_to_keep) == 66, f"WHITELIST BUG: taxids_to_keep had {len(taxids_to_keep)} entries"
+
         if not taxon_whitelist_path:
             return True
         for taxid in hits:
             if int(taxid) >= 0 and taxid in taxids_to_keep:
+                # FOR DEBUGGING
+                assert int(taxid) != 189913, "WHITELIST BUG: Leptidea sinapis was deemed whitelisted"
+
                 return True
         return False
 
