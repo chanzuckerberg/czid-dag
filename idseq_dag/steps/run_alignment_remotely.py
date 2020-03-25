@@ -20,6 +20,7 @@ from idseq_dag.util.trace_lock import TraceLock
 
 from idseq_dag.util.m8 import NT_MIN_ALIGNMENT_LEN
 from idseq_dag.util.count import DAG_SURGERY_HACKS_FOR_READ_COUNTING
+from idseq_dag.util.lineage import DEFAULT_WHITELIST_S3
 
 MAX_CONCURRENT_CHUNK_UPLOADS = 4
 DEFAULT_BLACKLIST_S3 = 's3://idseq-database/taxonomy/2018-04-01-utc-1522569777-unixtime__2018-04-04-utc-1522862260-unixtime/taxon_blacklist.txt'
@@ -150,6 +151,12 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                                               self.ref_dir_local, allow_s3mi=True)
 
         taxon_whitelist = None
+        if self.additional_attributes.get("use_taxon_whitelist"):
+            taxon_whitelist = s3.fetch_reference(self.additional_files.get("taxon_whitelist", DEFAULT_WHITELIST_S3),
+                                                 self.ref_dir_local)
+
+        # HACK SO WE CAN TEST THIS BRANCH WITHOUT DEPLOYING IDSEQ-WEB [REMOVE BEFORE MERGING]
+        taxon_whitelist = s3.fetch_reference(DEFAULT_WHITELIST_S3, self.ref_dir_local)
 
         m8.generate_taxon_count_json_from_m8(
             deduped_output_m8, output_hitsummary, evalue_type, db_type,

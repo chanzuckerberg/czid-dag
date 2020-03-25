@@ -13,10 +13,10 @@ import idseq_dag.util.log as log
 from idseq_dag.steps.run_assembly import PipelineStepRunAssembly
 from idseq_dag.util.m8 import MIN_CONTIG_SIZE, NT_MIN_ALIGNMENT_LEN
 from idseq_dag.util.count import get_read_cluster_size, load_cdhit_cluster_sizes, READ_COUNTING_MODE, ReadCountingMode, DAG_SURGERY_HACKS_FOR_READ_COUNTING
+from idseq_dag.util.lineage import DEFAULT_WHITELIST_S3
 
 MIN_REF_FASTA_SIZE = 25
 MIN_ASSEMBLED_CONTIG_SIZE = 25
-DEFAULT_WHITELIST_S3 = 's3://idseq-database/taxonomy/2020-02-10/respiratory_taxon_whitelist.txt'
 
 # When composing a query cover from non-overlapping fragments, consider fragments
 # that overlap less than this fraction to be disjoint.
