@@ -209,16 +209,21 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
             self.additional_files["lineage_db"],
             self.ref_dir_local,
             allow_s3mi=False)  # Too small to waste s3mi
+
         deuterostome_db = None
-        evalue_type = 'raw'
         if self.additional_files.get("deuterostome_db"):
             deuterostome_db = s3.fetch_reference(self.additional_files["deuterostome_db"],
                                                  self.ref_dir_local, allow_s3mi=False)  # Too small for s3mi
+
+        blacklist_s3_file = self.additional_attributes.get('taxon_blacklist', DEFAULT_BLACKLIST_S3)
+        taxon_blacklist = s3.fetch_reference(blacklist_s3_file, self.ref_dir_local)
+
         taxon_whitelist = None
         if self.additional_attributes.get("use_taxon_whitelist"):
             taxon_whitelist = s3.fetch_reference(self.additional_files.get("taxon_whitelist", DEFAULT_WHITELIST_S3),
                                                  self.ref_dir_local)
 
+        evalue_type = 'raw'
         with TraceLock("PipelineStepBlastContigs-CYA", PipelineStepBlastContigs.cya_lock, debug=False):
             with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_count_json_from_m8", "db_type": db_type, "refined_counts": refined_counts}):
                 m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
