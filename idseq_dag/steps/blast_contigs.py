@@ -219,14 +219,12 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
             taxon_whitelist = s3.fetch_reference(self.additional_files.get("taxon_whitelist", DEFAULT_WHITELIST_S3),
                                                  self.ref_dir_local)
 
-        # HACK SO WE CAN TEST THIS BRANCH WITHOUT DEPLOYING IDSEQ-WEB [REMOVE BEFORE MERGING]
-        taxon_whitelist = s3.fetch_reference(DEFAULT_WHITELIST_S3, self.ref_dir_local)
-
         with TraceLock("PipelineStepBlastContigs-CYA", PipelineStepBlastContigs.cya_lock, debug=False):
             with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_count_json_from_m8", "db_type": db_type, "refined_counts": refined_counts}):
                 m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
                                                      evalue_type, db_type.upper(),
-                                                     lineage_db, deuterostome_db, taxon_whitelist, cdhit_cluster_sizes_path, refined_counts_with_dcr, refined_counts_compat)
+                                                     lineage_db, deuterostome_db, taxon_whitelist, taxon_blacklist,
+                                                     cdhit_cluster_sizes_path, refined_counts_with_dcr, refined_counts_compat)
 
         # generate contig stats at genus/species level
         with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_summary"}):
