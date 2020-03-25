@@ -152,11 +152,11 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         taxon_whitelist = None
         if self.additional_attributes.get("use_taxon_whitelist"):
-            taxon_whitelist = s3.fetch_reference(self.additional_files.get("taxon_whitelist", DEFAULT_WHITELIST_S3),
+            taxon_whitelist = fetch_reference(self.additional_files.get("taxon_whitelist", DEFAULT_WHITELIST_S3),
                                                  self.ref_dir_local)
 
         # HACK SO WE CAN TEST THIS BRANCH WITHOUT DEPLOYING IDSEQ-WEB [REMOVE BEFORE MERGING]
-        taxon_whitelist = s3.fetch_reference(DEFAULT_WHITELIST_S3, self.ref_dir_local)
+        taxon_whitelist = fetch_reference(DEFAULT_WHITELIST_S3, self.ref_dir_local)
 
         m8.generate_taxon_count_json_from_m8(
             deduped_output_m8, output_hitsummary, evalue_type, db_type,
