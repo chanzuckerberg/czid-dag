@@ -8,7 +8,7 @@ from idseq_dag.util.count import save_cdhit_cluster_sizes
 
 
 class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountingStep
-    """ Removes duplicate reads.
+    """Identifies duplicate reads.
 
     ```
     cd-hit-dup
