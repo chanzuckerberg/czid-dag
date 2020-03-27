@@ -434,37 +434,7 @@ def generate_taxon_count_json_from_m8(
 
     cdhit_cluster_sizes = load_cdhit_cluster_sizes(cdhit_cluster_sizes_path)
 
-    taxids_to_remove = set()
-
-    if taxon_blacklist_path:
-        with log.log_context("generate_taxon_count_json_from_m8", {"substep": "read_blacklist_into_set"}):
-            taxids_to_remove.update(read_file_into_set(taxon_blacklist_path))
-
-    if deuterostome_path:
-        with log.log_context("generate_taxon_count_json_from_m8", {"substep": "read_file_into_set"}):
-            taxids_to_remove.update(read_file_into_set(deuterostome_path))
-
-    if taxon_whitelist_path:
-        with log.log_context("generate_taxon_count_json_from_m8", {"substep": "read_whitelist_into_set"}):
-            taxids_to_keep = read_file_into_set(taxon_whitelist_path)
-
-    def is_blacklisted(hits):
-        for taxid in hits:
-            if int(taxid) >= 0 and taxid in taxids_to_remove:
-                return True
-        return False
-
-    def is_whitelisted(hits):
-        if not taxon_whitelist_path:
-            return True
-        for taxid in hits:
-            if int(taxid) >= 0 and taxid in taxids_to_keep:
-                return True
-        return False
-
-    def should_keep(hits):
-        return is_whitelisted(hits) and not is_blacklisted(hits)
-
+    should_keep = build_should_keep_filter(deuterostome_path, taxon_whitelist_path, taxon_blacklist_path)
     # Setup
     aggregation = {}
     with open(hit_level_file, 'r', encoding='utf-8') as hit_f, \
@@ -603,3 +573,41 @@ def generate_taxon_count_json_from_m8(
         with open(output_json_file, 'w') as outf:
             json.dump(output_dict, outf)
             outf.flush()
+
+def build_should_keep_filter(
+    deuterostome_path,
+    taxon_whitelist_path,
+    taxon_blacklist_path):
+
+    taxids_to_remove = set()
+
+    if taxon_blacklist_path:
+        with log.log_context("generate_taxon_count_json_from_m8", {"substep": "read_blacklist_into_set"}):
+            taxids_to_remove.update(read_file_into_set(taxon_blacklist_path))
+
+    if deuterostome_path:
+        with log.log_context("generate_taxon_count_json_from_m8", {"substep": "read_file_into_set"}):
+            taxids_to_remove.update(read_file_into_set(deuterostome_path))
+
+    if taxon_whitelist_path:
+        with log.log_context("generate_taxon_count_json_from_m8", {"substep": "read_whitelist_into_set"}):
+            taxids_to_keep = read_file_into_set(taxon_whitelist_path)
+
+    def is_blacklisted(hits):
+        for taxid in hits:
+            if int(taxid) >= 0 and taxid in taxids_to_remove:
+                return True
+        return False
+
+    def is_whitelisted(hits):
+        if not taxon_whitelist_path:
+            return True
+        for taxid in hits:
+            if int(taxid) >= 0 and taxid in taxids_to_keep:
+                return True
+        return False
+
+    def should_keep(hits):
+        return is_whitelisted(hits) and not is_blacklisted(hits)
+
+    return should_keep
