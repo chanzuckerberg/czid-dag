@@ -210,10 +210,8 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         blacklist_s3_file = self.additional_attributes.get('taxon_blacklist', DEFAULT_BLACKLIST_S3)
         taxon_blacklist = s3.fetch_reference(blacklist_s3_file, self.ref_dir_local)
 
-        taxon_whitelist = None
-        if self.additional_attributes.get("use_taxon_whitelist"):
-            taxon_whitelist = s3.fetch_reference(self.additional_files.get("taxon_whitelist", DEFAULT_WHITELIST_S3),
-                                                 self.ref_dir_local)
+        taxon_whitelist = s3.fetch_reference(self.additional_files.get("taxon_whitelist", DEFAULT_WHITELIST_S3),
+                                             self.ref_dir_local)
 
         evalue_type = 'raw'
         with TraceLock("PipelineStepBlastContigs-CYA", PipelineStepBlastContigs.cya_lock, debug=False):
