@@ -160,7 +160,9 @@ def save_cdhit_cluster_sizes(filename, cdhit_cluster_sizes):
         _CDHIT_CLUSTER_SIZES_CACHE[filename] = cdhit_cluster_sizes
     with open(filename, "w") as tsv:
         for read_id, cluster_size in cdhit_cluster_sizes.items():
-            assert cluster_size != None, f"If this happened, probably dedup1.fa output of cdhit contains reads that are not mentioned in dedup1.fa.clstr.  Perhaps set cluster_size=1 for those reads but also follow up with cdhit.  Read id: {read_id}"
+            # assert cluster_size != None, f"If this happened, probably dedup1.fa output of cdhit contains reads that are not mentioned in dedup1.fa.clstr.  Perhaps set cluster_size=1 for those reads but also follow up with cdhit.  Read id: {read_id}"
+            if cluster_size is None:
+                cluster_size = 1
             tsv.write(f"{cluster_size}\t{read_id}\n")
 
 def reads(local_file_path):
