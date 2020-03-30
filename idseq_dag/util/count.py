@@ -131,7 +131,7 @@ def get_read_cluster_size(cdhit_cluster_sizes, read_id):
     if cluster_size == None:
         prefix, suffix = read_id[:-2], read_id[-2:]
         cluster_size = cdhit_cluster_sizes.get(prefix)
-    assert cluster_size != None and suffix in (None, "/1", "/2"), f"Read ID not found in cdhit_cluster_sizes dict: {read_id}"
+    # assert cluster_size != None and suffix in (None, "/1", "/2"), f"Read ID not found in cdhit_cluster_sizes dict: {read_id}"
     return cluster_size
 
 def _load_cdhit_cluster_sizes_work(filename):
