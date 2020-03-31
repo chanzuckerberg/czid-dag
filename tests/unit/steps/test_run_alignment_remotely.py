@@ -41,13 +41,9 @@ class TestRunAlignmentRemotely(unittest.TestCase):
                                                      additional_files=[],
                                                      additional_attributes={
                                                          "service": "rapsearch2",
-                                                         "chunks_in_flight": 32,
                                                          "chunk_size": 20000,
                                                          "max_concurrent": 4,
                                                          "environment": "prod",
-                                                         "max_interval_between_describe_instances": 900,
-                                                         "job_tag_prefix": "RunningIDseqBatchJob_",
-                                                         "job_tag_refresh_seconds": 600,
                                                          "draining_tag": "draining",
                                                          "index_dir_suffix": "2018-12-01"
                                                      })
