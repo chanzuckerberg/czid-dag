@@ -347,7 +347,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         job_name = f"idseq-{environment}-{service}"
         job_queue = f"idseq-{environment}-{service}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
-        job_definition = f"idseq-{service}-{environment}"
+        job_definition = f"idseq-{environment}-{service}"
 
         environment = [{
             'name': f"INPUT_PATH_{i}",
