@@ -29,7 +29,7 @@ MAX_CHUNKS_IN_FLIGHT = 32
 CORRECT_NUMBER_OF_OUTPUT_COLUMNS = 12
 CHUNK_MAX_ATTEMPTS = 3
 CHUNK_ATTEMPT_TIMEOUT = 60 * 60 * 12  # 12 hours
-CHUNK_COMPLETE_CHECK_DELAY = 30 # 30 seconds
+CHUNK_COMPLETE_CHECK_DELAY = 30  # 30 seconds
 
 # Please override this with gsnap_chunk_timeout or rapsearch_chunk_timeout in DAG json.
 # Default is several sigmas beyond the pale and indicates the data has to be QC-ed better.
@@ -154,7 +154,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             output_counts_with_dcr_json)
 
     def run_remotely(self, input_fas, output_m8, service):
-        sample_name = self.output_dir_s3.rstrip('/').replace('s3://', '').replace('/', '-')
         chunk_size = int(self.additional_attributes["chunk_size"])
 
         # Split files into chunks for performance
@@ -193,7 +192,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         assert None not in chunk_output_files
         # Concatenate the pieces and upload results
         self.concatenate_files(chunk_output_files, output_m8)
-
 
     def chunk_input(self, input_files, chunksize):
         """Chunk input files into pieces for performance and parallelism."""
@@ -316,12 +314,10 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 chunk_output_files[n] = result
             chunks_in_flight.release()
 
-
     @staticmethod
     def _get_job_status(client, job_id):
         response = client.describe_jobs(jobs=[job_id])
         return response['jobs'][0]['status']
-
 
     def run_chunk(self, part_suffix, input_files, service, lazy_run):
         """
