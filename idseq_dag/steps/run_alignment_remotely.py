@@ -347,8 +347,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         priority_name = "normal"
         provisioning_model = "EC2"
 
-        job_name = f"idseq-{service}-{environment}"
-        job_queue = f"idseq-{service}-{environment}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
+        job_name = f"idseq-{environment}-{service}"
+        job_queue = f"idseq-{environment}-{service}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
         job_definition = f"idseq-{service}-{environment}"
 
         environment = [{
@@ -379,7 +379,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 break
             if status == "FAILED":
                 log.log_event("alignment_batch_error", values={"job_id": job_id})
-                raise "chunk alignment failed"
+                raise Exception("chunk alignment failed")
             time.sleep(CHUNK_COMPLETE_CHECK_DELAY)
 
         fetch_from_s3(multihit_s3_outfile, multihit_local_outfile, okay_if_missing=True, allow_s3mi=False)
