@@ -14,7 +14,6 @@ from idseq_dag.engine.pipeline_step import PipelineStep, InputFileErrors
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.count as count
-from idseq_dag.util.server import ASGInstance, ChunkStatus, chunk_status_tracker
 import idseq_dag.util.log as log
 import idseq_dag.util.m8 as m8
 from idseq_dag.util.s3 import fetch_from_s3, fetch_reference
@@ -24,6 +23,7 @@ from idseq_dag.util.m8 import NT_MIN_ALIGNMENT_LEN
 from idseq_dag.util.count import DAG_SURGERY_HACKS_FOR_READ_COUNTING
 
 MAX_CONCURRENT_CHUNK_UPLOADS = 4
+MAX_CHUNKS_IN_FLIGHT = 32
 DEFAULT_BLACKLIST_S3 = 's3://idseq-database/taxonomy/2018-04-01-utc-1522569777-unixtime__2018-04-04-utc-1522862260-unixtime/taxon_blacklist.txt'
 DEFAULT_WHITELIST_S3 = 's3://idseq-database/taxonomy/2020-02-10/respiratory_taxon_whitelist.txt'
 CORRECT_NUMBER_OF_OUTPUT_COLUMNS = 12
@@ -104,7 +104,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def __init__(self, *args, **kwrds):
         PipelineStep.__init__(self, *args, **kwrds)
-        self.chunks_in_flight = threading.Semaphore(self.additional_attributes['chunks_in_flight'])
+        self.chunks_in_flight = threading.Semaphore(MAX_CHUNKS_IN_FLIGHT)
         self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
         self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
         self.iostream_upload = multiprocessing.Semaphore(MAX_CONCURRENT_CHUNK_UPLOADS)
@@ -197,6 +197,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             for ct in chunk_threads:
                 ct.join()
             try:
+                # TODO eliminate
                 chunk_status_tracker(service).log_stats(len(input_chunks))
             except:
                 log.write(f"Problem dumping status report for {service}")
@@ -342,7 +343,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         Dispatch a chunk to worker machines for distributed GSNAP or RAPSearch
         group machines and handle their execution.
         """
-        assert service in ("gsnap", "rapsearch2")
+        assert service in ("gsnap", "rapsearch2", "rapsearch")
 
         # TODO: (tmorse) standardize on rapsearch
         if service == "rapsearch2":
@@ -357,14 +358,15 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             log.write(f"finished alignment for chunk {chunk_id} with {service} by lazily fetching last result")
             return multihit_local_outfile
 
+        # TODO: switch to environment variable
+        environment = self.additional_attributes['environment']
+        index_dir_suffix = self.additional_attributes['index_dir_suffix']
         # TODO: (tmorse) parameterize these
-        environment = "staging"
-        index_date = "2020-02-10"
         priority_name = "normal"
         provisioning_model = "EC2"
 
         job_name = f"idseq-{service}-{environment}"
-        job_queue = f"idseq-{service}-{environment}-{provisioning_model}-{index_date}-{priority_name}"
+        job_queue = f"idseq-{service}-{environment}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
         job_definition = f"idseq-{service}-{environment}"
 
         environment = [{
