@@ -18,7 +18,6 @@ import idseq_dag.util.log as log
 import idseq_dag.util.m8 as m8
 
 from idseq_dag.util.s3 import fetch_from_s3, fetch_reference
-from idseq_dag.util.server import ASGInstance, ChunkStatus, chunk_status_tracker
 from idseq_dag.util.trace_lock import TraceLock
 
 from idseq_dag.util.lineage import DEFAULT_BLACKLIST_S3, DEFAULT_WHITELIST_S3
