@@ -189,12 +189,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             # Check chunk completion
             for ct in chunk_threads:
                 ct.join()
-            try:
-                # TODO eliminate
-                chunk_status_tracker(service).log_stats(len(input_chunks))
-            except:
-                log.write(f"Problem dumping status report for {service}")
-                log.write(traceback.format_exc())
 
         self.check_for_errors(mutex, chunk_output_files, input_chunks, service)
 
