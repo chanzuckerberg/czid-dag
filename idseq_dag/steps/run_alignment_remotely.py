@@ -327,7 +327,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         """
         assert service in ("gsnap", "rapsearch2", "rapsearch")
 
-        # TODO: (tmorse) standardize on rapsearch
+        # TODO: (tmorse) remove compat hack
         if service == "rapsearch2":
             service = "rapsearch"
 
@@ -340,16 +340,16 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             log.write(f"finished alignment for chunk {chunk_id} with {service} by lazily fetching last result")
             return multihit_local_outfile
 
-        # TODO: switch to environment variable
-        environment = self.additional_attributes['environment']
-        index_dir_suffix = self.additional_attributes['index_dir_suffix']
-        # TODO: (tmorse) parameterize these
-        priority_name = "normal"
-        provisioning_model = "EC2"
+        # TODO: (tmorse) remove compat hack
+        deployment_environment = os.environ.get("DEPLOYMENT_ENVIRONMENT", self.additional_attributes["environment"])
+        priority_name = os.environ.get("PRIORITY_NAME", "normal")
+        provisioning_model = os.environ.get("PROVISIONING_MODEL", "EC2")
 
-        job_name = f"idseq-{environment}-{service}"
-        job_queue = f"idseq-{environment}-{service}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
-        job_definition = f"idseq-{environment}-{service}"
+        index_dir_suffix = self.additional_attributes["index_dir_suffix"]
+
+        job_name = f"idseq-{deployment_environment}-{service}"
+        job_queue = f"idseq-{deployment_environment}-{service}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
+        job_definition = f"idseq-{deployment_environment}-{service}"
 
         environment = [{
             'name': f"INPUT_PATH_{i}",
