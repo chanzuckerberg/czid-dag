@@ -88,14 +88,14 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             gsnap_filter_1, = host_filter_outputs
             return {
                 "gsnap": [gsnap_filter_1],
-                "rapsearch2": [gsnap_filter_1]
+                "rapsearch": [gsnap_filter_1]
             }
         except:
             # Paired!
             gsnap_filter_1, gsnap_filter_2, gsnap_filter_merged = host_filter_outputs
             return {
                 "gsnap": [gsnap_filter_1, gsnap_filter_2],
-                "rapsearch2": [gsnap_filter_merged]
+                "rapsearch": [gsnap_filter_merged]
             }
 
     def validate_input_files(self):
@@ -123,6 +123,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         assert output_counts_with_dcr_json.endswith("_with_dcr.json"), self.output_files_local()
 
         service = self.additional_attributes["service"]
+        # TODO: (tmorse) remove compat hack
+        if service == "rapsearch2":
+            service = "rapsearch"
         self.run_remotely(service_inputs[service], output_m8, service)
 
         # get database
@@ -134,7 +137,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                         deduped_output_m8, output_hitsummary, min_alignment_length)
 
         db_type = 'NT' if service == 'gsnap' else 'NR'
-        evalue_type = 'log10' if service == 'rapsearch2' else 'raw'
+        evalue_type = 'log10' if service == 'rapsearch' else 'raw'
 
         deuterostome_db = None
         if self.additional_files.get("deuterostome_db"):
@@ -389,7 +392,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         return multihit_local_outfile
 
     def step_description(self, require_docstrings=False):
-        if (self.name == "gsnap_out"):
+        if (self.additional_attributes["service"] == "gsnap"):
             return """
                 Runs gsnap remotely.
 
@@ -410,7 +413,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
                 GSNAP documentation is available [here](http://research-pub.gene.com/gmap/).
             """
-        elif (self.name == "rapsearch2_out"):
+        # TODO remove compat hack
+        elif ("rapsearch" in self.additional_attributes["service"]):
             return """
                 Runs rapsearch remotely.
 
