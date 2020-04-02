@@ -339,7 +339,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             return multihit_local_outfile
 
         # TODO: (tmorse) remove compat hack
-        deployment_environment = os.environ.get("DEPLOYMENT_ENVIRONMENT", self.additional_attributes["environment"])
+        deployment_environment = os.environ.get("DEPLOYMENT_ENVIRONMENT", self.additional_attributes.get("environment"))
         priority_name = os.environ.get("PRIORITY_NAME", "normal")
         provisioning_model = os.environ.get("PROVISIONING_MODEL", "EC2")
 
