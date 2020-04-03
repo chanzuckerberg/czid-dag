@@ -23,19 +23,14 @@ from idseq_dag.util.trace_lock import TraceLock
 from idseq_dag.util.lineage import DEFAULT_BLACKLIST_S3, DEFAULT_WHITELIST_S3
 from idseq_dag.util.m8 import NT_MIN_ALIGNMENT_LEN
 
-MAX_CONCURRENT_CHUNK_UPLOADS = 4
 MAX_CHUNKS_IN_FLIGHT = 32
 DEFAULT_BLACKLIST_S3 = 's3://idseq-database/taxonomy/2018-04-01-utc-1522569777-unixtime__2018-04-04-utc-1522862260-unixtime/taxon_blacklist.txt'
 DEFAULT_WHITELIST_S3 = 's3://idseq-database/taxonomy/2020-02-10/respiratory_taxon_whitelist.txt'
 CORRECT_NUMBER_OF_OUTPUT_COLUMNS = 12
 CHUNK_MAX_ATTEMPTS = 3
 CHUNK_ATTEMPT_TIMEOUT = 60 * 60 * 12  # 12 hours
-CHUNK_COMPLETE_CHECK_DELAY = 30  # 30 seconds
-
-# Please override this with gsnap_chunk_timeout or rapsearch_chunk_timeout in DAG json.
-# Default is several sigmas beyond the pale and indicates the data has to be QC-ed better.
-# Note(2020-01-10): Raised to 3 hrs to mitigate Rapsearch chunk timeouts after recent index update.
-DEFAULT_CHUNK_TIMEOUT = 60 * 60 * 3
+GSNAP_CHUNK_SIZE = 60000
+RAPSEARCH_CHUNK_SIZE = 80000
 
 class PipelineStepRunAlignmentRemotely(PipelineStep):
     """ Runs gsnap/rapsearch2 remotely.
@@ -57,10 +52,10 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     ```
 
     GSNAP documentation is available [here](http://research-pub.gene.com/gmap/).
-    -t (threads): r5d.24xlarge machines have 96 vCPUs. These are the machines used by the alignment batch compute environment.
+    -t (threads): For example, r5d.24xlarge machines have 96 vCPUs. These are the machines used by the alignment batch compute environment.
     Each batch job is allotted 48 vcpus. Use 48 threads and each instance will be able to concurrently process 2 chunks
 
-    For Rapsearch:
+    For Rapsearch2:
     ```
     rapsearch
     -d {remote_index_dir}/nr_rapsearch
@@ -78,7 +73,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     """
 
     @staticmethod
-    def _service_inputs(host_filter_outputs):
+    def _alignment_algorithm_inputs(host_filter_outputs):
         # Destructuring-bind for host filter outputs.
         # The host filter outputs either 1 file for unpaired reads, let's call it R1;
         # or, 3 files for paired-end reads, which can be succinctly described
@@ -88,14 +83,14 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             gsnap_filter_1, = host_filter_outputs
             return {
                 "gsnap": [gsnap_filter_1],
-                "rapsearch": [gsnap_filter_1]
+                "rapsearch2": [gsnap_filter_1]
             }
         except:
             # Paired!
             gsnap_filter_1, gsnap_filter_2, gsnap_filter_merged = host_filter_outputs
             return {
                 "gsnap": [gsnap_filter_1, gsnap_filter_2],
-                "rapsearch": [gsnap_filter_merged]
+                "rapsearch2": [gsnap_filter_merged]
             }
 
     def validate_input_files(self):
@@ -105,10 +100,12 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def __init__(self, *args, **kwrds):
         PipelineStep.__init__(self, *args, **kwrds)
+        # TODO: (tmorse) remove service compatibility https://jira.czi.team/browse/IDSEQ-2568
+        self.alignment_algorithm = self.additional_attributes.get("alignment_algorithm", self.additional_attributes.get("service"))
+        assert self.alignment_algorithm in ("gsnap", "rapsearch2")
         self.chunks_in_flight = threading.Semaphore(MAX_CHUNKS_IN_FLIGHT)
         self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
         self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
-        self.iostream_upload = multiprocessing.Semaphore(MAX_CONCURRENT_CHUNK_UPLOADS)
         command.make_dirs(self.chunks_result_dir_local)
 
     def count_reads(self):
@@ -117,27 +114,23 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     def run(self):
         ''' Run alignmment remotely '''
 
-        service_inputs = PipelineStepRunAlignmentRemotely._service_inputs(self.input_files_local[0])
+        alignment_algorithm_inputs = PipelineStepRunAlignmentRemotely._alignment_algorithm_inputs(self.input_files_local[0])
         cdhit_cluster_sizes_path, = self.input_files_local[1]
         output_m8, deduped_output_m8, output_hitsummary, output_counts_with_dcr_json = self.output_files_local()
         assert output_counts_with_dcr_json.endswith("_with_dcr.json"), self.output_files_local()
 
-        service = self.additional_attributes["service"]
-        # TODO: (tmorse) remove compat hack
-        if service == "rapsearch2":
-            service = "rapsearch"
-        self.run_remotely(service_inputs[service], output_m8, service)
+        self.run_remotely(alignment_algorithm_inputs[self.alignment_algorithm], output_m8, self.alignment_algorithm)
 
         # get database
         lineage_db = fetch_reference(self.additional_files["lineage_db"], self.ref_dir_local)
         accession2taxid_db = fetch_reference(self.additional_files["accession2taxid_db"], self.ref_dir_local, allow_s3mi=True)
 
-        min_alignment_length = NT_MIN_ALIGNMENT_LEN if service == 'gsnap' else 0
+        min_alignment_length = NT_MIN_ALIGNMENT_LEN if self.alignment_algorithm == 'gsnap' else 0
         m8.call_hits_m8(output_m8, lineage_db, accession2taxid_db,
                         deduped_output_m8, output_hitsummary, min_alignment_length)
 
-        db_type = 'NT' if service == 'gsnap' else 'NR'
-        evalue_type = 'log10' if service == 'rapsearch' else 'raw'
+        db_type = 'NT' if self.alignment_algorithm == 'gsnap' else 'NR'
+        evalue_type = 'log10' if self.alignment_algorithm == 'rapsearch2' else 'raw'
 
         deuterostome_db = None
         if self.additional_files.get("deuterostome_db"):
@@ -157,14 +150,14 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             lineage_db, deuterostome_db, taxon_whitelist, taxon_blacklist, cdhit_cluster_sizes_path,
             output_counts_with_dcr_json)
 
-    def run_remotely(self, input_fas, output_m8, service):
-        chunk_size = int(self.additional_attributes["chunk_size"])
-
+    def run_remotely(self, input_fas, output_m8):
         # Split files into chunks for performance
+        chunk_size = GSNAP_CHUNK_SIZE if self.alignment_algorithm == "gsnap" else RAPSEARCH_CHUNK_SIZE
         part_suffix, input_chunks = self.chunk_input(input_fas, chunk_size)
+        chunk_count = len(input_chunks)
 
         # Process chunks
-        chunk_output_files = [None] * len(input_chunks)
+        chunk_output_files = [None] * chunk_count
         chunk_threads = []
         mutex = TraceLock("run_remotely", threading.RLock())
         # Randomize execution order for performance
@@ -174,13 +167,13 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         try:
             for n, chunk_input_files in randomized:
                 self.chunks_in_flight.acquire()
-                self.check_for_errors(mutex, chunk_output_files, input_chunks, service)
+                self.check_for_errors(mutex, chunk_output_files, input_chunks, self.alignment_algorithm)
                 t = threading.Thread(
                     target=PipelineStepRunAlignmentRemotely.run_chunk_wrapper,
                     args=[
                         self.chunks_in_flight, chunk_output_files, n, mutex, self.run_chunk,
                         [
-                            part_suffix, chunk_input_files, service, True
+                            part_suffix, chunk_input_files, chunk_count, True
                         ]
                     ])
                 t.start()
@@ -191,7 +184,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             for ct in chunk_threads:
                 ct.join()
 
-        self.check_for_errors(mutex, chunk_output_files, input_chunks, service)
+        self.check_for_errors(mutex, chunk_output_files, input_chunks, self.alignment_algorithm)
 
         assert None not in chunk_output_files
         # Concatenate the pieces and upload results
@@ -286,7 +279,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         return part_suffix, input_chunks
 
     @staticmethod
-    def check_for_errors(mutex, chunk_output_files, input_chunks, service):
+    def check_for_errors(mutex, chunk_output_files, input_chunks, alignment_algorithm):
         with mutex:
             if "error" in chunk_output_files:
                 # We already have per-chunk retries to address transient (non-deterministic) system issues.
@@ -294,7 +287,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 # with the chunk data or command options, so we should not even attempt the other chunks.
                 err_i = chunk_output_files.index("error")
                 raise RuntimeError("All retries failed for {} chunk {}.".format(
-                    service, input_chunks[err_i]))
+                    alignment_algorithm, input_chunks[err_i]))
 
     @staticmethod
     def concatenate_files(chunk_output_files, output_m8):
@@ -323,36 +316,31 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         response = client.describe_jobs(jobs=[job_id])
         return response['jobs'][0]['status']
 
-    def run_chunk(self, part_suffix, input_files, service, lazy_run):
+    def run_chunk(self, part_suffix, input_files, chunk_count, lazy_run):
         """
         Dispatch a chunk to worker machines for distributed GSNAP or RAPSearch
         group machines and handle their execution.
         """
-        assert service in ("gsnap", "rapsearch2", "rapsearch")
-
-        # TODO: (tmorse) remove compat hack
-        if service == "rapsearch2":
-            service = "rapsearch"
 
         chunk_id = int(input_files[0].split(part_suffix)[-1])
-        multihit_basename = f"multihit-{service}-out{part_suffix}{chunk_id}.m8"
+        multihit_basename = f"multihit-{self.alignment_algorithm}-out{part_suffix}{chunk_id}.m8"
         multihit_local_outfile = os.path.join(self.chunks_result_dir_local, multihit_basename)
         multihit_s3_outfile = os.path.join(self.chunks_result_dir_s3, multihit_basename)
 
         if lazy_run and fetch_from_s3(multihit_s3_outfile, multihit_local_outfile, okay_if_missing=True, allow_s3mi=False):
-            log.write(f"finished alignment for chunk {chunk_id} with {service} by lazily fetching last result")
+            log.write(f"finished alignment for chunk {chunk_id} with {self.alignment_algorithm} by lazily fetching last result")
             return multihit_local_outfile
 
-        # TODO: (tmorse) remove compat hack
+        # TODO: (tmorse) remove compat hack https://jira.czi.team/browse/IDSEQ-2568
         deployment_environment = os.environ.get("DEPLOYMENT_ENVIRONMENT", self.additional_attributes.get("environment"))
         priority_name = os.environ.get("PRIORITY_NAME", "normal")
         provisioning_model = os.environ.get("PROVISIONING_MODEL", "EC2")
 
         index_dir_suffix = self.additional_attributes["index_dir_suffix"]
 
-        job_name = f"idseq-{deployment_environment}-{service}"
-        job_queue = f"idseq-{deployment_environment}-{service}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
-        job_definition = f"idseq-{deployment_environment}-{service}"
+        job_name = f"idseq-{deployment_environment}-{self.alignment_algorithm}"
+        job_queue = f"idseq-{deployment_environment}-{self.alignment_algorithm}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
+        job_definition = f"idseq-{deployment_environment}-{self.alignment_algorithm}"
 
         environment = [{
             'name': f"INPUT_PATH_{i}",
@@ -374,25 +362,28 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         )
         job_id = response["jobId"]
 
-        log.write(f"waiting for {service} batch queue for chunk {chunk_id}.")
+        log.write(f"waiting for {self.alignment_algorithm} batch queue for chunk {chunk_id}.")
         total_timeout = CHUNK_MAX_ATTEMPTS * CHUNK_ATTEMPT_TIMEOUT
-        for _ in range((total_timeout // CHUNK_COMPLETE_CHECK_DELAY) + 1):
+        start = time.time()
+        end = start + total_timeout
+        delay = 5 * chunk_count # ~1 chunk every 5 seconds to avoid throttling
+        while time.time() < end:
             status = PipelineStepRunAlignmentRemotely._get_job_status(client, job_id)
             if status == "SUCCEEDED":
                 break
             if status == "FAILED":
                 log.log_event("alignment_batch_error", values={"job_id": job_id})
                 raise Exception("chunk alignment failed")
-            time.sleep(CHUNK_COMPLETE_CHECK_DELAY)
+            time.sleep(delay)
 
         fetch_from_s3(multihit_s3_outfile, multihit_local_outfile, okay_if_missing=True, allow_s3mi=False)
 
-        log.write(f"finished alignment for chunk {chunk_id} on {service}")
+        log.write(f"finished alignment for chunk {chunk_id} on {self.alignment_algorithm}")
 
         return multihit_local_outfile
 
     def step_description(self, require_docstrings=False):
-        if (self.additional_attributes["service"] == "gsnap"):
+        if (self.alignment_algorithm == "gsnap"):
             return """
                 Runs gsnap remotely.
 
@@ -413,10 +404,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
                 GSNAP documentation is available [here](http://research-pub.gene.com/gmap/).
             """
-        # TODO remove compat hack
-        elif ("rapsearch" in self.additional_attributes["service"]):
+        elif self.alignment_algorithm == "rapsearch2":
             return """
-                Runs rapsearch remotely.
+                Runs rapsearch2 remotely.
 
                 ```
                 rapsearch
