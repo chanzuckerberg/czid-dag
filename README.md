@@ -108,9 +108,7 @@ The following is an example dag for generating alignment output for idseq. The *
 
       },
       "additional_attributes": {
-        "service": "gsnap",
-        "chunk_size": 15000,
-        "environment": "prod"
+        "alignment_algorithm": "gsnap",
       }
     },
     {
@@ -126,9 +124,7 @@ The following is an example dag for generating alignment output for idseq. The *
 
       },
       "additional_attributes": {
-        "service": "rapsearch2",
-        "chunk_size": 10000,
-        "environment": "prod"
+        "alignment_algorithm": "rapsearch2",
       }
     },
     {
