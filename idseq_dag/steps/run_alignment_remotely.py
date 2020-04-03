@@ -366,7 +366,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         total_timeout = CHUNK_MAX_ATTEMPTS * CHUNK_ATTEMPT_TIMEOUT
         start = time.time()
         end = start + total_timeout
-        delay = 5 * chunk_count #  ~1 chunk every 5 seconds to avoid throttling
+        delay = 5 * chunk_count  # ~1 chunk every 5 seconds to avoid throttling
         while time.time() < end:
             status = PipelineStepRunAlignmentRemotely._get_job_status(client, job_id)
             if status == "SUCCEEDED":
