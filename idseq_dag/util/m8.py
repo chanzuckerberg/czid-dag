@@ -235,7 +235,7 @@ def read_file_into_set(file_name):
     return S
 
 
-# @command.run_in_subprocess
+@command.run_in_subprocess
 def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
                  output_m8, output_summary, min_alignment_length):
     """
@@ -297,7 +297,7 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
         * http://www.metagenomics.wiki/tools/blast/blastn-output-format-6
         * http://www.metagenomics.wiki/tools/blast/evalue
     """
-    with open_file_db_by_extension(lineage_map_path) as lineage_map, \
+    with open_file_db_by_extension(lineage_map_path, IdSeqDictValue.VALUE_TYPE_ARRAY) as lineage_map, \
          open_file_db_by_extension(accession2taxid_dict_path) as accession2taxid_dict:  # noqa
         _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                            output_m8, output_summary, min_alignment_length)
@@ -462,7 +462,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                     outf_sum.write(msg)
 
 
-# @command.run_in_subprocess
+@command.run_in_subprocess
 def generate_taxon_count_json_from_m8(
         m8_file, hit_level_file, e_value_type, count_type, lineage_map_path,
         deuterostome_path, taxon_whitelist_path, taxon_blacklist_path,
