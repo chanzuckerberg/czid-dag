@@ -305,7 +305,7 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
 
 def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                        output_m8, output_summary, min_alignment_length,
-                       use_temp_db=True):
+                       use_temp_db=False):
     lineage_cache = {}
 
     # Helper functions
