@@ -1,13 +1,17 @@
 import multiprocessing
+import os
 import pathlib
 import shelve
 import sqlite3
+import tempfile
 
 from enum import IntEnum
 
 import idseq_dag.util.log as log
 
 DICT_DELIMITER = chr(1)  # Delimiter for an array of values
+
+
 class IdSeqDictValue(IntEnum):
     VALUE_TYPE_SCALAR = 1
     VALUE_TYPE_ARRAY = 2
@@ -31,7 +35,8 @@ class _IdSeqDictBase(object):
         self._lock.acquire()
 
     def _assert_lock_held(self):
-        assert self._lock.acquire(block=False), "Sharing an IdSeqDict object among multiple threads or processes is not supported."
+        assert self._lock.acquire(
+            block=False), "Sharing an IdSeqDict object among multiple threads or processes is not supported."
 
     def _uri_base(self):
         return pathlib.Path(self.db_path).as_uri()
@@ -128,7 +133,8 @@ class IdSeqDict(_IdSeqDictBase):
         self._assert_lock_held()
         with log.log_context(f"db_assert_table", {"db_path": self.db_path}):
             with conn:
-                res = conn.execute(f"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='{SQLITE_TABLE_NAME}';")
+                res = conn.execute(
+                    f"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='{SQLITE_TABLE_NAME}';")
                 table_exists = res.fetchone()[0] != 0
             assert table_exists, f"table {SQLITE_TABLE_NAME} doesn't exist in db {self.db_path}"
 
@@ -168,7 +174,8 @@ class IdSeqDictForUpdate(IdSeqDict):
         self._assert_lock_held()
         with log.log_context(f"db_assert_table", {"db_path": self.db_path}):
             with conn:
-                conn.execute(f"CREATE TABLE IF NOT EXISTS {SQLITE_TABLE_NAME} (dict_key VARCHAR(255) PRIMARY KEY, dict_value text)")
+                conn.execute(
+                    f"CREATE TABLE IF NOT EXISTS {SQLITE_TABLE_NAME} (dict_key VARCHAR(255) PRIMARY KEY, dict_value text)")
 
     def update(self, key, value):
         ''' Update a particular key value pair.  Will commit or roll back at exit of WITH block. '''
@@ -209,3 +216,13 @@ def open_file_db_by_extension(db_path, value_type=IdSeqDictValue.VALUE_TYPE_SCAL
         return IdSeqDict(db_path, value_type)
     # shelve format;  shelve objects can be used as context managers
     return shelve.open(db_path.replace('.db', ''), 'r')
+
+
+def open_file_db_temp():
+    """
+    Creates a new BDB for temporary storage. NOTE: writeback=True, so you
+    need to call sync() to save.
+    """
+    fd, filename = tempfile.mkstemp(suffix='.db')
+    os.close(fd)  # don't need file descriptor
+    return shelve.open(filename, 'n', writeback=True)

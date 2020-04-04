@@ -2,6 +2,7 @@ import json
 import math
 import os
 import random
+import sys
 
 from collections import Counter
 from collections import defaultdict
@@ -11,7 +12,7 @@ import idseq_dag.util.lineage as lineage
 import idseq_dag.util.log as log
 
 from idseq_dag.util.count import READ_COUNTING_MODE, ReadCountingMode, get_read_cluster_size, load_cdhit_cluster_sizes
-from idseq_dag.util.dict import IdSeqDictValue, open_file_db_by_extension
+from idseq_dag.util.dict import IdSeqDictValue, open_file_db_by_extension, open_file_db_temp
 
 # NT alginments with shorter length are associated with a high rate of false positives.
 # NR doesn't have this problem because Rapsearch contains an equivalent filter.
@@ -65,6 +66,13 @@ RERANKED_BLAST_OUTPUT_SCHEMA = {
 # The minimum read count for a valid contig. We ignore contigs below this read count in most downstream analyses.
 # This constant is hardcoded in at least 4 places in idseq-web.  TODO: Make it a DAG parameter.
 MIN_CONTIG_SIZE = 4
+
+# When use_temp_db=True, these vars control how often intermediate results are
+# saved to disk. It's trade-off between time and memory. With large inputs in
+# our lomem ec2 instance types, it was observed that call_hits_m8 ran out of
+# memory after 625000000 entries.
+LOG_AND_FLUSH_INTERVAL = 25000000
+SUMMARY_LOG_AND_FLUSH_INTERVAL = 50000
 
 
 def parse_tsv(path, schema, expect_headers=False, raw_lines=False):
@@ -134,7 +142,13 @@ def summarize_hits(hit_summary_file, min_reads_per_genus=0):
 
 # TODO:  Deprecate this iterate_m8() function, particularly its debug switches and modes,
 # in favor of the better encapsulated and more flexible parse_tsv() above.
-def iterate_m8(m8_file, min_alignment_length=0, debug_caller=None, logging_interval=25000000, full_line=False):
+def iterate_m8(
+    m8_file,
+    min_alignment_length=0,
+    debug_caller=None,
+    logging_interval=LOG_AND_FLUSH_INTERVAL,
+    full_line=False
+):
     """Generate an iterator over the m8 file and return values for each line.
     Work around and warn about any invalid hits detected.
     Return a subset of values (read_id, accession_id, percent_id, alignment_length,
@@ -221,7 +235,7 @@ def read_file_into_set(file_name):
     return S
 
 
-@command.run_in_subprocess
+# @command.run_in_subprocess
 def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
                  output_m8, output_summary, min_alignment_length):
     """
@@ -283,14 +297,15 @@ def call_hits_m8(input_m8, lineage_map_path, accession2taxid_dict_path,
         * http://www.metagenomics.wiki/tools/blast/blastn-output-format-6
         * http://www.metagenomics.wiki/tools/blast/evalue
     """
-    with open_file_db_by_extension(lineage_map_path, IdSeqDictValue.VALUE_TYPE_ARRAY) as lineage_map, \
+    with open_file_db_by_extension(lineage_map_path) as lineage_map, \
          open_file_db_by_extension(accession2taxid_dict_path) as accession2taxid_dict:  # noqa
         _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                            output_m8, output_summary, min_alignment_length)
 
 
 def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
-                       output_m8, output_summary, min_alignment_length):
+                       output_m8, output_summary, min_alignment_length,
+                       use_temp_db=True):
     lineage_cache = {}
 
     # Helper functions
@@ -357,15 +372,23 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
         return -1, "-1", None
 
     # Read input_m8 and group hits by read id
-    m8 = defaultdict(list)
+    m8 = open_file_db_temp() if use_temp_db else {}
+    line_count = 0
     for read_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, _line in iterate_m8(
-            input_m8, min_alignment_length, "call_hits_m8_initial_scan"):
+            input_m8, min_alignment_length, "call_hits_m8_initial_scan", logging_interval=LOG_AND_FLUSH_INTERVAL):
+        if read_id not in m8:
+            m8[read_id] = []
         m8[read_id].append((accession_id, e_value))
+        line_count += 1
+        if line_count % LOG_AND_FLUSH_INTERVAL == 0:
+            log.write('Temp db: {}. Size of m8 in memory: {}.'.format(use_temp_db, sys.getsizeof(m8)))
+            if use_temp_db:
+                m8.sync()
+                log.write("Wrote {} entries to temp db.".format(line_count))
 
     # Deduplicate m8 and summarize hits
-    summary = {}
+    summary = open_file_db_temp() if use_temp_db else {}
     count = 0
-    LOG_INCREMENT = 50000
     log.write("Starting to summarize hits for {} read ids from {}.".format(
         len(m8), input_m8))
     for read_id, accessions in m8.items():
@@ -380,12 +403,17 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
         for accession_id, e_value in accessions:
             if e_value == my_best_evalue:
                 accumulate(hits, accession_id)
+
         summary[read_id] = my_best_evalue, call_hit_level_v2(hits)
         count += 1
-        if count % LOG_INCREMENT == 0:
-            msg = "Summarized hits for {} read ids from {}, and counting.".format(
-                count, input_m8)
+        if count % SUMMARY_LOG_AND_FLUSH_INTERVAL == 0:
+            msg = "Summarized hits for {} read ids from {}, and counting. Temp db: {}. Size in memory: {}.".format(
+                count, input_m8, use_temp_db, sys.getsizeof(summary))
             log.write(msg)
+            if use_temp_db:
+                summary.sync()
+                log.write("Wrote {} entries to temp db.".format(count))
+
     log.write("Summarized hits for all {} read ids from {}.".format(
         count, input_m8))
 
@@ -434,7 +462,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                     outf_sum.write(msg)
 
 
-@command.run_in_subprocess
+# @command.run_in_subprocess
 def generate_taxon_count_json_from_m8(
         m8_file, hit_level_file, e_value_type, count_type, lineage_map_path,
         deuterostome_path, taxon_whitelist_path, taxon_blacklist_path,
