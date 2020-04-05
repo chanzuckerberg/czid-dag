@@ -8,6 +8,7 @@ import tempfile
 from enum import IntEnum
 
 import idseq_dag.util.log as log
+import idseq_dag.util.s3 as s3
 
 DICT_DELIMITER = chr(1)  # Delimiter for an array of values
 
@@ -220,9 +221,10 @@ def open_file_db_by_extension(db_path, value_type=IdSeqDictValue.VALUE_TYPE_SCAL
 
 def open_file_db_temp():
     """
-    Creates a new BDB for temporary storage. NOTE: writeback=True, so you
-    need to call sync() to save.
+    Creates a new BDB for temporary storage. The file will go in the local ref
+    dir set by PipelineFlow if available to maximize space.
+    NOTE: writeback=True, so you need to call sync() to save.
     """
-    fd, filename = tempfile.mkstemp(suffix='.db')
+    fd, filename = tempfile.mkstemp(suffix='.db', dir=s3.config.get("REF_DIR"))
     os.close(fd)  # don't need file descriptor
     return shelve.open(filename, 'n', writeback=True)
