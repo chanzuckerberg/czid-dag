@@ -70,9 +70,10 @@ MIN_CONTIG_SIZE = 4
 # When use_temp_db=True, these vars control how often intermediate results are
 # saved to disk. It's trade-off between time and memory. With large inputs in
 # our lomem ec2 instance types, it was observed that call_hits_m8 ran out of
-# memory after 625000000 entries.
-LOG_AND_FLUSH_INTERVAL = 25000000
-SUMMARY_LOG_AND_FLUSH_INTERVAL = 50000
+# memory after 625000000 entries. The number of summary entries was observed
+# to be roughly one tenth that of m8 entries.
+LOG_AND_FLUSH_INTERVAL = 2500000
+SUMMARY_LOG_AND_FLUSH_INTERVAL = 250000
 
 
 def parse_tsv(path, schema, expect_headers=False, raw_lines=False):
@@ -383,8 +384,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
         if line_count % LOG_AND_FLUSH_INTERVAL == 0:
             log.write('Temp db: {}. Size of m8 in memory: {}.'.format(use_temp_db, sys.getsizeof(m8)))
             if use_temp_db:
-                m8.sync()
-                log.write("Wrote {} entries to temp db.".format(line_count))
+                _safe_sync(m8, line_count)
 
     # Deduplicate m8 and summarize hits
     summary = open_file_db_temp() if use_temp_db else {}
@@ -411,8 +411,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                 count, input_m8, use_temp_db, sys.getsizeof(summary))
             log.write(msg)
             if use_temp_db:
-                summary.sync()
-                log.write("Wrote {} entries to temp db.".format(count))
+                _safe_sync(summary, count)
 
     log.write("Summarized hits for all {} read ids from {}.".format(
         count, input_m8))
@@ -658,3 +657,12 @@ def build_should_keep_filter(
         return is_whitelisted(hits) and not is_blacklisted(hits)
 
     return should_keep
+
+
+def _safe_sync(db, line_count):
+    try:
+        db.sync()
+    except Exception as e:
+        log.write("Error in sync of temp db: {}. Trying once more.".format(e), warning=True)
+        db.sync()
+    log.write("Wrote entries up to line {} to temp db.".format(line_count))
