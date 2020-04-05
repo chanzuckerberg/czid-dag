@@ -416,6 +416,10 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
     log.write("Summarized hits for all {} read ids from {}.".format(
         count, input_m8))
 
+    if use_temp_db:
+        m8.clear()  # free space
+        _safe_sync(m8)
+
     # Generate output files. outf is the main output_m8 file and outf_sum is
     # the summary level info.
     emitted = set()
@@ -459,6 +463,10 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                     msg = f"{read_id}\t{hit_level}\t{taxid}\t{best_accession_id}"
                     msg += f"\t{species_taxid}\t{genus_taxid}\t{family_taxid}\n"
                     outf_sum.write(msg)
+
+    if use_temp_db:
+        summary.clear()  # free space
+        _safe_sync(summary)
 
 
 @command.run_in_subprocess
@@ -659,10 +667,11 @@ def build_should_keep_filter(
     return should_keep
 
 
-def _safe_sync(db, line_count):
+def _safe_sync(db, line_count=0):
     try:
         db.sync()
     except Exception as e:
         log.write("Error in sync of temp db: {}. Trying once more.".format(e), warning=True)
         db.sync()
-    log.write("Wrote entries up to line {} to temp db.".format(line_count))
+    if line_count:
+        log.write("Wrote entries up to line {} to temp db.".format(line_count))
