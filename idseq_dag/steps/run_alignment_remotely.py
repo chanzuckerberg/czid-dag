@@ -101,7 +101,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         # TODO: (tmorse) remove service compatibility https://jira.czi.team/browse/IDSEQ-2568
         self.alignment_algorithm = self.additional_attributes.get("alignment_algorithm", self.additional_attributes.get("service"))
         assert self.alignment_algorithm in ("gsnap", "rapsearch2")
-        self.chunks_in_flight = threading.Semaphore(MAX_CHUNKS_IN_FLIGHT)
+        self.chunks_in_flight_semaphore = threading.Semaphore(MAX_CHUNKS_IN_FLIGHT)
         self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
         self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
         command.make_dirs(self.chunks_result_dir_local)
@@ -164,12 +164,12 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         try:
             for n, chunk_input_files in randomized:
-                self.chunks_in_flight.acquire()
+                self.chunks_in_flight_semaphore.acquire()
                 self.check_for_errors(mutex, chunk_output_files, input_chunks, self.alignment_algorithm)
                 t = threading.Thread(
                     target=PipelineStepRunAlignmentRemotely.run_chunk_wrapper,
                     args=[
-                        self.chunks_in_flight, chunk_output_files, n, mutex, self.run_chunk,
+                        self.chunks_in_flight_semaphore, chunk_output_files, n, mutex, self.run_chunk,
                         [
                             part_suffix, chunk_input_files, chunk_count, True
                         ]
@@ -297,7 +297,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                             shutil.copyfileobj(fd, outf)
 
     @staticmethod
-    def run_chunk_wrapper(chunks_in_flight, chunk_output_files, n, mutex, target, args):
+    def run_chunk_wrapper(chunks_in_flight_semaphore, chunk_output_files, n, mutex, target, args):
         result = "error"
         try:
             result = target(*args)
@@ -307,7 +307,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         finally:
             with mutex:
                 chunk_output_files[n] = result
-            chunks_in_flight.release()
+            chunks_in_flight_semaphore.release()
 
     @staticmethod
     def _get_job_status(client, job_id):
@@ -363,8 +363,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         log.write(f"waiting for {self.alignment_algorithm} batch queue for chunk {chunk_id}.")
         total_timeout = CHUNK_MAX_ATTEMPTS * CHUNK_ATTEMPT_TIMEOUT
         end_time = time.time() + total_timeout
-        delay = min(chunk_count, MAX_CHUNKS_IN_FLIGHT)  # ~1 chunk per second to avoid throttling, use min in case we have fewer chunks than the maximum
-        delay += random.randint(-delay // 2, delay // 2) # Add some noise to de-synchronize chunks
+        chunks_in_flight = min(chunk_count, MAX_CHUNKS_IN_FLIGHT)  # use min in case we have fewer chunks than the maximum
+        mean_delay = chunks_in_flight  # ~1 chunk per second to avoid throttling,
+        delay = mean_delay + random.randint(-mean_delay // 2, mean_delay // 2)  # Add some noise to de-synchronize chunks
         while time.time() < end_time:
             try:
                 status = PipelineStepRunAlignmentRemotely._get_job_status(client, job_id)
@@ -372,7 +373,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 # If we get throttled, randomly wait to de-synchronize the requests
                 if e.response['Error']['Code'] == "TooManyRequestsException":
                     log.log_event("describe_jobs_rate_limit_error", values={"job_id": job_id}, warning=True)
-                    time.sleep(random.randint(1, delay))
+                    time.sleep(random.randint(1, mean_delay))
 
             if status == "SUCCEEDED":
                 break
