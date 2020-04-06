@@ -372,10 +372,12 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
         prev_best_evalue, prev_hits, _ = summary.get(read_id, (float("inf"), [{}, {}, {}], None))
         my_best_evalue = prev_best_evalue
         if prev_best_evalue > e_value:
+            # If we find a new better e value we want to start accumulation over
             hits = [{}, {}, {}]
             accumulate(hits, accession_id)
             my_best_evalue = e_value
         if prev_best_evalue == e_value:
+            # If we find another accession with the same e value we want to accumulate it
             accumulate(prev_hits, accession_id)
         summary[read_id] = my_best_evalue, prev_hits, call_hit_level_v2(hits)
         count += 1
