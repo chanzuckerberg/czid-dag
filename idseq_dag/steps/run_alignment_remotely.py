@@ -6,6 +6,7 @@ import shutil
 import threading
 import time
 import traceback
+from botocore.exceptions import ClientError
 
 import boto3
 
@@ -25,7 +26,7 @@ from idseq_dag.util.m8 import NT_MIN_ALIGNMENT_LEN
 
 MAX_CHUNKS_IN_FLIGHT = 32
 CHUNK_MAX_ATTEMPTS = 3
-CHUNK_ATTEMPT_TIMEOUT = 60 * 60 * 12  # 12 hours
+CHUNK_ATTEMPT_TIMEOUT = 60 * 60 * 3  # 3 hours
 GSNAP_CHUNK_SIZE = 60000
 RAPSEARCH_CHUNK_SIZE = 80000
 
@@ -361,11 +362,18 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         log.write(f"waiting for {self.alignment_algorithm} batch queue for chunk {chunk_id}.")
         total_timeout = CHUNK_MAX_ATTEMPTS * CHUNK_ATTEMPT_TIMEOUT
-        start = time.time()
-        end = start + total_timeout
-        delay = 5 * chunk_count  # ~1 chunk every 5 seconds to avoid throttling
-        while time.time() < end:
-            status = PipelineStepRunAlignmentRemotely._get_job_status(client, job_id)
+        end_time = time.time() + total_timeout
+        delay = min(chunk_count, MAX_CHUNKS_IN_FLIGHT)  # ~1 chunk per second to avoid throttling, use min in case we have fewer chunks than the maximum
+        delay += random.randint(-delay // 2, delay // 2) # Add some noise to de-synchronize chunks
+        while time.time() < end_time:
+            try:
+                status = PipelineStepRunAlignmentRemotely._get_job_status(client, job_id)
+            except ClientError as e:
+                # If we get throttled, randomly wait to de-synchronize the requests
+                if e.response['Error']['Code'] == "TooManyRequestsException":
+                    log.log_event("describe_jobs_rate_limit_error", values={"job_id": job_id}, warning=True)
+                    time.sleep(random.randint(1, delay))
+
             if status == "SUCCEEDED":
                 break
             if status == "FAILED":
