@@ -369,17 +369,16 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
         # the match increases. Essentially, the E value describes the random
         # background noise. https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web
         # &PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ
-        prev_best_evalue, prev_hits, _ = summary.get(read_id, (float("inf"), [{}, {}, {}], None))
-        my_best_evalue = prev_best_evalue
-        if prev_best_evalue > e_value:
+        my_best_evalue, hits, _ = summary.get(read_id, (float("inf"), [{}, {}, {}], None))
+        if my_best_evalue > e_value:
             # If we find a new better e value we want to start accumulation over
             hits = [{}, {}, {}]
             accumulate(hits, accession_id)
             my_best_evalue = e_value
-        if prev_best_evalue == e_value:
+        elif my_best_evalue == e_value:
             # If we find another accession with the same e value we want to accumulate it
-            accumulate(prev_hits, accession_id)
-        summary[read_id] = my_best_evalue, prev_hits, call_hit_level_v2(hits)
+            accumulate(hits, accession_id)
+        summary[read_id] = my_best_evalue, hits, call_hit_level_v2(hits)
         count += 1
         if count % LOG_INCREMENT == 0:
             msg = "Summarized hits for {} read ids from {}, and counting.".format(
