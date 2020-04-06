@@ -415,7 +415,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
 
                 # Read the fields from the summary level info
                 best_e_value, _, (hit_level, taxid,
-                               best_accession_id) = summary[read_id]
+                                  best_accession_id) = summary[read_id]
                 if best_e_value == e_value and best_accession_id in (
                         None, accession_id):
                     # Read out the hit with the best value that provides the
