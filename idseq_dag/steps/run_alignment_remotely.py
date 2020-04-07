@@ -6,9 +6,11 @@ import shutil
 import threading
 import time
 import traceback
+import json
 from botocore.exceptions import ClientError
 
 import boto3
+import requests
 
 from idseq_dag.engine.pipeline_step import PipelineStep, InputFileErrors
 
@@ -32,6 +34,20 @@ CHUNK_MAX_ATTEMPTS = 3
 CHUNK_ATTEMPT_TIMEOUT = 60 * 60 * 3  # 3 hours
 GSNAP_CHUNK_SIZE = 60000
 RAPSEARCH_CHUNK_SIZE = 80000
+
+
+batch_job_desc_bucket = None
+
+def get_batch_job_desc_bucket():
+    global batch_job_desc_bucket
+    if batch_job_desc_bucket is None:
+        try:
+            account_id = boto3.client("sts").get_caller_identity()["Account"]
+        except ClientError:
+            account_id = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
+        batch_job_desc_bucket = boto3.resource("s3").Bucket("aegea-batch-jobs-{}".format(account_id))
+    return batch_job_desc_bucket
+
 
 class PipelineStepRunAlignmentRemotely(PipelineStep):
     """ Runs gsnap/rapsearch2 remotely.
@@ -314,8 +330,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     @staticmethod
     def _get_job_status(client, job_id):
-        response = client.describe_jobs(jobs=[job_id])
-        return response['jobs'][0]['status']
+        job_desc_object = get_batch_job_desc_bucket().Object("job_descriptions/{}".format(job_id))
+        return json.loads(job_desc_object.get()["Body"].read())["status"]
 
     def run_chunk(self, part_suffix, input_files, chunk_count, lazy_run):
         """
