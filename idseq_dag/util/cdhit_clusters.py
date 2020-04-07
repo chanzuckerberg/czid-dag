@@ -1,47 +1,49 @@
-from typing import Dict, Optional, Set
+"""
+Example input lines that form a cluster:
 
-# Example input lines that form a cluster:
-#
-#    "0       140nt, >M05295:357:000000000-CRPNR:1:2119:16143:8253... *"
-#    "1       140nt, >M05295:357:000000000-CRPNR:1:1101:22051:10534... at 1:140:1:140/+/100.00%"
-#    "2       140nt, >M05295:357:000000000-CRPNR:1:1102:15401:7483... at 1:140:1:140/+/100.00%"
-#    ...
-#    "2334    140nt, >M05295:357:000000000-CRPNR:1:1102:13405:3483... at 1:140:1:140/+/100.00%"
-#
-# Corresponding output line for that cluster:
-#
-#    "2335    140nt, >M05295:357:000000000-CRPNR:1:2119:16143:8253"
-#
-# Please note that "..." above does not indicate truncation. CD-HIT-DUP appends "..." to the read
-# IDs even if the read IDs have not been truncated.
-#
-# Per CD-HIT-DUP docs, when a "-d" argument is not specified, each read ID is obtained by
-# splitting the corresponding FASTA line on whitespace and taking the first item.  That is also
-# how we do it throughout this pipeline.  The code below assumes (and relies upon) the read IDs
-# being free from whitespace.
-#
-# Furthremore, we expect read IDs to be unique in a sequencing run.  Violating that assumption,
-# if it does not break cdhit itself, might produce slightly bogus numbers, because of how it
-# affects subsampling and per-read DCR correction.  Preserving this uniqueness is why we do not
-# specify a "-d" flag to cdhit, and allow it thus to use the entire read id.
-#
-# Further note that, although CD-HIT-DUP documentation states the read marked with '*' is the
-# one chosen as representative, we have found, particularly with unpaired fasta, the emitted
-# deduplicated read is not the one marked with '*'.  Hence we handle that case correctly below,
-# and put a lot of assertions to make sure problems with cdhit output are detected.
+   "0       140nt, >M05295:357:000000000-CRPNR:1:2119:16143:8253... *"
+   "1       140nt, >M05295:357:000000000-CRPNR:1:1101:22051:10534... at 1:140:1:140/+/100.00%"
+   "2       140nt, >M05295:357:000000000-CRPNR:1:1102:15401:7483... at 1:140:1:140/+/100.00%"
+   ...
+   "2334    140nt, >M05295:357:000000000-CRPNR:1:1102:13405:3483... at 1:140:1:140/+/100.00%"
+
+Corresponding output line for that cluster:
+
+   "2335    140nt, >M05295:357:000000000-CRPNR:1:2119:16143:8253"
+
+Please note that "..." above does not indicate truncation. CD-HIT-DUP appends "..." to the read
+IDs even if the read IDs have not been truncated.
+
+Per CD-HIT-DUP docs, when a "-d" argument is not specified, each read ID is obtained by
+splitting the corresponding FASTA line on whitespace and taking the first item.  That is also
+how we do it throughout this pipeline.  The code below assumes (and relies upon) the read IDs
+being free from whitespace.
+
+Furthremore, we expect read IDs to be unique in a sequencing run.  Violating that assumption,
+if it does not break cdhit itself, might produce slightly bogus numbers, because of how it
+affects subsampling and per-read DCR correction.  Preserving this uniqueness is why we do not
+specify a "-d" flag to cdhit, and allow it thus to use the entire read id.
+
+Further note that, although CD-HIT-DUP documentation states the read marked with '*' is the
+one chosen as representative, we have found, particularly with unpaired fasta, the emitted
+deduplicated read is not the one marked with '*'.  Hence we handle that case correctly below,
+and put a lot of assertions to make sure problems with cdhit output are detected.
+"""
+
+from idseq_dag.util.fasta import iterator
+from typing import Dict, Optional, Set
 
 
 def parse_clusters_file(
     cdhit_clusters_path: str,
     deduped_fasta_path: str,
-    # TODO: (gdingle): headers
     headers: bool = False
 ) -> dict:
     # First identify the cluster representative reads emitted by cd-hit-dup.  Originally we
     # used the ".clstr" output of cd-hit-dup for this, but turns out that for unpaired reads
     # the actual deduped output of cdhit contains different representatives.
     cluster_sizes_dict: Dict[str, Optional[int]] = {}
-    for read in fasta.iterator(deduped_fasta_path):
+    for read in iterator(deduped_fasta_path):
         # A read header looks someting like
         #
         #    >M05295:357:000000000-CRPNR:1:1101:22051:10534 OPTIONAL RANDOM STUFF"
@@ -78,7 +80,8 @@ def parse_clusters_file(
         {emitted_reads_from_cluster}"""
         cluster_representative = emitted_reads_from_cluster.pop()
         assert cluster_representative in cluster_sizes_dict, "If this fails it's our bug here."
-        cluster_sizes_dict[cluster_representative] = cluster_size
+        if headers:
+            cluster_sizes_dict[cluster_representative] = cluster_size
 
     with open(cdhit_clusters_path, "r") as clusters_file:
         # set of reads in both dedup1.fa and current cluster; cardinality 1!
