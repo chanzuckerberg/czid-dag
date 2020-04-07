@@ -394,7 +394,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 if e.response['Error']['Code'] == "TooManyRequestsException":
                     log.log_event("describe_jobs_rate_limit_error", values={"job_id": job_id}, warning=True)
                     delay = delay ** 2  # exponential backoff
-                    time.sleep(random.randint(1, mean_delay))
                 else:
                     log.log_event("unexpected_client_error_while_polling_job_status", values={"job_id": job_id})
                     raise e
