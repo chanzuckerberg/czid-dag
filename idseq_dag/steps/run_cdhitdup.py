@@ -4,7 +4,7 @@ import idseq_dag.util.count as count
 import idseq_dag.util.fasta as fasta
 
 from idseq_dag.engine.pipeline_step import InputFileErrors, PipelineStep
-from idseq_dag.util.count import save_cdhit_cluster_sizes
+from idseq_dag.util.count import save_cdhit_clusters
 
 
 class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountingStep
@@ -35,6 +35,9 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
     This step also outputs a TSV file mapping each cluster representative
     to its cluster size, which is useful when converting counts of clusters
     to counts of original fragments.
+
+    # TODO: (gdingle): update docs
+
     """
 
     def validate_input_files(self):
@@ -85,10 +88,12 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
         # and used to convert unique read counts to original read counts, and also to compute
         # per-taxon DCRs emitted alongside taxon_counts.
 
+        # TODO: (gdingle): update docs
+
         # First identify the cluster representative reads emitted by cd-hit-dup.  Originally we
         # used the ".clstr" output of cd-hit-dup for this, but turns out that for unpaired reads
         # the actual deduped output of cdhit contains different representatives.
-        cluster_sizes_dict = {}
+        clusters_dict = {}
         for read in fasta.iterator(deduped_fasta_path):
             # A read header looks someting like
             #
@@ -101,14 +106,15 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
             # The fasta iterator already asserts that read.header[0] is '>'.
             #
             read_id = read.header.split(None, 1)[0][1:]
-            cluster_sizes_dict[read_id] = None  # not yet known
+            clusters_dict[read_id] = None  # not yet known
 
-        def record_cluster_size(cluster_size, emitted_reads_from_cluster, line_number, _read_id):
+        def record_clusters(cluster_size, emitted_reads_from_cluster, line_number, _read_id):
             assert emitted_reads_from_cluster, f"If this assertion fails, CD-HIT-DUP has forgotten to emit a read for this cluster.  In that case, just use the current read_id as cluster_representative.  Everything will work fine, aside from reduced sensitivity. {line_number}"
-            assert len(emitted_reads_from_cluster) == 1, f"If this assertion fails, CD-HIT-DUP has emitted multiple reads from the same cluster.  Feel free to comment out this assertion if that happens a lot in practice.  Everything will run fine, but read counts contributed by that cluster will be exaggerated.  If you want to fix that, make the cluster sizes a float --- divide the actual cluster size by the number of reads emitted for the cluster, i.e. by len(emitted_reads_from_cluster). Probably an even better way of fixing it would be to emit your own fasta based on the .clstr file if that's reliable, or use a tool other than cdhit that doesn't have this bug.  {line_number}: {emitted_reads_from_cluster}"
+            assert len(
+                emitted_reads_from_cluster) == 1, f"If this assertion fails, CD-HIT-DUP has emitted multiple reads from the same cluster.  Feel free to comment out this assertion if that happens a lot in practice.  Everything will run fine, but read counts contributed by that cluster will be exaggerated.  If you want to fix that, make the cluster sizes a float --- divide the actual cluster size by the number of reads emitted for the cluster, i.e. by len(emitted_reads_from_cluster). Probably an even better way of fixing it would be to emit your own fasta based on the .clstr file if that's reliable, or use a tool other than cdhit that doesn't have this bug.  {line_number}: {emitted_reads_from_cluster}"
             cluster_representative = emitted_reads_from_cluster.pop()
-            assert cluster_representative in cluster_sizes_dict, "If this fails it's our bug here."
-            cluster_sizes_dict[cluster_representative] = cluster_size
+            assert cluster_representative in clusters_dict, "If this fails it's our bug here."
+            clusters_dict[cluster_representative] = [cluster_size] + emitted_reads_from_cluster
 
         # Example input lines that form a cluster:
         #
@@ -154,20 +160,21 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
                 assert parts[2].endswith("..."), line
                 if serial == 0 and cluster_size > 0:
                     # We've just encountered the first read of a new cluster.  Emit all data held for the old cluster.
-                    record_cluster_size(cluster_size, emitted_reads_from_cluster, line_number, read_id)
+                    record_clusters(cluster_size, emitted_reads_from_cluster, line_number, read_id)
                     emitted_reads_from_cluster = set()
                     cluster_size = 0
                 assert cluster_size == serial, f"{line_number}: {cluster_size}, {serial}, {line}"
                 read_id = parts[2][1:-3]
                 cluster_size += 1
-                if read_id in cluster_sizes_dict:
+                if read_id in clusters_dict:
                     emitted_reads_from_cluster.add(read_id)
             if cluster_size > 0:
-                record_cluster_size(cluster_size, emitted_reads_from_cluster, line_number, read_id)
+                record_clusters(cluster_size, emitted_reads_from_cluster, line_number, read_id)
 
-        save_cdhit_cluster_sizes(cdhit_cluster_sizes_path, cluster_sizes_dict)
+        save_cdhit_clusters(cdhit_cluster_sizes_path, clusters_dict)
 
     def count_reads(self):
         self.should_count_reads = True
         # Here we intentionally count unique reads.
-        self.counts_dict[self.name] = count.reads_in_group(self.output_files_local()[:-2])  # last two outputs are not fastas
+        self.counts_dict[self.name] = count.reads_in_group(
+            self.output_files_local()[:-2])  # last two outputs are not fastas
