@@ -1,7 +1,10 @@
-import os
-from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
+import os
+
+from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.util.count import READ_COUNTING_MODE, ReadCountingMode, get_read_cluster_size, load_cdhit_cluster_headers
+
 
 class PipelineStepNonhostFastq(PipelineStep):
     # Either one or two input read files can be supplied.
@@ -18,10 +21,17 @@ class PipelineStepNonhostFastq(PipelineStep):
         fastqs = self.input_files_local[0]
 
         nonhost_fasta = self.input_files_local[1][0]
+
+        if READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL:
+            # TODO: (gdingle): testme
+            cdhit_cluster_headers = load_cdhit_cluster_headers(self.input_files_local[2][0])
+        else:
+            cdhit_cluster_headers = None
+
         output_fastqs = self.output_files_local()
         fastqs = self.unzip_files(fastqs)
 
-        self.generate_nonhost_headers(nonhost_fasta)
+        self.generate_nonhost_headers(nonhost_fasta, cdhit_cluster_headers)
 
         for i in range(len(fastqs)):
             self.generate_nonhost_fastq(self.nonhost_headers[i], fastqs[i], output_fastqs[i])
@@ -83,7 +93,7 @@ class PipelineStepNonhostFastq(PipelineStep):
             "read_index": read_index
         }
 
-    def generate_nonhost_headers(self, nonhost_fasta_file):
+    def generate_nonhost_headers(self, nonhost_fasta_file, cdhit_cluster_headers=None):
         nonhost_headers = [[], []]
         with open(nonhost_fasta_file, "r") as input_file:
             num = 0
@@ -92,7 +102,14 @@ class PipelineStepNonhostFastq(PipelineStep):
                 # Assumes that the header line in the nonhost_fasta starts with ">"
                 if line[0] == ">":
                     header = PipelineStepNonhostFastq.extract_header_from_line(line)
-                    nonhost_headers[header["read_index"]].append(header["header"] + "\n")
+                    read_index = header["read_index"]
+                    nonhost_headers[read_index].append(header["header"] + "\n")
+                    if cdhit_cluster_headers:
+                        # TODO: (gdingle): get headers of rest of cluster... assumes we have the headers!!!
+                        nonhost_headers[read_index] += cdhit_cluster_headers[read_index]
+                        # TODO: (gdingle): assert that cdhit_cluster_headers[read_index] are not in flattened set of nonhost_headers
+                        # TODO: (gdingle): in other words, do not add in reads that were already there
+                        # TODO: (gdingle): also assert that all cluster read_index are in nonhost_headers
 
         with open(self.nonhost_headers[0], "w") as output_file:
             output_file.writelines(nonhost_headers[0])
