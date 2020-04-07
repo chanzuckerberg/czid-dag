@@ -1,10 +1,12 @@
+// TODO: update all these values to a run of mine in staging that has cdhit_cluster_sizes
 {
   "name": "nonhost_fastq",
   "output_dir_s3": "s3://idseq-samples-development/markazhang/samples_12216/expt_test",
   "targets": {
     "fastqs": ["RR004_water_2_S23_R1_001.fastq", "RR004_water_2_S23_R2_001.fastq"],
     "nonhost_fasta": ["refined_taxid_annot.fasta"],
-    "nonhost_fastq_out": ["nonhost_R1.fastq", "nonhost_R2.fastq"]
+    "nonhost_fastq_out": ["nonhost_R1.fastq", "nonhost_R2.fastq"],
+    "cdhit_cluster_sizes": ["cdhit_cluster_sizes.tsv"]
   },
   "steps": [
     {
@@ -22,6 +24,9 @@
     },
     "nonhost_fasta": {
       "s3_dir": "s3://idseq-samples-staging/samples/234/12216/postprocess/3.3/assembly"
+    },
+    "cdhit_cluster_sizes": {
+      "s3://idseq-samples-staging/samples/234/12216/results/3.3"
     }
   }
 }
