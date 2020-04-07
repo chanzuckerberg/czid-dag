@@ -396,6 +396,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 # If we get throttled, randomly wait to de-synchronize the requests
                 if e.response['Error']['Code'] == "TooManyRequestsException":
                     log.log_event("describe_jobs_rate_limit_error", values={"job_id": job_id}, warning=True)
+                    # Possibly implement a backoff here if throttling becomes an issue
                 else:
                     log.log_event("unexpected_client_error_while_polling_job_status", values={"job_id": job_id})
                     raise e
@@ -406,6 +407,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 log.log_event("alignment_batch_error", values={"job_id": job_id})
                 raise Exception("chunk alignment failed")
             time.sleep(delay)
+        else:
+            log.log_event("alignment_batch_error", values={"job_id": job_id})
+            raise Exception("chunk timed out but never entered the FAILED state")
 
         fetch_from_s3(multihit_s3_outfile, multihit_local_outfile, okay_if_missing=True, allow_s3mi=False)
 
