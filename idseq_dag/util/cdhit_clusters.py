@@ -31,18 +31,17 @@ and put a lot of assertions to make sure problems with cdhit output are detected
 """
 
 from idseq_dag.util.fasta import iterator
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, Tuple
 
 
 def parse_clusters_file(
     cdhit_clusters_path: str,
     deduped_fasta_path: str,
-    headers: bool = False
-) -> dict:
+) -> Dict[str, Optional[Tuple]]:
     # First identify the cluster representative reads emitted by cd-hit-dup.  Originally we
     # used the ".clstr" output of cd-hit-dup for this, but turns out that for unpaired reads
     # the actual deduped output of cdhit contains different representatives.
-    cluster_sizes_dict: Dict[str, Optional[int]] = {}
+    clusters_dict: Dict[str, Optional[Tuple]] = {}
     for read in iterator(deduped_fasta_path):
         # A read header looks someting like
         #
@@ -55,7 +54,7 @@ def parse_clusters_file(
         # The fasta iterator already asserts that read.header[0] is '>'.
         #
         read_id = read.header.split(None, 1)[0][1:]
-        cluster_sizes_dict[read_id] = None  # not yet known
+        clusters_dict[read_id] = None  # not yet known
 
     def record_cluster_size(
         cluster_size: int,
@@ -79,9 +78,8 @@ def parse_clusters_file(
         cdhit that doesn't have this bug.  {line_number}:
         {emitted_reads_from_cluster}"""
         cluster_representative = emitted_reads_from_cluster.pop()
-        assert cluster_representative in cluster_sizes_dict, "If this fails it's our bug here."
-        if headers:
-            cluster_sizes_dict[cluster_representative] = cluster_size
+        assert cluster_representative in clusters_dict, "If this fails it's our bug here."
+        clusters_dict[cluster_representative] = (cluster_size,) + tuple(emitted_reads_from_cluster)
 
     with open(cdhit_clusters_path, "r") as clusters_file:
         # set of reads in both dedup1.fa and current cluster; cardinality 1!
@@ -98,14 +96,20 @@ def parse_clusters_file(
             assert parts[2][0] == ">", line
             assert parts[2].endswith("..."), line
             if serial == 0 and cluster_size > 0:
-                # We've just encountered the first read of a new cluster.  Emit all data held for the old cluster.
-                record_cluster_size(cluster_size, emitted_reads_from_cluster, line_number, read_id)
+                # We've just encountered the first read of a new cluster.  Emit
+                # all data held for the old cluster.
+                record_cluster_size(
+                    cluster_size,
+                    emitted_reads_from_cluster,
+                    line_number,
+                    read_id
+                )
                 emitted_reads_from_cluster = set()
                 cluster_size = 0
             assert cluster_size == serial, f"{line_number}: {cluster_size}, {serial}, {line}"
             read_id = parts[2][1:-3]
             cluster_size += 1
-            if read_id in cluster_sizes_dict:
+            if read_id in clusters_dict:
                 emitted_reads_from_cluster.add(read_id)
         if cluster_size > 0:
             record_cluster_size(
@@ -115,4 +119,4 @@ def parse_clusters_file(
                 read_id
             )
 
-    return cluster_sizes_dict
+    return clusters_dict
