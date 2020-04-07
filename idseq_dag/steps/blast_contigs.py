@@ -83,6 +83,8 @@ class BlastCandidate:
             for h_i in self.hsps[1:]:
                 assert h_i["qseqid"] == h_0["qseqid"]
                 assert h_i["sseqid"] == h_0["sseqid"]
+            self.qseqid = h_0["qseqid"]
+            self.sseqid = h_0["sseqid"]
 
     def optimize(self):
         # Find a subset of disjoint HSPs with maximum sum of bitscores.
@@ -247,7 +249,7 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                 json.dump(contig2lineage, c2lf)
 
         self.additional_output_files_hidden.append(contig2lineage_json)
-
+        
     @staticmethod
     def run_blast(db_type, blast_m8, *args):
         blast_index_path = os.path.join(os.path.dirname(blast_m8), f"{db_type}_blastindex")
@@ -547,6 +549,42 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
             yield best_hit.summary()
 
     @staticmethod
+    def optimal_hit_for_each_query_v2(blast_output, min_alignment_length, min_pident):
+        # For each contig, get the collection of blast candidates that have the best hit score (may be multiple).
+        contigs_to_blast_candidates = {}
+        accession_counts = defaultdict(lambda: 0)
+
+        for query_hits in PipelineStepBlastContigs.filter_and_group_hits_by_query(blast_output, min_alignment_length, min_pident):
+            best_hits = []
+            for _subject, hit_fragments in query_hits.items():
+                hit = BlastCandidate(hit_fragments)
+                hit.optimize()
+
+                if len(best_hits) == 0 or best_hits[0].total_score < hit.total_score:
+                    best_hits = [hit]
+                # If it's a tie, add it to best_hits.
+                elif len(best_hits) > 0 and best_hits[0].total_score == hit.total_score:
+                    best_hits.append(hit)
+
+            contigs_to_blast_candidates[best_hits[0].qseqid] = best_hits
+
+        # Create a map of accession to blast candidate count.
+        for _contig_id, blast_candidates in contigs_to_blast_candidates.items():
+            for blast_candidate in blast_candidates:
+                accession_counts[blast_candidate.sseqid] += 1
+
+        # For each contig, pick the optimal hit based on the accession that has the most total blast candidates.
+        # If there is still a tie, pick the first one (we could consider taxid later)
+        for contig_id, blast_candidates in contigs_to_blast_candidates.items():
+            optimal_hit = None
+            for blast_candidate in blast_candidates:
+                if not optimal_hit or accession_counts[optimal_hit.sseqid] < accession_counts[blast_candidate.sseqid]:
+                    optimal_hit = blast_candidate
+
+            yield optimal_hit.summary()
+
+
+    @staticmethod
     def get_top_m8_nt(blast_output, blast_top_m8, min_alignment_length, min_pident):
         '''
         For each contig Q (query) and reference S (subject), extend the highest-scoring
@@ -569,4 +607,4 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
 
         # Output the optimal hit for each query.
         m8.unparse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_NT_SCHEMA,
-                       PipelineStepBlastContigs.optimal_hit_for_each_query(blast_output, min_alignment_length, min_pident))
+                       PipelineStepBlastContigs.optimal_hit_for_each_query_v2(blast_output, min_alignment_length, min_pident))
