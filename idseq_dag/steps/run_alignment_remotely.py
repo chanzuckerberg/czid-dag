@@ -27,9 +27,6 @@ from idseq_dag.util.lineage import DEFAULT_BLACKLIST_S3, DEFAULT_WHITELIST_S3
 from idseq_dag.util.m8 import NT_MIN_ALIGNMENT_LEN
 
 MAX_CHUNKS_IN_FLIGHT = 32
-DEFAULT_BLACKLIST_S3 = 's3://idseq-database/taxonomy/2018-04-01-utc-1522569777-unixtime__2018-04-04-utc-1522862260-unixtime/taxon_blacklist.txt'
-DEFAULT_WHITELIST_S3 = 's3://idseq-database/taxonomy/2020-02-10/respiratory_taxon_whitelist.txt'
-CORRECT_NUMBER_OF_OUTPUT_COLUMNS = 12
 CHUNK_MAX_ATTEMPTS = 3
 CHUNK_ATTEMPT_TIMEOUT = 60 * 60 * 3  # 3 hours
 GSNAP_CHUNK_SIZE = 60000
