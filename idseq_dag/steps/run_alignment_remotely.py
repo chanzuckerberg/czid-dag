@@ -396,6 +396,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 # If we get throttled, randomly wait to de-synchronize the requests
                 if e.response['Error']['Code'] == "TooManyRequestsException":
                     log.log_event("describe_jobs_rate_limit_error", values={"job_id": job_id}, warning=True)
+                    delay = delay ** 2  # exponential backoff
                 else:
                     log.log_event("unexpected_client_error_while_polling_job_status", values={"job_id": job_id})
                     raise e
