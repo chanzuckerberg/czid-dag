@@ -149,11 +149,13 @@ def _load_cdhit_clusters_work(filename, headers=False):
     with open(filename, "r") as f:
         for line in f:
             # TODO: (gdingle): test me
+            cluster_size_str, *read_ids = line.split(None)
+            assert int(cluster_size_str) == len(
+                read_ids), 'Count in line "{}" must match number of read headers'.format(line)
+            read_id = read_ids.pop()
             if headers:
-                cluster_size_str, *read_ids = line.split(None)
                 cdhit_cluster_sizes[read_id.strip()] = read_ids
             else:
-                cluster_size_str, read_id = line.split(None)[0:2]
                 cdhit_cluster_sizes[read_id.strip()] = int(cluster_size_str)
     return cdhit_cluster_sizes
 
