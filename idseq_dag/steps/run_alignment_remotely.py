@@ -330,7 +330,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         except ClientError as e:
             if e.response['Error']['Code'] == 'NoSuchKey':
                 # Warn that the object is missing so any issue with the s3 mechanism can be identified
-                log.log_event("missing_job_description_ojbect", values={key: key}, warning=True)
+                log.log_event("missing_job_description_ojbect", values={key: key}, debug=True)
                 # Return submitted because a missing job status probably means it hasn't been added yet
                 return "SUBMITTED"
             else:
