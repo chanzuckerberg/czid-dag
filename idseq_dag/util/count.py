@@ -5,6 +5,7 @@ from enum import Enum
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.fasta as fasta
+
 from idseq_dag import __version__
 
 
@@ -176,13 +177,12 @@ def load_cdhit_cluster_headers(filename):
         return _load_cdhit_clusters_work(filename, headers=True)
 
 
-def save_cdhit_cluster_sizes(filename, cdhit_cluster_sizes):
-    with _CDHIT_CLUSTER_SIZES_LOCK:
-        _CDHIT_CLUSTER_SIZES_CACHE[filename] = cdhit_cluster_sizes
+def save_cdhit_clusters(filename, cdhit_clusters):
     with open(filename, "w") as tsv:
-        for read_id, cluster_size in cdhit_cluster_sizes.items():
-            assert cluster_size != None, f"If this happened, probably dedup1.fa output of cdhit contains reads that are not mentioned in dedup1.fa.clstr.  Perhaps set cluster_size=1 for those reads but also follow up with cdhit.  Read id: {read_id}"
-            tsv.write(f"{cluster_size}\t{read_id}\n")
+        for read_id, cluster in cdhit_clusters.items():
+            assert cluster != None, f"If this happened, probably dedup1.fa output of cdhit contains reads that are not mentioned in dedup1.fa.clstr.  Perhaps set cluster_size=1 for those reads but also follow up with cdhit.  Read id: {read_id}"
+            tsv.write(f"{len(cluster)}\t{read_id}\t{"\t".join(cluster)}\n")
+            # TODO: (gdingle): testme
 
 
 def reads(local_file_path):
