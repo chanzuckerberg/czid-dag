@@ -323,7 +323,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def _get_job_status(self, session, job_id):
         batch_job_desc_bucket = session.resource("s3").Bucket(self.batch_job_desc_bucket)
-        job_desc_object = get_batch_job_desc_bucket().Object(f"job_descriptions/{job_id}")
+        job_desc_object = batch_job_desc_bucket.Object(f"job_descriptions/{job_id}")
         return json.loads(job_desc_object.get()["Body"].read())["status"]
 
     def run_chunk(self, part_suffix, input_files, chunk_count, lazy_run):
