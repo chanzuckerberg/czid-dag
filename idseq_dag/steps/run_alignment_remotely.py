@@ -328,10 +328,13 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             job_desc_object = batch_job_desc_bucket.Object(key)
             return json.loads(job_desc_object.get()["Body"].read())["status"]
         except ClientError as e:
-            # Warn that the object is missing so any issue with the s3 mechanism can be identified
-            log.log_event("missing_job_description_ojbect", values={key: key}, warning=True)
-            # Return submitted because a missing job status probably means it hasn't been added yet
-            return "SUBMITTED"
+            if e.response['Error']['Code'] == 'NoSuchKey':
+                # Warn that the object is missing so any issue with the s3 mechanism can be identified
+                log.log_event("missing_job_description_ojbect", values={key: key}, warning=True)
+                # Return submitted because a missing job status probably means it hasn't been added yet
+                return "SUBMITTED"
+            else:
+                raise e
 
     def run_chunk(self, part_suffix, input_files, chunk_count, lazy_run):
         """
