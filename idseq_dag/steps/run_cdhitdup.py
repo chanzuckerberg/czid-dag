@@ -126,9 +126,12 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
         #
         # Corresponding output line for that cluster:
         #
-        #    "2335    140nt, >M05295:357:000000000-CRPNR:1:2119:16143:8253"
+        #    "2335    M05295:357:000000000-CRPNR:1:2119:16143:8253  M05295:357:000000000-CRPNR:1:2119:16143:8253  M05295:357:000000000-CRPNR:1:1101:22051:10534 M05295:357:000000000-CRPNR:1:1102:15401:748
+
+        # TODO: (gdingle): update docs
+
         #
-        # Please note that "..." above does not indicate truncation. CD-HIT-DUP appends "..." to the read
+        # Please note that "..." above input lines does not indicate truncation. CD-HIT-DUP appends "..." to the read
         # IDs even if the read IDs have not been truncated.
         #
         # Per CD-HIT-DUP docs, when a "-d" argument is not specified, each read ID is obtained by

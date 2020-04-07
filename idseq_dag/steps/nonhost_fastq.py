@@ -88,10 +88,7 @@ class PipelineStepNonhostFastq(PipelineStep):
         nt_index = fragments.index("NT")
         header = ":".join(fragments[nt_index + 2:])
 
-        return {
-            "header": header,
-            "read_index": read_index
-        }
+        return read_index, header
 
     def generate_nonhost_headers(self, nonhost_fasta_file, cdhit_cluster_headers=None):
         nonhost_headers = [[], []]
@@ -101,12 +98,11 @@ class PipelineStepNonhostFastq(PipelineStep):
                 num += 1
                 # Assumes that the header line in the nonhost_fasta starts with ">"
                 if line[0] == ">":
-                    header = PipelineStepNonhostFastq.extract_header_from_line(line)
-                    read_index = header["read_index"]
-                    nonhost_headers[read_index].append(header["header"] + "\n")
+                    read_index, header = PipelineStepNonhostFastq.extract_header_from_line(line)
+                    nonhost_headers[read_index].append(header + "\n")
                     if cdhit_cluster_headers:
                         # TODO: (gdingle): get headers of rest of cluster... assumes we have the headers!!!
-                        nonhost_headers[read_index] += cdhit_cluster_headers[read_index]
+                        nonhost_headers[read_index] += cdhit_cluster_headers[header]
                         # TODO: (gdingle): assert that cdhit_cluster_headers[read_index] are not in flattened set of nonhost_headers
                         # TODO: (gdingle): in other words, do not add in reads that were already there
                         # TODO: (gdingle): also assert that all cluster read_index are in nonhost_headers
