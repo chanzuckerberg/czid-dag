@@ -33,17 +33,12 @@ GSNAP_CHUNK_SIZE = 60000
 RAPSEARCH_CHUNK_SIZE = 80000
 
 
-batch_job_desc_bucket = None
-
 def get_batch_job_desc_bucket():
-    global batch_job_desc_bucket
-    if batch_job_desc_bucket is None:
-        try:
-            account_id = boto3.client("sts").get_caller_identity()["Account"]
-        except ClientError:
-            account_id = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
-        batch_job_desc_bucket = boto3.resource("s3").Bucket("aegea-batch-jobs-{}".format(account_id))
-    return batch_job_desc_bucket
+    try:
+        account_id = boto3.client("sts").get_caller_identity()["Account"]
+    except ClientError:
+        account_id = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
+    return f"aegea-batch-jobs-{account_id}"
 
 
 class PipelineStepRunAlignmentRemotely(PipelineStep):
@@ -120,6 +115,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         self.chunks_in_flight_semaphore = threading.Semaphore(MAX_CHUNKS_IN_FLIGHT)
         self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
         self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
+        self.batch_job_desc_bucket = get_batch_job_desc_bucket()
         command.make_dirs(self.chunks_result_dir_local)
 
     def count_reads(self):
@@ -325,9 +321,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 chunk_output_files[n] = result
             chunks_in_flight_semaphore.release()
 
-    @staticmethod
-    def _get_job_status(client, job_id):
-        job_desc_object = get_batch_job_desc_bucket().Object("job_descriptions/{}".format(job_id))
+    def _get_job_status(self, session, job_id):
+        batch_job_desc_bucket = session.resource("s3").Bucket(self.batch_job_desc_bucket)
+        job_desc_object = get_batch_job_desc_bucket().Object(f"job_descriptions/{job_id}")
         return json.loads(job_desc_object.get()["Body"].read())["status"]
 
     def run_chunk(self, part_suffix, input_files, chunk_count, lazy_run):
@@ -384,7 +380,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         delay = mean_delay + random.randint(-mean_delay // 2, mean_delay // 2)  # Add some noise to de-synchronize chunks
         while time.time() < end_time:
             try:
-                status = PipelineStepRunAlignmentRemotely._get_job_status(client, job_id)
+                status = self._get_job_status(session, job_id)
             except ClientError as e:
                 # If we get throttled, randomly wait to de-synchronize the requests
                 if e.response['Error']['Code'] == "TooManyRequestsException":
