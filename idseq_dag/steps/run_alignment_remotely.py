@@ -323,8 +323,15 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def _get_job_status(self, session, job_id):
         batch_job_desc_bucket = session.resource("s3").Bucket(self.batch_job_desc_bucket)
-        job_desc_object = batch_job_desc_bucket.Object(f"job_descriptions/{job_id}")
-        return json.loads(job_desc_object.get()["Body"].read())["status"]
+        key = f"job_descriptions/{job_id}"
+        try:
+            job_desc_object = batch_job_desc_bucket.Object(key)
+            return json.loads(job_desc_object.get()["Body"].read())["status"]
+        except ClientError as e:
+            # Warn that the object is missing so any issue with the s3 mechanism can be identified
+            log.log_event("missing_job_description_ojbect", values={key: key}, warning=True)
+            # Return submitted because a missing job status probably means it hasn't been added yet
+            return "SUBMITTED"
 
     def run_chunk(self, part_suffix, input_files, chunk_count, lazy_run):
         """
@@ -378,6 +385,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         chunks_in_flight = min(chunk_count, MAX_CHUNKS_IN_FLIGHT)  # use min in case we have fewer chunks than the maximum
         mean_delay = chunks_in_flight  # ~1 chunk per second to avoid throttling,
         delay = mean_delay + random.randint(-mean_delay // 2, mean_delay // 2)  # Add some noise to de-synchronize chunks
+        status = "SUBMITTED"
         while time.time() < end_time:
             try:
                 status = self._get_job_status(session, job_id)
@@ -385,7 +393,11 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                 # If we get throttled, randomly wait to de-synchronize the requests
                 if e.response['Error']['Code'] == "TooManyRequestsException":
                     log.log_event("describe_jobs_rate_limit_error", values={"job_id": job_id}, warning=True)
+                    delay = delay ** 2  # exponential backoff
                     time.sleep(random.randint(1, mean_delay))
+                else:
+                    log.log_event("unexpected_client_error_while_polling_job_status", values={"job_id": job_id})
+                    raise e
 
             if status == "SUCCEEDED":
                 break
