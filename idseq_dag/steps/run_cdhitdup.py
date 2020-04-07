@@ -82,8 +82,8 @@ class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountin
         # This info is loaded in multiple subsequent steps using m8.load_cdhit_cluster_sizes,
         # and used to convert unique read counts to original read counts, and also to compute
         # per-taxon DCRs emitted alongside taxon_counts.
-        cluster_sizes_dict = parse_clusters_file(cdhit_clusters_path, deduped_fasta_path)
-        save_cdhit_cluster_sizes(cdhit_cluster_sizes_path, cluster_sizes_dict)
+        clusters_dict = parse_clusters_file(cdhit_clusters_path, deduped_fasta_path)
+        save_cdhit_cluster_sizes(cdhit_cluster_sizes_path, clusters_dict)
 
     def count_reads(self):
         self.should_count_reads = True
