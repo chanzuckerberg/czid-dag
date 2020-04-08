@@ -52,7 +52,7 @@ class PipelineStepNonhostFastq(PipelineStep):
             output_fastqs = [
                 f"{os.path.dirname(fastq)}/{filename}__{os.path.basename(fastq.rstrip('.gz'))}"
                 for fastq in fastqs]
-            self.additional_output_files_visible.extend(output_fastqs)
+            self.additional_output_files_hidden.extend(output_fastqs)
 
         fastqs = self.unzip_files(fastqs)
 
