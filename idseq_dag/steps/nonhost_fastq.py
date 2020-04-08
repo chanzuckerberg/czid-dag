@@ -92,6 +92,8 @@ class PipelineStepNonhostFastq(PipelineStep):
         return read_index, header
 
     def generate_nonhost_headers(self, nonhost_fasta_file, clusters_dict=None):
+        # TODO: (gdingle): change to write inline for low mem after testing assertions
+        # TODO: (gdingle): also change back to list for ordering
         nonhost_headers = [set(), set()]
         seen = set()
         with open(nonhost_fasta_file, "r") as input_file:
@@ -106,14 +108,11 @@ class PipelineStepNonhostFastq(PipelineStep):
                         clusters = clusters_dict[header]
                         cluster_size = clusters[0]
                         assert cluster_size == len(clusters[1:]), """cdhit_clusters should
-                        contain the count of reads in a cluster followed by the headers:
-                        {}""".format(clusters)
+                            contain the count of reads in a cluster followed by the headers: {}""".format(clusters)
                         to_add = set(header + "\n" for header in clusters[1:])
                         assert nonhost_headers[read_index].isdisjoint(
                             to_add), 'Cluster reads should not be in nonhost_fastq'
                         nonhost_headers[read_index] |= to_add
-                        # TODO: (gdingle): is suffix /1 /2 actually present? are ids unique to left or right?
-                        # TODO: (gdingle): how to add left and right here?
 
         with open(self.nonhost_headers[0], "w") as output_file:
             output_file.writelines(nonhost_headers[0])
