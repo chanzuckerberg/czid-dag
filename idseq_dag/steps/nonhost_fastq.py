@@ -4,7 +4,7 @@ import os
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.util.cdhit_clusters import parse_clusters_file
-from idseq_dag.util.count import READ_COUNTING_MODE, ReadCountingMode, get_read_cluster_size, load_clusters_dict
+from idseq_dag.util.count import READ_COUNTING_MODE, ReadCountingMode, get_read_cluster_size
 
 
 class PipelineStepNonhostFastq(PipelineStep):
@@ -23,11 +23,14 @@ class PipelineStepNonhostFastq(PipelineStep):
 
         nonhost_fasta = self.input_files_local[1][0]
 
-        if READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL:
-            # TODO: (gdingle): testme
-            clusters_dict = parse_clusters_file(self.input_files_local[2][0])
-        else:
-            clusters_dict = None
+        clusters_dict = None
+        if READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL:  # v4 and higher
+            # NOTE: this will load the set of all original read headers, which
+            # could be several GBs in the worst case.
+            clusters_dict = parse_clusters_file(
+                self.input_files_local[2][0],
+                self.input_files_local[3][0]
+            )
 
         output_fastqs = self.output_files_local()
         fastqs = self.unzip_files(fastqs)
@@ -92,33 +95,21 @@ class PipelineStepNonhostFastq(PipelineStep):
         return read_index, header
 
     def generate_nonhost_headers(self, nonhost_fasta_file, clusters_dict=None):
-        # TODO: (gdingle): change to write inline for low mem after testing assertions
-        # TODO: (gdingle): also change back to list for ordering
-        nonhost_headers = [set(), set()]
-        seen = set()
-        with open(nonhost_fasta_file, "r") as input_file:
-            num = 0
+        with open(nonhost_fasta_file, "r") as input_file, \
+                open(self.nonhost_headers[0], "w") as output_file_0, \
+                open(self.nonhost_headers[1], "w") as output_file_1:
             for line in input_file:
-                num += 1
                 # Assumes that the header line in the nonhost_fasta starts with ">"
-                if line[0] == ">":
-                    read_index, header = PipelineStepNonhostFastq.extract_header_from_line(line)
-                    nonhost_headers[read_index].add(header + "\n")
-                    if clusters_dict:
-                        clusters = clusters_dict[header]
-                        cluster_size = clusters[0]
-                        assert cluster_size == len(clusters[1:]), """cdhit_clusters should
-                            contain the count of reads in a cluster followed by the headers: {}""".format(clusters)
-                        to_add = set(header + "\n" for header in clusters[1:])
-                        assert nonhost_headers[read_index].isdisjoint(
-                            to_add), 'Cluster reads should not be in nonhost_fastq'
-                        nonhost_headers[read_index] |= to_add
-
-        with open(self.nonhost_headers[0], "w") as output_file:
-            output_file.writelines(nonhost_headers[0])
-
-        with open(self.nonhost_headers[1], "w") as output_file:
-            output_file.writelines(nonhost_headers[1])
+                if line[0] != ">":
+                    continue
+                read_index, header = PipelineStepNonhostFastq.extract_header_from_line(line)
+                output_file = output_file_0 if read_index == 0 else output_file_1
+                output_file.write(header + "\n")
+                if not clusters_dict:
+                    continue
+                other_headers = clusters_dict[header][1:]
+                for header in other_headers:
+                    output_file.write(header + "\n")
 
     @staticmethod
     # Use seqtk, which is orders of magnitude faster than Python for this particular step.

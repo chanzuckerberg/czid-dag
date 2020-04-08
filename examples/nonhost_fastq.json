@@ -1,16 +1,16 @@
-// TODO: update all these values to a run of mine in staging that has cdhit_cluster_sizes
 {
   "name": "nonhost_fastq",
-  "output_dir_s3": "s3://idseq-samples-development/markazhang/samples_12216/expt_test",
+  "output_dir_s3": "s3://idseq-samples-development/gdingle/nonhost_fasta",
   "targets": {
-    "fastqs": ["RR004_water_2_S23_R1_001.fastq", "RR004_water_2_S23_R2_001.fastq"],
+    "fastqs": ["RR004_water_2_S23A_R1_001.fastq", "RR004_water_2_S23A_R2_001.fastq"],
     "nonhost_fasta": ["refined_taxid_annot.fasta"],
     "nonhost_fastq_out": ["nonhost_R1.fastq", "nonhost_R2.fastq"],
-    "cdhit_cluster_sizes": ["cdhit_cluster_sizes.tsv"]
+    "cdhitdup_clusters": ["dedup1.fa.clstr"],
+    "deduped_fasta": ["dedup1.fa"]
   },
   "steps": [
     {
-      "in": ["fastqs", "nonhost_fasta"],
+      "in": ["fastqs", "nonhost_fasta", "cdhitdup_clusters", "deduped_fasta"],
       "out": "nonhost_fastq_out",
       "class": "PipelineStepNonhostFastq",
       "module": "idseq_dag.steps.nonhost_fastq",
@@ -20,13 +20,16 @@
   ],
   "given_targets": {
     "fastqs": {
-      "s3_dir": "s3://idseq-samples-staging/samples/234/12216/fastqs"
+      "s3_dir": "s3://idseq-samples-prod/samples/833/45285/fastqs"
     },
     "nonhost_fasta": {
-      "s3_dir": "s3://idseq-samples-staging/samples/234/12216/postprocess/3.3/assembly"
+      "s3_dir": "s3://idseq-samples-prod/samples/833/45285/postprocess/4.0/assembly"
     },
-    "cdhit_cluster_sizes": {
-      "s3://idseq-samples-staging/samples/234/12216/results/3.3"
+    "cdhitdup_clusters": {
+      "s3_dir": "s3://idseq-samples-prod/samples/833/45285/results/4.0"
+    },
+    "deduped_fasta": {
+      "s3_dir": "s3://idseq-samples-prod/samples/833/45285/results/4.0"
     }
   }
 }
