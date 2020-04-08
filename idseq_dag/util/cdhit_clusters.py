@@ -59,13 +59,14 @@ def parse_clusters_file(
     def record_cluster_size(
         cluster_size: int,
         emitted_reads_from_cluster: set,
+        other_reads_from_cluster: set,
         line_number: int,
-        _read_id: str
     ):
         assert emitted_reads_from_cluster, f"""If this assertion fails,
         CD-HIT-DUP has forgotten to emit a read for this cluster.  In that case,
         just use the current read_id as cluster_representative.  Everything will
         work fine, aside from reduced sensitivity. {line_number}"""
+
         assert len(emitted_reads_from_cluster) == 1, f"""If this assertion
         fails, CD-HIT-DUP has emitted multiple reads from the same cluster.
         Feel free to comment out this assertion if that happens a lot in
@@ -77,13 +78,18 @@ def parse_clusters_file(
         based on the .clstr file if that's reliable, or use a tool other than
         cdhit that doesn't have this bug.  {line_number}:
         {emitted_reads_from_cluster}"""
+
         cluster_representative = emitted_reads_from_cluster.pop()
+
         assert cluster_representative in clusters_dict, "If this fails it's our bug here."
-        clusters_dict[cluster_representative] = (cluster_size,) + tuple(emitted_reads_from_cluster)
+
+        clusters_dict[cluster_representative] = (cluster_size,) + tuple(other_reads_from_cluster)
+        return
 
     with open(cdhit_clusters_path, "r") as clusters_file:
         # set of reads in both dedup1.fa and current cluster; cardinality 1!
         emitted_reads_from_cluster: Set[str] = set()
+        other_reads_from_cluster: Set[str] = set()
         cluster_size = 0
         read_id = None
         line_number = 0
@@ -101,22 +107,26 @@ def parse_clusters_file(
                 record_cluster_size(
                     cluster_size,
                     emitted_reads_from_cluster,
+                    other_reads_from_cluster,
                     line_number,
-                    read_id
                 )
                 emitted_reads_from_cluster = set()
+                other_reads_from_cluster = set()
                 cluster_size = 0
             assert cluster_size == serial, f"{line_number}: {cluster_size}, {serial}, {line}"
             read_id = parts[2][1:-3]
             cluster_size += 1
             if read_id in clusters_dict:
                 emitted_reads_from_cluster.add(read_id)
+            else:
+                other_reads_from_cluster.add(read_id)
+        # record last cluster
         if cluster_size > 0:
             record_cluster_size(
                 cluster_size,
                 emitted_reads_from_cluster,
+                other_reads_from_cluster,
                 line_number,
-                read_id
             )
 
     return clusters_dict
