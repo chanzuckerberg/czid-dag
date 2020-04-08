@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
+from typing import Iterator, List, Tuple, NamedTuple
+import sys
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
-import sys
-
-from typing import Iterator, List, NamedTuple, Tuple
 
 class Read(NamedTuple):
     header: str

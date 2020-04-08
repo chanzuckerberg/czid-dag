@@ -234,6 +234,9 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 
 When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
 
+- 4.3.0
+ - Include all reads in the generated non-host fastqs for user download instead of only unique reads.
+
 - 4.2.0
  - Apply deuterostome, blacklist, whitelist and human filters to contigs.
 
