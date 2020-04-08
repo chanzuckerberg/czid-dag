@@ -83,6 +83,10 @@ def parse_clusters_file(
 
         assert cluster_representative in clusters_dict, "If this fails it's our bug here."
 
+        assert cluster_size - 1 == len(other_reads_from_cluster), """other_reads_from_cluster should
+        contain the number of reads specified by cluster_size minus cluster_representative:
+        {}, {}""".format(cluster_size, other_reads_from_cluster)
+
         clusters_dict[cluster_representative] = (cluster_size,) + tuple(other_reads_from_cluster)
         return
 

@@ -172,9 +172,6 @@ def save_cdhit_cluster_sizes(filename, cdhit_clusters):
     with open(filename, "w") as tsv:
         for read_id, clusters in cdhit_clusters.items():
             cluster_size = clusters[0]
-            assert cluster_size == len(clusters[1:]), """cdhit_clusters should
-            contain the count of reads in a cluster followed by the headers:
-            {}""".format(clusters)
             assert cluster_size != None, f"""If this happened, probably
             dedup1.fa output of cdhit contains reads that are not mentioned in
             dedup1.fa.clstr.  Perhaps set cluster_size=1 for those reads but
