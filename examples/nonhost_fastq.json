@@ -15,7 +15,9 @@
       "class": "PipelineStepNonhostFastq",
       "module": "idseq_dag.steps.nonhost_fastq",
       "additional_files": {},
-      "additional_attributes": {}
+      "additional_attributes": {
+        "use_taxon_whitelist": true
+      }
     }
   ],
   "given_targets": {

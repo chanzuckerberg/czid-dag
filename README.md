@@ -234,6 +234,9 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 
 When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
 
+- 4.3.1
+ - Generate betacoronavirus fastq files for user download.
+
 - 4.3.0
  - Include all reads in the generated non-host fastqs for user download instead of only unique reads.
 
