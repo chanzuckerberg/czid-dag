@@ -154,7 +154,9 @@ class PipelineStepNonhostFastq(PipelineStep):
                     continue
                 output_file = output_file_0 if read_index == 0 else output_file_1
                 output_file.write(header + "\n")
-                if not clusters_dict:
+                # TODO: (gdingle): Show all duplicate reads, not just if
+                # use_taxon_whitelist. See https://jira.czi.team/browse/IDSEQ-2598.
+                if not clusters_dict or not tax_ids:
                     continue
                 other_headers = clusters_dict[header][1:]
                 for header in other_headers:
