@@ -31,46 +31,58 @@ class PipelineStepRunValidateInput(PipelineStep):
         try:
             for i in range(num_inputs):
                 input_file = input_files[i]
-                input_file_name, input_file_ext = os.path.splitext(input_file)
+                splited_input_file_name, splited_input_file_ext = os.path.splitext(input_file)
 
                 num_lines = self.calc_max_num_lines(is_fastq, max_fragments)
 
                 # unzip if .gz file
-                if input_file_ext == '.gz':
+                if splited_input_file_ext == '.gz':
+                    input_files[i] = splited_input_file_name
                     try:
-                        cmd = command_patterns.SingleCommand(
-                            cmd="gzip",
-                            args=[
-                                "-d",
-                                input_file
-                            ],
+                        # test if a valid gzip file
+                        command.execute(
+                            command_patterns.SingleCommand(
+                                cmd="gzip",
+                                args=[
+                                    "-t",
+                                    input_file
+                                ]
+                            )
                         )
-                        command.execute(cmd)
-                        # since we're now working with a decompressed file,
-                        # replace the input_file with the name minus .gz
-                        input_files[i] = input_file_name
-                        input_file = input_file_name
-                    except Exception:
-                        raise RuntimeError("Invalid gzip file")
-
-                # Validate and truncate the input file
-                tmp_file = f"{input_file_name}.tmp"
-                try:
-                    command.execute(
-                        command_patterns.ShellScriptCommand(
-                            script=r'''cat "${input_file}" | cut -c -"$[max_line_length+1]" | head -n "${num_lines}" | awk -f "${awk_script_file}" -v max_line_length="${max_line_length}" > "${output_file}";''',
-                            named_args={
-                                "input_file": input_file,
-                                "awk_script_file": command.get_resource_filename("scripts/fastq-fasta-line-validation.awk"),
-                                "max_line_length": vc.MAX_LINE_LENGTH,
-                                "num_lines": num_lines,
-                                "output_file": tmp_file
-                            }
+                        # then decompress it
+                        command.execute(
+                            command_patterns.ShellScriptCommand(
+                                script=r'''gzip -dc "${input_file}" | cut -c -"$[max_line_length+1]" | head -n "${num_lines}" | awk -f "${awk_script_file}" -v max_line_length="${max_line_length}" > "${output_file}";''',
+                                named_args={
+                                    "input_file": input_file,
+                                    "awk_script_file": command.get_resource_filename("scripts/fastq-fasta-line-validation.awk"),
+                                    "max_line_length": vc.MAX_LINE_LENGTH,
+                                    "num_lines": num_lines,
+                                    "output_file": splited_input_file_name
+                                }
+                            )
                         )
-                    )
-                    input_files[i] = tmp_file
-                except:
-                    raise RuntimeError(f"Invalid fastq/fasta file")
+                    except:
+                        raise RuntimeError(f"Invalid fastq/fasta/gzip file")
+                else:
+                    # Validate and truncate the input file to keep behavior consistent with gz input files
+                    try:
+                        tmp_file = splited_input_file_name + ".tmp"
+                        command.execute(
+                            command_patterns.ShellScriptCommand(
+                                script=r'''cat "${input_file}" | cut -c -"$[max_line_length+1]" | head -n "${num_lines}" | awk -f "${awk_script_file}" -v max_line_length="${max_line_length}" > "${output_file}";''',
+                                named_args={
+                                    "input_file": input_file,
+                                    "awk_script_file": command.get_resource_filename("scripts/fastq-fasta-line-validation.awk"),
+                                    "max_line_length": vc.MAX_LINE_LENGTH,
+                                    "num_lines": num_lines,
+                                    "output_file": tmp_file
+                                }
+                            )
+                        )
+                        input_files[i] = tmp_file
+                    except:
+                        raise RuntimeError(f"Invalid fastq/fasta file")
 
             # keep a dictionary of the distribution of read lengths in the files
             self.summary_dict = {vc.BUCKET_TOO_SHORT: 0,
