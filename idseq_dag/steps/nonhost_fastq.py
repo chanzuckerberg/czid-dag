@@ -45,6 +45,8 @@ class PipelineStepNonhostFastq(PipelineStep):
         clusters_dict = None
         if READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL \
                 and self.additional_attributes.get("use_taxon_whitelist"):
+            # TODO: (gdingle): Show all duplicate reads, not just if
+            # use_taxon_whitelist. See https://jira.czi.team/browse/IDSEQ-2598.
             # NOTE: this will load the set of all original read headers, which
             # could be several GBs in the worst case.
             clusters_dict = parse_clusters_file(
