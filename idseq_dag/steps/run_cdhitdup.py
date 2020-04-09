@@ -4,8 +4,8 @@ import idseq_dag.util.count as count
 import idseq_dag.util.fasta as fasta
 
 from idseq_dag.engine.pipeline_step import InputFileErrors, PipelineStep
-from idseq_dag.util.count import save_cdhit_cluster_sizes
 from idseq_dag.util.cdhit_clusters import parse_clusters_file
+from idseq_dag.util.count import save_cdhit_cluster_sizes
 
 
 class PipelineStepRunCDHitDup(PipelineStep):  # Deliberately not PipelineCountingStep
