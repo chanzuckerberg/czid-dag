@@ -16,7 +16,11 @@ class PipelineStepNonhostFastq(PipelineStep):
     def run(self) -> None:
         self.run_with_tax_ids(None, None)
         if self.additional_attributes.get("use_taxon_whitelist"):
-            self.run_with_tax_ids(set([11128]), "betacoronavirus")
+            betacoronaviruses = set([
+                2697049,  # SARS-CoV2
+                694002  # betacoronavirus genus
+            ])
+            self.run_with_tax_ids(betacoronaviruses, "betacoronavirus")
 
     def run_with_tax_ids(
         self,
