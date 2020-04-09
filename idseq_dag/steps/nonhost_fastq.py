@@ -43,7 +43,8 @@ class PipelineStepNonhostFastq(PipelineStep):
         nonhost_fasta = self.input_files_local[1][0]
 
         clusters_dict = None
-        if READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL:  # v4 and higher
+        if READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL \
+                and self.additional_attributes.get("use_taxon_whitelist"):
             # NOTE: this will load the set of all original read headers, which
             # could be several GBs in the worst case.
             clusters_dict = parse_clusters_file(
