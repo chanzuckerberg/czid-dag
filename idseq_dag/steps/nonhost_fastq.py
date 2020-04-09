@@ -15,8 +15,7 @@ class PipelineStepNonhostFastq(PipelineStep):
     # Works for both FASTA and FASTQ, although non-host FASTQ is more useful.
     def run(self) -> None:
         self.run_with_tax_ids(None, None)
-        if self.additional_attributes.get("use_taxon_whitelist"):
-            self.run_with_tax_ids(set([11128]), "betacoronavirus")
+        self.run_with_tax_ids(set([11128]), "betacoronavirus")
 
     def run_with_tax_ids(
         self,
