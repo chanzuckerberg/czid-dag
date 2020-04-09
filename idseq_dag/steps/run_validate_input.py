@@ -41,17 +41,17 @@ class PipelineStepRunValidateInput(PipelineStep):
                         cmd = command_patterns.SingleCommand(
                             cmd="gzip",
                             args=[
-                            "-d",
-                            input_file
+                                "-d",
+                                input_file
                             ],
-                            )
+                        )
                         command.execute(cmd)
                         input_files[i] = input_file_name
-                    except Exception as e:
+                    except Exception:
                         raise RuntimeError("Invalid gzip file")
 
                 # Validate and truncate the input file
-                tmp_file= f"{input_file_name}.tmp"
+                tmp_file = f"{input_file_name}.tmp"
                 try:
                     command.execute(
                         command_patterns.ShellScriptCommand(
