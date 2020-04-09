@@ -15,7 +15,12 @@ class PipelineStepNonhostFastq(PipelineStep):
     # Works for both FASTA and FASTQ, although non-host FASTQ is more useful.
     def run(self) -> None:
         self.run_with_tax_ids(None, None)
-        self.run_with_tax_ids(set([11128]), "betacoronavirus")
+        betacoronaviruses = set([
+            11128,  # bovine betacoronavirus
+            2697049,  # SARS-CoV2
+            694002  # betacoronavirus genus
+        ])
+        self.run_with_tax_ids(betacoronaviruses, "betacoronavirus")
 
     def run_with_tax_ids(
         self,
