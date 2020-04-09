@@ -226,6 +226,9 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 
 When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
 
+- 4.2.2
+  - Fix bug that allowed invalid .gz files to pass input file validation.
+
 - 4.2.1
   - Switch RunAlignmentRemotely to distribute alignment chunks use AWS Batch instead of custom Autoscaling Group Logic logic
 
