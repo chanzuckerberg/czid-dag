@@ -46,7 +46,10 @@ class PipelineStepRunValidateInput(PipelineStep):
                             ],
                         )
                         command.execute(cmd)
+                        # since we're now working with a decompressed file,
+                        # replace the input_file with the name minus .gz
                         input_files[i] = input_file_name
+                        input_file = input_file_name
                     except Exception:
                         raise RuntimeError("Invalid gzip file")
 
@@ -57,7 +60,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                         command_patterns.ShellScriptCommand(
                             script=r'''cat "${input_file}" | cut -c -"$[max_line_length+1]" | head -n "${num_lines}" | awk -f "${awk_script_file}" -v max_line_length="${max_line_length}" > "${output_file}";''',
                             named_args={
-                                "input_file": input_file_name,
+                                "input_file": input_file,
                                 "awk_script_file": command.get_resource_filename("scripts/fastq-fasta-line-validation.awk"),
                                 "max_line_length": vc.MAX_LINE_LENGTH,
                                 "num_lines": num_lines,
