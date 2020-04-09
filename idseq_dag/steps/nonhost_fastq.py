@@ -95,14 +95,17 @@ class PipelineStepNonhostFastq(PipelineStep):
         return new_fastqs
 
     @staticmethod
-    # Extract the original FASTQ header from the fasta file.
-    #
-    # Example fasta line:
-    # >family_nr:4070:family_nt:1903414:genus_nr:4107:genus_nt:586:species_nr:4081:species_nt:587:NR:ABI34274.1:NT:CP029736.1:A00111:123:HCMCTDMXX:1:1111:5575:4382/1
-    #
-    # We just want the part after NT:XX:
-    # We also split based on /1 and /2.
     def extract_header_from_line(line: str) -> Tuple[int, str, Set[int]]:
+        """
+        Extract the original FASTQ header from the fasta file.
+
+        Example fasta line:
+        >family_nr:4070:family_nt:1903414:genus_nr:4107:genus_nt:586:species_nr:4081:species_nt:587:NR:ABI34274.1:NT:CP029736.1:A00111:123:HCMCTDMXX:1:1111:5575:4382/1
+
+        We want to extract the taxids added upstream then we want only the part
+        after NT:XX as the read ID. We also split R1 and R2 reads based on /1
+        and /2.
+        """
         line = line.strip()
         if line[-2:] == "/1":
             read_index = 0
