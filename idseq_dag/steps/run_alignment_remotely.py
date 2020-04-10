@@ -7,6 +7,8 @@ import threading
 import time
 import traceback
 import json
+import re
+from urllib.parse import urlparse
 from botocore.exceptions import ClientError
 
 import boto3
@@ -40,6 +42,10 @@ def get_batch_job_desc_bucket():
         account_id = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()["accountId"]
     return f"aegea-batch-jobs-{account_id}"
 
+def download_from_s3(session, src, dest):
+    url = urlparse(src)
+    bucket, key = url.netloc, url.path
+    return session.resource("s3").download_file(bucket, key, dest)
 
 class PipelineStepRunAlignmentRemotely(PipelineStep):
     """ Runs gsnap/rapsearch2 remotely.
@@ -347,7 +353,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         multihit_local_outfile = os.path.join(self.chunks_result_dir_local, multihit_basename)
         multihit_s3_outfile = os.path.join(self.chunks_result_dir_s3, multihit_basename)
 
-        if lazy_run and fetch_from_s3(multihit_s3_outfile, multihit_local_outfile, okay_if_missing=True, allow_s3mi=False):
+        session = boto3.session.Session()
+        if lazy_run and download_from_s3(session, multihit_s3_outfile, multihit_local_outfile):
             log.write(f"finished alignment for chunk {chunk_id} with {self.alignment_algorithm} by lazily fetching last result")
             return multihit_local_outfile
 
@@ -358,7 +365,10 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         index_dir_suffix = self.additional_attributes["index_dir_suffix"]
 
-        job_name = f"idseq-{deployment_environment}-{self.alignment_algorithm}"
+        pattern = r's3://idseq-samples-[a-z]+/samples/([0-9]+)/([0-9]+)/results'
+        m = re.match(pattern, self.chunks_result_dir_s3)
+        project_id, sample_id = m.group(1), m.group(2)
+        job_name = f"idseq-{deployment_environment}-{self.alignment_algorithm}-project-{project_id}-sample-{sample_id}-part-{chunk_id}"
         job_queue = f"idseq-{deployment_environment}-{self.alignment_algorithm}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
         job_definition = f"idseq-{deployment_environment}-{self.alignment_algorithm}"
 
@@ -370,7 +380,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             'value': multihit_s3_outfile,
         }]
 
-        session = boto3.session.Session()
         client = session.client("batch")
         response = client.submit_job(
             jobName=job_name,
@@ -411,7 +420,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             log.log_event("alignment_batch_error", values={"job_id": job_id})
             raise Exception("chunk timed out but never entered the FAILED state")
 
-        fetch_from_s3(multihit_s3_outfile, multihit_local_outfile, okay_if_missing=True, allow_s3mi=False)
+        download_from_s3(session, multihit_s3_outfile, multihit_local_outfile)
 
         log.write(f"finished alignment for chunk {chunk_id} on {self.alignment_algorithm}")
 
