@@ -14,11 +14,107 @@ class TestLog(unittest.TestCase):
         input_m8 = relative_file_path(__file__, 'm8-test/gsnap.m8')
 
         lineages = relative_file_path(__file__, 'm8-test/taxid-lineages.db')
-        taxid2wgs_accession = relative_file_path(__file__, 'm8-test/taxid2wgs_accession.db')
+        accession2taxid = relative_file_path(__file__, '/m8-test/accession2taxid.db')
+
+
+        accession MK468611 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK468612 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK468613 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK468615 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK468617 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MH124576 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MH124577 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MH124578 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MH124579 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MH124580 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK286896 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK370031 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK370032 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK370033 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK468608 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession CP015500 573
+        lineage 573 ('573', '570', '543')
+        accession CP015822 573
+        lineage 573 ('573', '570', '543')
+        accession CP015990 573
+        lineage 573 ('573', '570', '543')
+        accession CP016813 573
+        lineage 573 ('573', '570', '543')
+        accession CP016814 573
+        lineage 573 ('573', '570', '543')
+        accession CP018140 573
+        lineage 573 ('573', '570', '543')
+        accession CP018337 573
+        lineage 573 ('573', '570', '543')
+        accession CP018352 573
+        lineage 573 ('573', '570', '543')
+        accession CP018356 573
+        lineage 573 ('573', '570', '543')
+        accession CP018364 573
+        lineage 573 ('573', '570', '543')
+        accession MK468618 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK468619 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK468620 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK468621 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MK468622 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MF740874 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MF773566 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MF774614 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MF774615 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession MF774616 37124
+        lineage 37124 ('37124', '11019', '11018')
+        accession CP010295 1280
+        lineage 1280 ('1280', '1279', '90964')
+        accession CP010296 1280
+        lineage 1280 ('1280', '1279', '90964')
+        accession CP010297 1280
+        lineage 1280 ('1280', '1279', '90964')
+        accession CP010298 1280
+        lineage 1280 ('1280', '1279', '90964')
+        accession CP010299 1280
+        lineage 1280 ('1280', '1279', '90964')
+        accession NC_038358 2065052
+        lineage 2065052 ('2065052', '687333', '687329')
+        accession CP017682 1280
+        lineage 1280 ('1280', '1279', '90964')
+        accession CP017804 1280
+        lineage 1280 ('1280', '1279', '90964')
+        accession AF325855 1280
+        lineage 1280 ('1280', '1279', '90964')
+        accession AM990992 523796
+        lineage 523796 ('1280', '1279', '90964')
+        accession AP014652 46170
+        lineage 46170 ('1280', '1279', '90964')
+
 
         """
         # Create an empty lineages db
         lineages_db = shelve.open(lineages.replace('.db', ''), 'c')
+        lineages_db
         lineages_db.close()
 
         taxid2wgs_accession_db = shelve.open(taxid2wgs_accession.replace('.db', ''), 'c')
