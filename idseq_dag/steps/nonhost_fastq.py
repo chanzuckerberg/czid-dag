@@ -16,10 +16,10 @@ class PipelineStepNonhostFastq(PipelineStep):
     def run(self) -> None:
         self.run_with_tax_ids(None, None)
         if self.additional_attributes.get("use_taxon_whitelist"):
-            betacoronaviruses = set([
+            betacoronaviruses = {
                 2697049,  # SARS-CoV2
                 694002,  # betacoronavirus genus
-            ])
+            }
             self.run_with_tax_ids(betacoronaviruses, "betacoronavirus")
 
     def run_with_tax_ids(
@@ -161,9 +161,12 @@ class PipelineStepNonhostFastq(PipelineStep):
                         seen.add(header)
                         assert clusters_dict is not None
                         other_headers = clusters_dict[header][1:]
-                        for header in other_headers:
-                            output_file_0.write(header + "\n")
-                            output_file_1.write(header + "\n")
+                        for other_header in other_headers:
+                            output_file_0.write(other_header + "\n")
+                            output_file_1.write(other_header + "\n")
+                            # Add other headers just in case something has gone
+                            # wrong upstream with cdhitdup.
+                            seen.add(other_header)
                     continue
                 else:
                     # TODO: (gdingle): Show all duplicate reads, not just if
