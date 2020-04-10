@@ -18,7 +18,7 @@ class PipelineStepNonhostFastq(PipelineStep):
         if self.additional_attributes.get("use_taxon_whitelist"):
             betacoronaviruses = set([
                 2697049,  # SARS-CoV2
-                694002  # betacoronavirus genus
+                694002,  # betacoronavirus genus
             ])
             self.run_with_tax_ids(betacoronaviruses, "betacoronavirus")
 
@@ -142,6 +142,10 @@ class PipelineStepNonhostFastq(PipelineStep):
         clusters_dict: Dict[str, Tuple] = None,
         tax_ids: Set[int] = None
     ):
+        # This var is only needed when use_taxon_whitelist, because tax_id
+        # may match only on one half of a read pair. In that case, we still
+        # want to include both.
+        seen = set()
         with open(nonhost_fasta_file, "r") as input_file, \
                 open(self.nonhost_headers[0], "w") as output_file_0, \
                 open(self.nonhost_headers[1], "w") as output_file_1:
@@ -150,17 +154,23 @@ class PipelineStepNonhostFastq(PipelineStep):
                 if line[0] != ">":
                     continue
                 read_index, header, annot_tax_ids = PipelineStepNonhostFastq.extract_header_from_line(line)
-                if tax_ids and not tax_ids.intersection(annot_tax_ids):
+                if tax_ids:
+                    if tax_ids.intersection(annot_tax_ids) and (header not in seen):
+                        output_file_0.write(header + "\n")
+                        output_file_1.write(header + "\n")
+                        seen.add(header)
+                        assert clusters_dict is not None
+                        other_headers = clusters_dict[header][1:]
+                        for header in other_headers:
+                            output_file_0.write(header + "\n")
+                            output_file_1.write(header + "\n")
                     continue
-                output_file = output_file_0 if read_index == 0 else output_file_1
-                output_file.write(header + "\n")
-                # TODO: (gdingle): Show all duplicate reads, not just if
-                # use_taxon_whitelist. See https://jira.czi.team/browse/IDSEQ-2598.
-                if not clusters_dict or not tax_ids:
-                    continue
-                other_headers = clusters_dict[header][1:]
-                for header in other_headers:
+                else:
+                    # TODO: (gdingle): Show all duplicate reads, not just if
+                    # use_taxon_whitelist. See https://jira.czi.team/browse/IDSEQ-2598.
+                    output_file = output_file_0 if read_index == 0 else output_file_1
                     output_file.write(header + "\n")
+                    continue
 
     @staticmethod
     # Use seqtk, which is orders of magnitude faster than Python for this particular step.
