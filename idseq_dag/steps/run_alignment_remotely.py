@@ -45,7 +45,7 @@ def get_batch_job_desc_bucket():
 def download_from_s3(session, src, dest):
     url = urlparse(src)
     bucket, key = url.netloc, url.path
-    return session.resource("s3").download_file(bucket, key, dest)
+    return session.client("s3").download_file(bucket, key, dest)
 
 class PipelineStepRunAlignmentRemotely(PipelineStep):
     """ Runs gsnap/rapsearch2 remotely.
