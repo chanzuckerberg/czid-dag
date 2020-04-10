@@ -109,8 +109,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def __init__(self, *args, **kwrds):
         PipelineStep.__init__(self, *args, **kwrds)
-        # TODO: (tmorse) remove service compatibility https://jira.czi.team/browse/IDSEQ-2568
-        self.alignment_algorithm = self.additional_attributes.get("alignment_algorithm", self.additional_attributes.get("service"))
+        self.alignment_algorithm = self.additional_attributes.get("alignment_algorithm")
         assert self.alignment_algorithm in ("gsnap", "rapsearch2")
         self.chunks_in_flight_semaphore = threading.Semaphore(MAX_CHUNKS_IN_FLIGHT)
         self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
@@ -351,8 +350,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             log.write(f"finished alignment for chunk {chunk_id} with {self.alignment_algorithm} by lazily fetching last result")
             return multihit_local_outfile
 
-        # TODO: (tmorse) remove compat hack https://jira.czi.team/browse/IDSEQ-2568
-        deployment_environment = os.environ.get("DEPLOYMENT_ENVIRONMENT", self.additional_attributes.get("environment"))
+        deployment_environment = os.environ.get("DEPLOYMENT_ENVIRONMENT")
         priority_name = os.environ.get("PRIORITY_NAME", "normal")
         provisioning_model = os.environ.get("PROVISIONING_MODEL", "EC2")
 
