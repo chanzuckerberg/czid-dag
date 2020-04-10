@@ -390,8 +390,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             timeout={"attemptDurationSeconds": CHUNK_ATTEMPT_TIMEOUT}
         )
         job_id = response["jobId"]
+        log.log_event("started_alignment_batch_job", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
 
-        log.write(f"waiting for {self.alignment_algorithm} batch queue for chunk {chunk_id}.")
         total_timeout = CHUNK_MAX_ATTEMPTS * CHUNK_ATTEMPT_TIMEOUT
         end_time = time.time() + total_timeout
         chunks_in_flight = min(chunk_count, MAX_CHUNKS_IN_FLIGHT)  # use min in case we have fewer chunks than the maximum
@@ -413,16 +413,18 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             if status == "SUCCEEDED":
                 break
             if status == "FAILED":
-                log.log_event("alignment_batch_error", values={"job_id": job_id})
+                log.log_event("alignment_batch_job_failed", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
                 raise Exception("chunk alignment failed")
             time.sleep(delay)
         else:
-            log.log_event("alignment_batch_error", values={"job_id": job_id})
+            log.log_event("alignment_batch_job_timeout", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
             raise Exception("chunk timed out but never entered the FAILED state")
+
+        log.log_event("alignment_batch_job_succeeded", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
 
         download_from_s3(session, multihit_s3_outfile, multihit_local_outfile)
 
-        log.write(f"finished alignment for chunk {chunk_id} on {self.alignment_algorithm}")
+        log.log_event("alignment_batch_chunk_result_downloaded", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
 
         return multihit_local_outfile
 
