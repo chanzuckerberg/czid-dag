@@ -422,7 +422,18 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         log.log_event("alignment_batch_job_succeeded", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
 
-        download_from_s3(session, multihit_s3_outfile, multihit_local_outfile)
+        for _ in range(60):
+            try:
+                download_from_s3(session, multihit_s3_outfile, multihit_local_outfile)
+                break
+            except ClientError as e:
+                if e.response["Error"]["Code"] == "NoSuchKey":
+                    time.sleep(1)
+                else:
+                    raise e
+        else:
+            log.log_event("chunk_result_missing_in_s3", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
+            raise Exception("Chunk result is missing from s3")
 
         log.log_event("alignment_batch_chunk_result_downloaded", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
 
