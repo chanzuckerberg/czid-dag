@@ -43,9 +43,15 @@ def get_batch_job_desc_bucket():
     return f"aegea-batch-jobs-{account_id}"
 
 def download_from_s3(session, src, dest):
-    url = urlparse(src)
-    bucket, key = url.netloc, url.path
-    return session.client("s3").download_file(bucket, key, dest)
+    try:
+        url = urlparse(src)
+        bucket, key = url.netloc, url.path
+        session.client("s3").download_file(bucket, key, dest)
+        return True
+    except ClientError as e:
+        if e.response["Error"]["Code"] != "404":
+            return False
+        raise e
 
 class PipelineStepRunAlignmentRemotely(PipelineStep):
     """ Runs gsnap/rapsearch2 remotely.
@@ -354,14 +360,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         multihit_s3_outfile = os.path.join(self.chunks_result_dir_s3, multihit_basename)
 
         session = boto3.session.Session()
-        if lazy_run:
-            try:
-                download_from_s3(session, multihit_s3_outfile, multihit_local_outfile)
-                log.write(f"finished alignment for chunk {chunk_id} with {self.alignment_algorithm} by lazily fetching last result")
-                return multihit_local_outfile
-            except ClientError as e:
-                if e.response["Error"]["Code"] != "NoSuchKey":
-                    raise e
+        if lazy_run and download_from_s3(session, multihit_s3_outfile, multihit_local_outfile):
+            log.write(f"finished alignment for chunk {chunk_id} with {self.alignment_algorithm} by lazily fetching last result")
+            return multihit_local_outfile
 
         # TODO: (tmorse) remove compat hack https://jira.czi.team/browse/IDSEQ-2568
         deployment_environment = os.environ.get("DEPLOYMENT_ENVIRONMENT", self.additional_attributes.get("environment"))
@@ -431,14 +432,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         log.log_event("alignment_batch_job_succeeded", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
 
         for _ in range(60):
-            try:
-                download_from_s3(session, multihit_s3_outfile, multihit_local_outfile)
+            if download_from_s3(session, multihit_s3_outfile, multihit_local_outfile):
                 break
-            except ClientError as e:
-                if e.response["Error"]["Code"] == "NoSuchKey":
-                    time.sleep(1)
-                else:
-                    raise e
+            time.sleep(1)
         else:
             log.log_event("chunk_result_missing_in_s3", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
             raise Exception("Chunk result is missing from s3")
