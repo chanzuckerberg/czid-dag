@@ -226,9 +226,15 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 
 When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
 
-- 4.2.2
+- 4.2.4
   - Update RunAlignmentRemotely to name batch jobs with the chunk id, project id, and sample id
   - Update RunAlignmentRemotely to download results using boto3 rather than fetch_from_s3
+
+- 4.2.3
+  - Validate input step now properly rejects invalid gzip files.
+
+- 4.2.2
+  - Fix bug in phylo tree creation for organisms with an unknown superkingdom.
 
 - 4.2.1
   - Switch RunAlignmentRemotely to distribute alignment chunks use AWS Batch instead of custom Autoscaling Group Logic logic
