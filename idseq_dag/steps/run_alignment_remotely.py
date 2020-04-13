@@ -431,10 +431,10 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         log.log_event("alignment_batch_job_succeeded", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
 
-        for _ in range(60):
+        for _ in range(12):
             if download_from_s3(session, multihit_s3_outfile, multihit_local_outfile):
                 break
-            time.sleep(1)
+            time.sleep(10)
         else:
             log.log_event("chunk_result_missing_in_s3", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
             raise Exception("Chunk result is missing from s3")
