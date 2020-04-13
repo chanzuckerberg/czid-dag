@@ -49,7 +49,7 @@ def download_from_s3(session, src, dest):
         session.client("s3").download_file(bucket, key, dest)
         return True
     except ClientError as e:
-        if e.response["Error"]["Code"] != "404":
+        if e.response["Error"]["Code"] == "404":
             return False
         raise e
 
