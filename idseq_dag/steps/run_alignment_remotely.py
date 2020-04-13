@@ -365,9 +365,12 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         index_dir_suffix = self.additional_attributes["index_dir_suffix"]
 
-        pattern = r's3://idseq-samples-[a-z]+/samples/([0-9]+)/([0-9]+)/results'
+        pattern = r's3://.+/samples/([0-9]+)/([0-9]+)/'
         m = re.match(pattern, self.chunks_result_dir_s3)
-        project_id, sample_id = m.group(1), m.group(2)
+        if m:
+            project_id, sample_id = m.group(1), m.group(2)
+        else:
+            project_id, sample_id = '0', '0'
         job_name = f"idseq-{deployment_environment}-{self.alignment_algorithm}-project-{project_id}-sample-{sample_id}-part-{chunk_id}"
         job_queue = f"idseq-{deployment_environment}-{self.alignment_algorithm}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
         job_definition = f"idseq-{deployment_environment}-{self.alignment_algorithm}"
