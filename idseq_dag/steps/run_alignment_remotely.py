@@ -354,9 +354,14 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         multihit_s3_outfile = os.path.join(self.chunks_result_dir_s3, multihit_basename)
 
         session = boto3.session.Session()
-        if lazy_run and download_from_s3(session, multihit_s3_outfile, multihit_local_outfile):
-            log.write(f"finished alignment for chunk {chunk_id} with {self.alignment_algorithm} by lazily fetching last result")
-            return multihit_local_outfile
+        if lazy_run:
+            try:
+                download_from_s3(session, multihit_s3_outfile, multihit_local_outfile)
+                log.write(f"finished alignment for chunk {chunk_id} with {self.alignment_algorithm} by lazily fetching last result")
+                return multihit_local_outfile
+            except ClientError as e:
+                if e.response["Error"]["Code"] != "NoSuchKey":
+                    raise e
 
         # TODO: (tmorse) remove compat hack https://jira.czi.team/browse/IDSEQ-2568
         deployment_environment = os.environ.get("DEPLOYMENT_ENVIRONMENT", self.additional_attributes.get("environment"))
