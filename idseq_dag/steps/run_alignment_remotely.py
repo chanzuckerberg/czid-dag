@@ -348,6 +348,14 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             else:
                 raise e
 
+    def _log_alignment_batch_job_status(self, job_id, chunk_id, status):
+        log.log_event('alignment_batch_job_status', values={
+            'job_id': job_id,
+            'chunk_id': chunk_id,
+            'status': status,
+            'alignment_algorithm': self.alignment_algorithm,
+        })
+
     def run_chunk(self, part_suffix, input_files, chunk_count, lazy_run):
         """
         Dispatch a chunk to worker machines for distributed GSNAP or RAPSearch
@@ -399,7 +407,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             timeout={"attemptDurationSeconds": CHUNK_ATTEMPT_TIMEOUT}
         )
         job_id = response["jobId"]
-        log.log_event("started_alignment_batch_job", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
+        self._log_alignment_batch_job_status(job_id, chunk_id, 'SUBMITTED')
 
         total_timeout = CHUNK_MAX_ATTEMPTS * CHUNK_ATTEMPT_TIMEOUT
         end_time = time.time() + total_timeout
@@ -420,16 +428,16 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                     raise e
 
             if status == "SUCCEEDED":
+                self._log_alignment_batch_job_status(job_id, chunk_id, status)
                 break
             if status == "FAILED":
                 log.log_event("alignment_batch_job_failed", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
+                self._log_alignment_batch_job_status(job_id, chunk_id, status)
                 raise Exception("chunk alignment failed")
             time.sleep(delay)
         else:
-            log.log_event("alignment_batch_job_timeout", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
+            self._log_alignment_batch_job_status(job_id, chunk_id, 'TIMEOUT')
             raise Exception("chunk timed out but never entered the FAILED state")
-
-        log.log_event("alignment_batch_job_succeeded", values={'job_id': job_id, 'chunk_id': chunk_id, 'alignment_algorithm': self.alignment_algorithm})
 
         for _ in range(12):
             if download_from_s3(session, multihit_s3_outfile, multihit_local_outfile):
