@@ -46,8 +46,7 @@ def download_from_s3(session, src, dest):
     try:
         url = urlparse(src)
         bucket, key = url.netloc, url.path
-        log.log_event('download_from_s3', values={'bucket': bucket, 'key': key})
-        session.client("s3").download_file(bucket, key, dest)
+        session.client("s3").download_file(bucket, key[1:], dest)
         return True
     except ClientError as e:
         if e.response["Error"]["Code"] == "404":
