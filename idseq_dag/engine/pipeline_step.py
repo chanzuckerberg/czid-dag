@@ -153,10 +153,6 @@ class PipelineStep(object):
             try:
                 stage_status = json.loads(idseq_dag.util.s3.get_s3_object_by_path(status_file_s3_path) or "{}")
 
-                # log.write(f"Opening: {self.step_status_local}")
-                # if os.path.isfile(self.step_status_local):
-                #     with open(self.step_status_local, 'r') as status_file:
-                #         status = json.load(status_file)
                 log.write(f"Got status: {stage_status}")
                 stage_status.update({self.name: self.status_dict})
                 log.write(f"Updated status: {status}")
