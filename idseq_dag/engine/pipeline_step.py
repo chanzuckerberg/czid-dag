@@ -142,10 +142,16 @@ class PipelineStep(object):
         # Then, update file by reading the json, modifying, and overwriting.
         log.write(f"Start loading")
         with self.step_status_lock:
+            status_file_basename = os.path.basename(self.step_status_local)
+            status_file_s3_path = "{self.output_dir_s3}/{self.step_status_local}"
+            idseq_dag.util.s3.fetch_from_s3(status_file_s3_path, os.path.dirname(self.step_status_local))
+
             log.write(f"Opening: {self.step_status_local}")
-            with open(self.step_status_local, 'r') as status_file:
-                status = json.load(status_file)
-                log.write(f"Got status: {status}")
+            status = {}
+            if os.path.isfile(self.step_status_local):
+                with open(self.step_status_local, 'r') as status_file:
+                    status = json.load(status_file)
+                    log.write(f"Got status: {status}")
             status.update({self.name: self.status_dict})
             log.write(f"Updated status: {status}")
             with open(self.step_status_local, 'w') as status_file:
