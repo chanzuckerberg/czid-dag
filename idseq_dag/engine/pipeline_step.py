@@ -153,12 +153,12 @@ class PipelineStep(object):
             try:
                 stage_status = json.loads(idseq_dag.util.s3.get_s3_object_by_path(status_file_s3_path) or "{}")
 
-                log.write(f"Got status: {stage_status}")
+                log.write(f"Got status: {list(stage_status.keys())}")
                 stage_status.update({self.name: self.status_dict})
-                log.write("Updating with: {d}".format(d={self.name: self.status_dict}))
+                log.write("Updating with: {d}".format(d=self.name))
                 with open(self.step_status_local, 'w') as status_file:
                     json.dump(stage_status, status_file)
-                    log.write(f"Dumped status: {stage_status}")
+                    log.write(f"Dumped status: {list(stage_status.keys())}")
                 idseq_dag.util.s3.upload_with_retries(self.step_status_local, self.output_dir_s3 + "/")
                 log.write(f"Uploaded: local={self.step_status_local}, folder={self.output_dir_s3}/")
             except Exception as e:
