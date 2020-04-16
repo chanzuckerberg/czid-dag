@@ -147,21 +147,27 @@ class PipelineStep(object):
             status_file_basename = os.path.basename(self.step_status_local)
             status_file_s3_path = f"{self.output_dir_s3}/{self.step_status_local}"
             log.write(f"Fetch: path={status_file_s3_path} to={os.path.dirname(self.step_status_local)}")
-            idseq_dag.util.s3.fetch_from_s3(status_file_s3_path, os.path.dirname(self.step_status_local) or '.')
+            try:
+                status = idseq_dag.util.s3.get_s3_object_by_path(status_file_s3_path) or {}
 
-            log.write(f"Opening: {self.step_status_local}")
-            status = {}
-            if os.path.isfile(self.step_status_local):
-                with open(self.step_status_local, 'r') as status_file:
-                    status = json.load(status_file)
-                    log.write(f"Got status: {status}")
-            status.update({self.name: self.status_dict})
-            log.write(f"Updated status: {status}")
-            with open(self.step_status_local, 'w') as status_file:
-                json.dump(status, status_file)
-                log.write(f"Dumped status status: {status}")
-            idseq_dag.util.s3.upload_with_retries(self.step_status_local, self.output_dir_s3 + "/")
-            log.write(f"Uploaded: local={self.step_status_local}, folder={self.output_dir_s3}/")
+                log.write(f"Opening: {self.step_status_local}")
+                if os.path.isfile(self.step_status_local):
+                    with open(self.step_status_local, 'r') as status_file:
+                        status = json.load(status_file)
+                        log.write(f"Got status: {status}")
+                status.update({self.name: self.status_dict})
+                log.write(f"Updated status: {status}")
+                with open(self.step_status_local, 'w') as status_file:
+                    json.dump(status, status_file)
+                    log.write(f"Dumped status status: {status}")
+                idseq_dag.util.s3.upload_with_retries(self.step_status_local, self.output_dir_s3 + "/")
+                log.write(f"Uploaded: local={self.step_status_local}, folder={self.output_dir_s3}/")
+            except Exception as e:
+                # skips updating status - not ideal, but should be rare, it is a non-critical function
+                # and should be replaced by a new method to update status soon.ArithmeticError
+                log.write("Exception updating status: %s", warning=True, exc_info=True)
+                return
+
 
     @staticmethod
     def done_file(filename):
