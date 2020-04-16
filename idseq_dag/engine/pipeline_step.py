@@ -122,9 +122,6 @@ class PipelineStep(object):
         self.update_status_json_file("uploaded")
 
     def update_status_json_file(self, status):
-        log.write(f"Updating status file for step {self.name} with status {status}")
-        log.log_event("log_event_tests", {"success": True})
-        log.write("Tested log event")
         # First, update own status dictionary
         if "description" not in self.status_dict:
             self.status_dict["description"] = self.step_description()
@@ -143,31 +140,23 @@ class PipelineStep(object):
             [self.relative_path(f) for f in self.additional_output_files_visible]
 
         # Then, update file by reading the json, modifying, and overwriting.
-        log.write(f"Start loading: local file={self.step_status_local}")
         with self.step_status_lock:
             # with the new pipeline this lock is not relevant thus
             # we have a race condition between steps loading and re-writing the file
             status_file_basename = os.path.basename(self.step_status_local)
             status_file_s3_path = f"{self.output_dir_s3}/{status_file_basename}"
-            log.write(f"Fetch: path={status_file_s3_path}")
             try:
                 stage_status = json.loads(idseq_dag.util.s3.get_s3_object_by_path(status_file_s3_path) or "{}")
-
-                log.write(f"Got status: {list(stage_status.keys())}")
                 stage_status.update({self.name: self.status_dict})
-                log.write("Updating with: {d}".format(d=self.name))
                 with open(self.step_status_local, 'w') as status_file:
                     json.dump(stage_status, status_file)
-                    log.write(f"Dumped status: {list(stage_status.keys())}")
                 idseq_dag.util.s3.upload_with_retries(self.step_status_local, self.output_dir_s3 + "/")
-                log.write(f"Uploaded: local={self.step_status_local}, folder={self.output_dir_s3}/")
             except Exception as e:
-                # skips updating status - not ideal, but should be rare, it is a non-critical function
-                # and should be replaced by a new method to update status soon.ArithmeticError
+                # skips updating status - not ideal, but should be rare,
+                # it is a non-critical function and should be replaced by a new method to update status soon.
                 exception_message = traceback.format_exc()
                 log.write(f"Exception updating status. Traceback: {exception_message}", warning=True)
                 return
-
 
     @staticmethod
     def done_file(filename):
