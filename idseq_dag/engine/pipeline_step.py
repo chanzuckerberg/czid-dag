@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import time
+import traceback
 from abc import abstractmethod
 from enum import Enum, IntEnum
 
@@ -14,6 +15,8 @@ import idseq_dag.util.s3
 import idseq_dag.util.count as count
 
 from idseq_dag.util.count import load_cdhit_cluster_sizes
+
+log.configure_logger()
 
 class StepStatus(IntEnum):
     INITIALIZED = 0
@@ -165,7 +168,8 @@ class PipelineStep(object):
             except Exception as e:
                 # skips updating status - not ideal, but should be rare, it is a non-critical function
                 # and should be replaced by a new method to update status soon.ArithmeticError
-                log.write("Exception updating status: %s", warning=True, exc_info=True)
+                exception_messase = traceback.format_exc()
+                log.write(f"Exception updating status. Traceback: {exception_messase}", warning=True)
                 return
 
 
