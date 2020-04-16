@@ -147,7 +147,7 @@ class PipelineStep(object):
             status_file_basename = os.path.basename(self.step_status_local)
             status_file_s3_path = f"{self.output_dir_s3}/{self.step_status_local}"
             log.write(f"Fetch: path={status_file_s3_path} to={os.path.dirname(self.step_status_local)}")
-            idseq_dag.util.s3.fetch_from_s3(status_file_s3_path, os.path.dirname(self.step_status_local))
+            idseq_dag.util.s3.fetch_from_s3(status_file_s3_path, os.path.dirname(self.step_status_local) or '.')
 
             log.write(f"Opening: {self.step_status_local}")
             status = {}
