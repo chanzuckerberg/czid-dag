@@ -145,16 +145,16 @@ class PipelineStep(object):
             # with the new pipeline this lock is not relevant thus
             # we have a race condition between steps loading and re-writing the file
             status_file_basename = os.path.basename(self.step_status_local)
-            status_file_s3_path = f"{self.output_dir_s3}/{self.step_status_local}"
-            log.write(f"Fetch: path={status_file_s3_path} to={os.path.dirname(self.step_status_local)}")
+            status_file_s3_path = f"{self.output_dir_s3}/{status_file_basename}"
+            log.write(f"Fetch: path={status_file_s3_path}")
             try:
                 status = idseq_dag.util.s3.get_s3_object_by_path(status_file_s3_path) or {}
 
-                log.write(f"Opening: {self.step_status_local}")
-                if os.path.isfile(self.step_status_local):
-                    with open(self.step_status_local, 'r') as status_file:
-                        status = json.load(status_file)
-                        log.write(f"Got status: {status}")
+                # log.write(f"Opening: {self.step_status_local}")
+                # if os.path.isfile(self.step_status_local):
+                #     with open(self.step_status_local, 'r') as status_file:
+                #         status = json.load(status_file)
+                log.write(f"Got status: {status}")
                 status.update({self.name: self.status_dict})
                 log.write(f"Updated status: {status}")
                 with open(self.step_status_local, 'w') as status_file:

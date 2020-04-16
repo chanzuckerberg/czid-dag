@@ -95,8 +95,9 @@ def get_s3_object_by_path(s3_path):
             key
         )
         return o.get()['Body'].read()
-    except botocore.exceptions.ClientError as e:
-        raise e
+    except botocore.errorfactory.NoSuchKey:
+        return None
+        # raise all others
 
 
 def list_s3_keys(s3_path_prefix):
