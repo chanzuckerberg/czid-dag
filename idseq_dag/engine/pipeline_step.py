@@ -151,7 +151,7 @@ class PipelineStep(object):
             status_file_s3_path = f"{self.output_dir_s3}/{status_file_basename}"
             log.write(f"Fetch: path={status_file_s3_path}")
             try:
-                status = idseq_dag.util.s3.get_s3_object_by_path(status_file_s3_path) or {}
+                status_string = json.loads(idseq_dag.util.s3.get_s3_object_by_path(status_file_s3_path) or "{}")
 
                 # log.write(f"Opening: {self.step_status_local}")
                 # if os.path.isfile(self.step_status_local):
