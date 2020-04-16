@@ -155,7 +155,7 @@ class PipelineStep(object):
 
                 log.write(f"Got status: {stage_status}")
                 stage_status.update({self.name: self.status_dict})
-                log.write(f"Updated status: {status}")
+                log.write("Updating with: {d}".format(d={self.name: self.status_dict}))
                 with open(self.step_status_local, 'w') as status_file:
                     json.dump(stage_status, status_file)
                     log.write(f"Dumped status: {stage_status}")
