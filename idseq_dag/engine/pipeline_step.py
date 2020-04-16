@@ -120,6 +120,8 @@ class PipelineStep(object):
 
     def update_status_json_file(self, status):
         log.write(f"Updating status file for step {self.name} with status {status}")
+        log.log_event("log_event_tests", {"success": True})
+        log.write("Tested log event")
         # First, update own status dictionary
         if "description" not in self.status_dict:
             self.status_dict["description"] = self.step_description()
@@ -138,13 +140,19 @@ class PipelineStep(object):
             [self.relative_path(f) for f in self.additional_output_files_visible]
 
         # Then, update file by reading the json, modifying, and overwriting.
+        log.write(f"Start loading")
         with self.step_status_lock:
+            log.write(f"Opening: {self.step_status_local}")
             with open(self.step_status_local, 'r') as status_file:
                 status = json.load(status_file)
+                log.write(f"Got status: {status}")
             status.update({self.name: self.status_dict})
+            log.write(f"Updated status: {status}")
             with open(self.step_status_local, 'w') as status_file:
                 json.dump(status, status_file)
+                log.write(f"Dumped status status: {status}")
             idseq_dag.util.s3.upload_with_retries(self.step_status_local, self.output_dir_s3 + "/")
+            log.write(f"Uploaded: local={self.step_status_local}, folder={self.output_dir_s3}/")
 
     @staticmethod
     def done_file(filename):
