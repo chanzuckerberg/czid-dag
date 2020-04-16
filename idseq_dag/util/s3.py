@@ -95,9 +95,12 @@ def get_s3_object_by_path(s3_path):
             key
         )
         return o.get()['Body'].read()
-    except botocore.errorfactory.NoSuchKey:
-        return None
-        # raise all others
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == 'NoSuchKey':
+            return None
+        else:
+            # raise all others
+            raise
 
 
 def list_s3_keys(s3_path_prefix):
