@@ -151,25 +151,25 @@ class PipelineStep(object):
             status_file_s3_path = f"{self.output_dir_s3}/{status_file_basename}"
             log.write(f"Fetch: path={status_file_s3_path}")
             try:
-                status_string = json.loads(idseq_dag.util.s3.get_s3_object_by_path(status_file_s3_path) or "{}")
+                stage_status = json.loads(idseq_dag.util.s3.get_s3_object_by_path(status_file_s3_path) or "{}")
 
                 # log.write(f"Opening: {self.step_status_local}")
                 # if os.path.isfile(self.step_status_local):
                 #     with open(self.step_status_local, 'r') as status_file:
                 #         status = json.load(status_file)
-                log.write(f"Got status: {status}")
-                status.update({self.name: self.status_dict})
+                log.write(f"Got status: {stage_status}")
+                stage_status.update({self.name: self.status_dict})
                 log.write(f"Updated status: {status}")
                 with open(self.step_status_local, 'w') as status_file:
-                    json.dump(status, status_file)
-                    log.write(f"Dumped status status: {status}")
+                    json.dump(stage_status, status_file)
+                    log.write(f"Dumped status: {stage_status}")
                 idseq_dag.util.s3.upload_with_retries(self.step_status_local, self.output_dir_s3 + "/")
                 log.write(f"Uploaded: local={self.step_status_local}, folder={self.output_dir_s3}/")
             except Exception as e:
                 # skips updating status - not ideal, but should be rare, it is a non-critical function
                 # and should be replaced by a new method to update status soon.ArithmeticError
-                exception_messase = traceback.format_exc()
-                log.write(f"Exception updating status. Traceback: {exception_messase}", warning=True)
+                exception_message = traceback.format_exc()
+                log.write(f"Exception updating status. Traceback: {exception_message}", warning=True)
                 return
 
 
