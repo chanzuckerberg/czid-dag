@@ -16,8 +16,6 @@ import idseq_dag.util.count as count
 
 from idseq_dag.util.count import load_cdhit_cluster_sizes
 
-log.configure_logger()
-
 class StepStatus(IntEnum):
     INITIALIZED = 0
     STARTED = 1  # step.start() called
@@ -141,8 +139,9 @@ class PipelineStep(object):
 
         # Then, update file by reading the json, modifying, and overwriting.
         with self.step_status_lock:
-            # with the new pipeline this lock is not relevant thus
-            # we have a race condition between steps loading and re-writing the file
+            # for the new SFN pipeline:
+            # * this lock is no longer relevant since each step is containerized
+            # * we have a race condition between steps loading and re-writing the file
             status_file_basename = os.path.basename(self.step_status_local)
             status_file_s3_path = f"{self.output_dir_s3}/{status_file_basename}"
             try:
@@ -151,11 +150,11 @@ class PipelineStep(object):
                 with open(self.step_status_local, 'w') as status_file:
                     json.dump(stage_status, status_file)
                 idseq_dag.util.s3.upload_with_retries(self.step_status_local, self.output_dir_s3 + "/")
-            except Exception as e:
-                # skips updating status - not ideal, but should be rare,
-                # it is a non-critical function and should be replaced by a new method to update status soon.
-                exception_message = traceback.format_exc()
-                log.write(f"Exception updating status. Traceback: {exception_message}", warning=True)
+            except:
+                # if something fails, we prefer not raising an exception to not affect the rest of the pipeline
+                # these updates are non-critical functions and *should* be replaced by a new event bus soon
+                # so, we only log the message for later debug
+                log.write(f"Exception updating status. Traceback: {traceback.format_exc()}", warning=True)
                 return
 
     @staticmethod
