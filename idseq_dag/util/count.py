@@ -169,15 +169,15 @@ def load_cdhit_cluster_sizes(filename):
 def save_cdhit_cluster_sizes(filename, cdhit_clusters):
     with _CDHIT_CLUSTER_SIZES_LOCK:
         _CDHIT_CLUSTER_SIZES_CACHE[filename] = {}
-    with open(filename, "w") as tsv:
-        for read_id, clusters in cdhit_clusters.items():
-            cluster_size = clusters[0]
-            assert cluster_size != None, f"""If this happened, probably
-            dedup1.fa output of cdhit contains reads that are not mentioned in
-            dedup1.fa.clstr.  Perhaps set cluster_size=1 for those reads but
-            also follow up with cdhit.  Read id: {read_id}"""
-            tsv.write(f"{cluster_size}\t{read_id}\n")
-            _CDHIT_CLUSTER_SIZES_CACHE[filename][read_id] = cluster_size
+        with open(filename, "w") as tsv:
+            for read_id, clusters in cdhit_clusters.items():
+                cluster_size = clusters[0]
+                assert cluster_size != None, f"""If this happened, probably
+                dedup1.fa output of cdhit contains reads that are not mentioned in
+                dedup1.fa.clstr.  Perhaps set cluster_size=1 for those reads but
+                also follow up with cdhit.  Read id: {read_id}"""
+                tsv.write(f"{cluster_size}\t{read_id}\n")
+                _CDHIT_CLUSTER_SIZES_CACHE[filename][read_id] = cluster_size
 
 
 def reads(local_file_path):
