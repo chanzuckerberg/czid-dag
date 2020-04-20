@@ -362,7 +362,7 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
     LOG_INCREMENT = 50000
     log.write("Starting to summarize hits from {}.".format(input_m8))
     for read_id, accession_id, _percent_id, _alignment_length, e_value, _bitscore, _line in iterate_m8(
-            input_m8, min_alignment_length, "call_hits_m8_initial_scan"):
+            input_m8, min_alignment_length, "call_hits_m8_scan"):
         # The Expect value (E) is a parameter that describes the number of
         # hits one can 'expect' to see by chance when searching a database of
         # a particular size. It decreases exponentially as the Score (S) of
