@@ -361,7 +361,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             'alignment_algorithm': self.alignment_algorithm,
         })
 
-    def _submit_batch_job(self, session, job_name, job_queue, job_definition, environment, chunk_id, retries):
+    def _run_batch_job(self, session, job_name, job_queue, job_definition, environment, chunk_id, retries):
         client = session.client("batch")
         response = client.submit_job(
             jobName=job_name,
@@ -439,6 +439,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         provisioning_model = 'SPOT'
 
+        # TODO: parameterize these https://jira.czi.team/browse/IDSEQ-2673
         job_name = f"idseq-{deployment_environment}-{self.alignment_algorithm}-project-{project_id}-sample-{sample_id}-part-{chunk_id}"
         job_queue = f"idseq-{deployment_environment}-{self.alignment_algorithm}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
         job_definition = f"idseq-{deployment_environment}-{self.alignment_algorithm}"
@@ -452,11 +453,28 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         }]
 
         try:
-            job_id = self._submit_batch_job(session, job_name, job_queue, job_definition, environment, chunk_id, 2)
+            job_id = self._run_batch_job(
+                session=session,
+                job_name=job_name,
+                job_queue=job_queue,
+                job_definition=job_definition,
+                environment=environment,
+                chunk_id=chunk_id,
+                retries=2
+            )
         except BatchJobFailed:
             provisioning_model = 'EC2'
+            # TODO: parameterize this https://jira.czi.team/browse/IDSEQ-2673
             job_queue = f"idseq-{deployment_environment}-{self.alignment_algorithm}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
-            job_id = self._submit_batch_job(session, job_name, job_queue, job_definition, environment, chunk_id, 1)
+            job_id = self._run_batch_job(
+                session=session,
+                job_name=job_name,
+                job_queue=job_queue,
+                job_definition=job_definition,
+                environment=environment,
+                chunk_id=chunk_id,
+                retries=1
+            )
 
         for _ in range(12):
             if download_from_s3(session, multihit_s3_outfile, multihit_local_outfile):
