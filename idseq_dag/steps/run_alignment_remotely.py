@@ -457,7 +457,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             provisioning_model = 'EC2'
             job_queue = f"idseq-{deployment_environment}-{self.alignment_algorithm}-{provisioning_model}-{index_dir_suffix}-{priority_name}"
             job_id = self._submit_batch_job(session, job_name, job_queue, job_definition, environment, chunk_id, 1)
-        
+
         for _ in range(12):
             if download_from_s3(session, multihit_s3_outfile, multihit_local_outfile):
                 break
