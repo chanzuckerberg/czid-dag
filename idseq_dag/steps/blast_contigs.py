@@ -249,7 +249,7 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                 json.dump(contig2lineage, c2lf)
 
         self.additional_output_files_hidden.append(contig2lineage_json)
-        
+
     @staticmethod
     def run_blast(db_type, blast_m8, *args):
         blast_index_path = os.path.join(os.path.dirname(blast_m8), f"{db_type}_blastindex")
@@ -488,26 +488,58 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         PipelineStepBlastContigs.get_top_m8_nr(blast_m8, blast_top_m8)
 
     @staticmethod
-    def get_top_m8_nr(orig_m8, blast_top_m8):
-        ''' Get top m8 file entry for each read from orig_m8 and output to blast_top_m8 '''
-        with open(blast_top_m8, 'w') as top_m8f:
-            top_line = None
-            top_bitscore = 0
-            current_read_id = None
-            for read_id, _accession_id, _percent_id, _alignment_length, _e_value, bitscore, line in m8.iterate_m8(orig_m8):
-                # Get the top entry of each read_id based on the bitscore
-                if read_id != current_read_id:
-                    # Different batch start
-                    if current_read_id:  # Not the first line
-                        top_m8f.write(top_line)
-                    current_read_id = read_id
-                    top_line = line
-                    top_bitscore = bitscore
-                elif bitscore > top_bitscore:
-                    top_bitscore = bitscore
-                    top_line = line
-            if top_line is not None:
-                top_m8f.write(top_line)  # Unify reranked formats for NT and NR
+    def get_top_m8_nr(blast_output, blast_top_m8):
+        ''' Get top m8 file entry for each contig from blast_output and output to blast_top_m8 '''
+        m8.unparse_tsv(blast_top_m8, m8.BLAST_OUTPUT_SCHEMA,
+                       PipelineStepBlastContigs.optimal_hit_for_each_query_nr(blast_output))
+
+    @staticmethod
+    def optimal_hit_for_each_query_nr(blast_output):
+        # For each contig, get the alignments that have the best bitscore (may be multiple).
+        contigs_to_best_alignments = defaultdict(list)
+        accession_counts = defaultdict(lambda: 0)
+
+        for alignment in m8.parse_tsv(blast_output, m8.BLAST_OUTPUT_SCHEMA):
+            query = alignment["qseqid"]
+            best_alignments = contigs_to_best_alignments[query]
+
+            if len(best_alignments) == 0 or best_alignments[0]["bitscore"] < alignment["bitscore"]:
+                contigs_to_best_alignments[query] = [alignment]
+            # If it's a tie, add it to best_alignments.
+            elif len(best_alignments) > 0 and best_alignments[0]["bitscore"] == alignment["bitscore"]:
+                contigs_to_best_alignments[query].append(alignment)
+
+        # Create a map of accession to best alignment count.
+        for _contig_id, alignments in contigs_to_best_alignments.items():
+            for alignment in alignments:
+                accession_counts[alignment["sseqid"]] += 1
+
+        accession_count_histogram = defaultdict(lambda: 0)
+        best_alignments_histogram = defaultdict(lambda: 0)
+
+        total_accessions = 0
+        for accession, count in accession_counts.items():
+            accession_count_histogram[count] += 1
+            total_accessions += 1
+
+        for contig, best_alignments in contigs_to_best_alignments.items():
+            best_alignments_histogram[len(best_alignments)] += 1
+
+        log.write("DEBUG: Printing accession_count_histogram for nr:")
+        log.write(accession_count_histogram)
+        log.write(f"Total accessions {total_accessions}")
+        log.write("DEBUG: Printing best_alignments_histogram for nr:")
+        log.write(best_alignments_histogram)
+
+        # For each contig, pick the optimal alignment based on the accession that has the most best alignments.
+        # If there is still a tie, pick the first one (we could consider taxid later)
+        for contig_id, alignments in contigs_to_best_alignments.items():
+            optimal_alignment = None
+            for alignment in alignments:
+                if not optimal_alignment or accession_counts[optimal_alignment["sseqid"]] < accession_counts[alignment["sseqid"]]:
+                    optimal_alignment = alignment
+
+            yield optimal_alignment
 
     @staticmethod
     def filter_and_group_hits_by_query(blast_output, min_alignment_length, min_pident):
@@ -536,21 +568,10 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         if current_query_hits:
             yield current_query_hits
 
-    @staticmethod
-    def optimal_hit_for_each_query(blast_output, min_alignment_length, min_pident):
-        # Yield the optimal hit for each query, from amongst the many subjects hit by the query.  The hit is a list of fragments that together maximize a certain score.  Please see comment in get_top_m8_nt for more context.
-        for query_hits in PipelineStepBlastContigs.filter_and_group_hits_by_query(blast_output, min_alignment_length, min_pident):
-            best_hit = None
-            for _subject, hit_fragments in query_hits.items():
-                hit = BlastCandidate(hit_fragments)
-                hit.optimize()
-                if not best_hit or best_hit.total_score < hit.total_score:
-                    best_hit = hit
-            yield best_hit.summary()
 
     @staticmethod
-    def optimal_hit_for_each_query_v2(blast_output, min_alignment_length, min_pident):
-        # For each contig, get the collection of blast candidates that have the best hit score (may be multiple).
+    def optimal_hit_for_each_query_nt(blast_output, min_alignment_length, min_pident):
+        # For each contig, get the collection of blast candidates that have the best total score (may be multiple).
         contigs_to_blast_candidates = {}
         accession_counts = defaultdict(lambda: 0)
 
@@ -572,6 +593,23 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         for _contig_id, blast_candidates in contigs_to_blast_candidates.items():
             for blast_candidate in blast_candidates:
                 accession_counts[blast_candidate.sseqid] += 1
+
+        accession_count_histogram = defaultdict(lambda: 0)
+        best_alignments_histogram = defaultdict(lambda: 0)
+
+        total_accessions = 0
+        for accession, count in accession_counts.items():
+            accession_count_histogram[count] += 1
+            total_accessions += 1
+
+        for contig, best_alignments in contigs_to_blast_candidates.items():
+            best_alignments_histogram[len(best_alignments)] += 1
+
+        log.write("DEBUG: Printing accession_count_histogram for nt:")
+        log.write(accession_count_histogram)
+        log.write(f"Total accessions {total_accessions}")
+        log.write("DEBUG: Printing best_alignments_histogram for nt:")
+        log.write(best_alignments_histogram)
 
         # For each contig, pick the optimal hit based on the accession that has the most total blast candidates.
         # If there is still a tie, pick the first one (we could consider taxid later)
@@ -607,4 +645,4 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
 
         # Output the optimal hit for each query.
         m8.unparse_tsv(blast_top_m8, m8.RERANKED_BLAST_OUTPUT_NT_SCHEMA,
-                       PipelineStepBlastContigs.optimal_hit_for_each_query_v2(blast_output, min_alignment_length, min_pident))
+                       PipelineStepBlastContigs.optimal_hit_for_each_query_nt(blast_output, min_alignment_length, min_pident))
