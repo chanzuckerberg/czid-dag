@@ -495,17 +495,17 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
 
     @staticmethod
     def optimal_hit_for_each_query_nr(blast_output):
-        # For each contig, get the alignments that have the best bitscore (may be multiple).
         contigs_to_best_alignments = defaultdict(list)
         accession_counts = defaultdict(lambda: 0)
 
+        # For each contig, get the alignments that have the best total score (may be multiple if there are ties).
         for alignment in m8.parse_tsv(blast_output, m8.BLAST_OUTPUT_SCHEMA):
             query = alignment["qseqid"]
             best_alignments = contigs_to_best_alignments[query]
 
             if len(best_alignments) == 0 or best_alignments[0]["bitscore"] < alignment["bitscore"]:
                 contigs_to_best_alignments[query] = [alignment]
-            # If it's a tie, add it to best_alignments.
+            # Add all ties to best_hits.
             elif len(best_alignments) > 0 and best_alignments[0]["bitscore"] == alignment["bitscore"]:
                 contigs_to_best_alignments[query].append(alignment)
 
@@ -515,7 +515,7 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                 accession_counts[alignment["sseqid"]] += 1
 
         # For each contig, pick the optimal alignment based on the accession that has the most best alignments.
-        # If there is still a tie, pick the first one (we could consider taxid later)
+        # If there is still a tie, arbitrarily pick the first one (later we could factor in which taxid has the most blast candidates)
         for contig_id, alignments in contigs_to_best_alignments.items():
             optimal_alignment = None
             for alignment in alignments:
@@ -551,22 +551,24 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         if current_query_hits:
             yield current_query_hits
 
-
     @staticmethod
+    # An iterator that, for contig, yields to optimal hit for the contig in the nt blast_output.
     def optimal_hit_for_each_query_nt(blast_output, min_alignment_length, min_pident):
-        # For each contig, get the collection of blast candidates that have the best total score (may be multiple).
         contigs_to_blast_candidates = {}
         accession_counts = defaultdict(lambda: 0)
 
+        # For each contig, get the collection of blast candidates that have the best total score (may be multiple if there are ties).
         for query_hits in PipelineStepBlastContigs.filter_and_group_hits_by_query(blast_output, min_alignment_length, min_pident):
             best_hits = []
             for _subject, hit_fragments in query_hits.items():
+                # For NT, we take a special approach where we try to find a subset of disjoint HSPs
+                # with maximum sum of bitscores.
                 hit = BlastCandidate(hit_fragments)
                 hit.optimize()
 
                 if len(best_hits) == 0 or best_hits[0].total_score < hit.total_score:
                     best_hits = [hit]
-                # If it's a tie, add it to best_hits.
+                # Add all ties to best_hits.
                 elif len(best_hits) > 0 and best_hits[0].total_score == hit.total_score:
                     best_hits.append(hit)
 
@@ -578,7 +580,7 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                 accession_counts[blast_candidate.sseqid] += 1
 
         # For each contig, pick the optimal hit based on the accession that has the most total blast candidates.
-        # If there is still a tie, pick the first one (we could consider taxid later)
+        # If there is still a tie, arbitrarily pick the first one (later we could factor in which taxid has the most blast candidates)
         for contig_id, blast_candidates in contigs_to_blast_candidates.items():
             optimal_hit = None
             for blast_candidate in blast_candidates:
@@ -586,7 +588,6 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                     optimal_hit = blast_candidate
 
             yield optimal_hit.summary()
-
 
     @staticmethod
     def get_top_m8_nt(blast_output, blast_top_m8, min_alignment_length, min_pident):
