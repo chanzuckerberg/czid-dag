@@ -514,23 +514,6 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
             for alignment in alignments:
                 accession_counts[alignment["sseqid"]] += 1
 
-        accession_count_histogram = defaultdict(lambda: 0)
-        best_alignments_histogram = defaultdict(lambda: 0)
-
-        total_accessions = 0
-        for accession, count in accession_counts.items():
-            accession_count_histogram[count] += 1
-            total_accessions += 1
-
-        for contig, best_alignments in contigs_to_best_alignments.items():
-            best_alignments_histogram[len(best_alignments)] += 1
-
-        log.write("DEBUG: Printing accession_count_histogram for nr:")
-        log.write(accession_count_histogram)
-        log.write(f"Total accessions {total_accessions}")
-        log.write("DEBUG: Printing best_alignments_histogram for nr:")
-        log.write(best_alignments_histogram)
-
         # For each contig, pick the optimal alignment based on the accession that has the most best alignments.
         # If there is still a tie, pick the first one (we could consider taxid later)
         for contig_id, alignments in contigs_to_best_alignments.items():
@@ -593,23 +576,6 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
         for _contig_id, blast_candidates in contigs_to_blast_candidates.items():
             for blast_candidate in blast_candidates:
                 accession_counts[blast_candidate.sseqid] += 1
-
-        accession_count_histogram = defaultdict(lambda: 0)
-        best_alignments_histogram = defaultdict(lambda: 0)
-
-        total_accessions = 0
-        for accession, count in accession_counts.items():
-            accession_count_histogram[count] += 1
-            total_accessions += 1
-
-        for contig, best_alignments in contigs_to_blast_candidates.items():
-            best_alignments_histogram[len(best_alignments)] += 1
-
-        log.write("DEBUG: Printing accession_count_histogram for nt:")
-        log.write(accession_count_histogram)
-        log.write(f"Total accessions {total_accessions}")
-        log.write("DEBUG: Printing best_alignments_histogram for nt:")
-        log.write(best_alignments_histogram)
 
         # For each contig, pick the optimal hit based on the accession that has the most total blast candidates.
         # If there is still a tie, pick the first one (we could consider taxid later)
