@@ -36,7 +36,7 @@ class PipelineStepNonhostFastq(PipelineStep):
         self,
         tax_ids: Optional[Set[int]],
         filename: Optional[str],
-        clusters_dict: Dict[str, str],
+        clusters_dict: Dict[str, Tuple] = None,
     ) -> None:
         assert (tax_ids and filename) or not (
             tax_ids or filename), 'Must be supplied with tax_ids and filename or neither'
