@@ -3,9 +3,8 @@ import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.fasta as fasta
 import idseq_dag.util.m8 as m8
 
-from idseq_dag.util.cdhit_clusters import parse_clusters_file
-
 from idseq_dag.engine.pipeline_step import PipelineCountingStep
+from idseq_dag.util.cdhit_clusters import parse_clusters_file
 
 
 class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
@@ -24,10 +23,16 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
         merged_fasta = self.input_files_local[0][-1]
         gsnap_m8 = self.input_files_local[1][1]
         rapsearch2_m8 = self.input_files_local[2][1]
+
+        if len(self.input_files_local) == 4:
+            cdhitdup_clusters, deduped_fasta = self.input_files_local[3]
+        else:
+            cdhitdup_clusters, deduped_fasta = None, None
+
         annotated_fasta = self._annotated_fasta()
         unidentified_fasta = self._unidentified_fasta()
         self.annotate_fasta_with_accessions(merged_fasta, gsnap_m8, rapsearch2_m8, annotated_fasta)
-        self.generate_unidentified_fasta(annotated_fasta, unidentified_fasta)
+        self.generate_unidentified_fasta(annotated_fasta, unidentified_fasta, clusters_dict)
 
     def count_reads(self):
         # The webapp expects this count to be called "unidentified_fasta"
@@ -71,7 +76,7 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
         # in order to identify all duplicate reads for this read_id.
         return new_read_name.split(":", 4)[-1]
 
-    def generate_unidentified_fasta(self, input_fa, output_fa):
+    def generate_unidentified_fasta(self, input_fa, output_fa, clusters_dict):
         """
         Generates files with all unmapped reads. If COUNT_ALL, which was added
         in v4, then include non-unique reads extracted upstream by cdhitdup.
@@ -96,6 +101,7 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
         self,
         input_fa: str,
         output_fa: str,
+        clusters_dict
     ):
         assert READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL
         # NOTE: this will load the set of all original read headers, which
