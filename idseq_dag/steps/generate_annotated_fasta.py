@@ -25,9 +25,13 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
         rapsearch2_m8 = self.input_files_local[2][1]
 
         if len(self.input_files_local) == 4:
+            assert READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL
             cdhitdup_clusters, deduped_fasta = self.input_files_local[3]
+            # NOTE: this will load the set of all original read headers, which
+            # could be several GBs in the worst case.
+            clusters_dict = parse_clusters_file(cdhitdup_clusters, deduped_fasta)
         else:
-            cdhitdup_clusters, deduped_fasta = None, None
+            clusters_dict = None
 
         annotated_fasta = self._annotated_fasta()
         unidentified_fasta = self._unidentified_fasta()
@@ -95,22 +99,15 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
             )
             return
 
-        self._generate_unidentified_fasta(input_fa)
+        self._generate_unidentified_fasta(input_fa, output_fa, clusters_dict)
 
     def _generate_unidentified_fasta(
         self,
         input_fa: str,
         output_fa: str,
-        clusters_dict
+        clusters_dict: Dict[str, Tuple] = None,
     ):
         assert READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL
-        # NOTE: this will load the set of all original read headers, which
-        # could be several GBs in the worst case.
-        clusters_dict = parse_clusters_file(
-            # TODO: (gdingle): verify filenames
-            self.input_files_local[2][0],
-            self.input_files_local[3][0]
-        )
 
         with fasta.iterator(fasta_file) as input_file, \
                 open(output_fa, "w") as output_file:
