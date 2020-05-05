@@ -1,12 +1,18 @@
-from idseq_dag.engine.pipeline_step import PipelineCountingStep
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
+import idseq_dag.util.fasta as fasta
 import idseq_dag.util.m8 as m8
+
+from idseq_dag.util.cdhit_clusters import parse_clusters_file
+
+from idseq_dag.engine.pipeline_step import PipelineCountingStep
+
 
 class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
     '''
     generate annotated fasta
     '''
+
     def _annotated_fasta(self):
         return self.output_files_local()[0]
 
@@ -60,20 +66,55 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
                     sequence_data = input_fasta_f.readline()
 
     @staticmethod
-    def generate_unidentified_fasta(input_fa, output_fa):
-        # TODO  remove annotated fasta intermediate file and replace > with : below
-        command.execute(
-            command_patterns.ShellScriptCommand(
-                script=r'''grep -A 1 '>NR::NT::' "$1" | sed '/^--$/d' > "$2";''',
-                args=[
-                    input_fa,
-                    output_fa
-                ]
-            )
-        )
-
-    @staticmethod
     def old_read_name(new_read_name):
         # Inverse of new_read_name creation above.  Needed to cross-reference to original read_id
         # in order to identify all duplicate reads for this read_id.
         return new_read_name.split(":", 4)[-1]
+
+    def generate_unidentified_fasta(self, input_fa, output_fa):
+        """
+        Generates files with all unmapped reads. If COUNT_ALL, which was added
+        in v4, then include non-unique reads extracted upstream by cdhitdup.
+        """
+        if READ_COUNTING_MODE == ReadCountingMode.COUNT_UNIQUE:
+            # This is the old way of generating unmapped reads, kept here for consistency.
+            # TODO  remove annotated fasta intermediate file and replace > with : below
+            command.execute(
+                command_patterns.ShellScriptCommand(
+                    script=r'''grep -A 1 '>NR::NT::' "$1" | sed '/^--$/d' > "$2";''',
+                    args=[
+                        input_fa,
+                        output_fa
+                    ]
+                )
+            )
+            return
+
+        self._generate_unidentified_fasta(input_fa)
+
+    def _generate_unidentified_fasta(
+        self,
+        input_fa: str,
+        output_fa: str,
+    ):
+        assert READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL
+        # NOTE: this will load the set of all original read headers, which
+        # could be several GBs in the worst case.
+        clusters_dict = parse_clusters_file(
+            # TODO: (gdingle): verify filenames
+            self.input_files_local[2][0],
+            self.input_files_local[3][0]
+        )
+
+        with fasta.iterator(fasta_file) as input_file, \
+                open(output_fa, "w") as output_file:
+            for read in input_file:
+                if not read.header.startswith('>NR::NT::'):  # has accession
+                    continue
+
+                output_fa.write(read.header + "\n")
+                output_fa.write(read.sequence + "\n")
+
+                other_headers = clusters_dict[header][1:]
+                for other_header in other_headers:
+                    output_fa.write(other_header + "\n")
