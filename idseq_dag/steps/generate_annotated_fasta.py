@@ -1,3 +1,5 @@
+from typing import Dict, Tuple
+
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.fasta as fasta
@@ -5,6 +7,9 @@ import idseq_dag.util.m8 as m8
 
 from idseq_dag.engine.pipeline_step import PipelineCountingStep
 from idseq_dag.util.cdhit_clusters import parse_clusters_file
+from idseq_dag.util.count import READ_COUNTING_MODE, ReadCountingMode
+
+UNMAPPED_HEADER_PREFIX = '>NR::NT::'
 
 
 class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
@@ -105,19 +110,20 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
         self,
         input_fa: str,
         output_fa: str,
-        clusters_dict: Dict[str, Tuple] = None,
+        clusters_dict: Dict[str, Tuple],
     ):
         assert READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL
 
-        with fasta.iterator(fasta_file) as input_file, \
-                open(output_fa, "w") as output_file:
-            for read in input_file:
-                if not read.header.startswith('>NR::NT::'):  # has accession
+        with open(output_fa, "w") as output_file:
+            for read in fasta.iterator(input_fa):
+                if not read.header.startswith(UNMAPPED_HEADER_PREFIX):
                     continue
 
-                output_fa.write(read.header + "\n")
-                output_fa.write(read.sequence + "\n")
+                output_file.write(read.header + "\n")
+                output_file.write(read.sequence + "\n")
 
-                other_headers = clusters_dict[header][1:]
+                # get inner part of '>NR::NT::NB501961:14:HM7TLBGX2:4:23511:18703:20079/2'
+                key = read.header.split(UNMAPPED_HEADER_PREFIX)[1].split('/')[0]
+                other_headers = clusters_dict[key][1:]  # key should always be present
                 for other_header in other_headers:
-                    output_fa.write(other_header + "\n")
+                    output_file.write(other_header + "\n")
