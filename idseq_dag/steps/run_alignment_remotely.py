@@ -197,12 +197,12 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                     target=PipelineStepRunAlignmentRemotely.run_chunk_wrapper,
                     kwargs={
                         'chunks_in_flight_semaphore': self.chunks_in_flight_semaphore,
-                        'chunk_output_files': chunk_output_files, 
+                        'chunk_output_files': chunk_output_files,
                         'n': n,
                         'mutex': mutex,
                         'target': self.run_chunk,
                         'kwargs': {
-                            'part_suffix': part_suffix, 
+                            'part_suffix': part_suffix,
                             'input_files': chunk_input_files,
                             # This must be disabled because cdhit dup requires chunks to be computed based on
                             #  current input, which is non-deterministic between runs.
