@@ -21,7 +21,8 @@
     ],
     "cdhitdup_out": [
       "dedup1.fa.clstr",
-      "dedup1.fa"
+      "dedup1.fa",
+      "cdhitdup_cluster_sizes.tsv"
     ],
     "annotated_out": [
       "annotated_merged.fa",
