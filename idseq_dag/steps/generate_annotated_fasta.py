@@ -24,10 +24,10 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
         gsnap_m8 = self.input_files_local[1][1]
         rapsearch2_m8 = self.input_files_local[2][1]
 
-        if len(self.input_files_local) == 4 \
-                and len(self.input_files_local[3]) == 3:
+        # See app/lib/dags/postprocess.json.jbuilder in idseq-web
+        if len(self.input_files_local) == 5:
             assert READ_COUNTING_MODE == ReadCountingMode.COUNT_ALL
-            cdhitdup_clusters, deduped_fasta, _ = self.input_files_local[3]
+            cdhitdup_clusters, deduped_fasta = self.input_files_local[3]
             # NOTE: this will load the set of all original read headers, which
             # could be several GBs in the worst case.
             clusters_dict = parse_clusters_file(cdhitdup_clusters, deduped_fasta)

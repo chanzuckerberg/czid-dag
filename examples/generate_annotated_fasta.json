@@ -21,7 +21,9 @@
     ],
     "cdhitdup_out": [
       "dedup1.fa.clstr",
-      "dedup1.fa",
+      "dedup1.fa"
+    ],
+    "cdhitdup_cluster_sizes": [
       "cdhitdup_cluster_sizes.tsv"
     ],
     "annotated_out": [
@@ -35,7 +37,8 @@
         "gsnap_filter_out",
         "gsnap_out",
         "rapsearch2_out",
-        "cdhitdup_out"
+        "cdhitdup_out",
+        "cdhitdup_cluster_sizes"
       ],
       "out": "annotated_out",
       "class": "PipelineStepGenerateAnnotatedFasta",
@@ -55,6 +58,9 @@
       "s3_dir": "s3://idseq-samples-prod/samples/833/45285/results/4.0"
     },
     "cdhitdup_out": {
+      "s3_dir": "s3://idseq-samples-prod/samples/833/45285/results/4.0"
+    },
+    "cdhitdup_cluster_sizes": {
       "s3_dir": "s3://idseq-samples-prod/samples/833/45285/results/4.0"
     }
   }
