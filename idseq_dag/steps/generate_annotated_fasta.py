@@ -96,8 +96,18 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
                 output_file.write(read.sequence + "\n")
 
                 if clusters_dict:
-                    # get inner part of '>NR::NT::NB501961:14:HM7TLBGX2:4:23511:18703:20079/2'
-                    key = read.header.split(UNMAPPED_HEADER_PREFIX)[1].split('/')[0]
-                    other_headers = clusters_dict[key][1:]  # key should always be present
-                    for other_header in other_headers:
+                    # get inner part of header like
+                    # '>NR::NT::NB501961:14:HM7TLBGX2:4:23511:18703:20079/2'
+                    line = read.header
+                    header_suffix = ""
+                    if line[-2:-1] == "/":  # /1 or /2
+                        line, header_suffix = line[:-2], line[-2:]
+                        assert header_suffix in ('/1', '/2')
+                        assert len(read.header) == len(line) + len(header_suffix)
+
+                    key = line.split(UNMAPPED_HEADER_PREFIX)[1]
+                    other_keys = clusters_dict[key][1:]  # key should always be present
+                    for other_key in other_keys:
+                        other_header = UNMAPPED_HEADER_PREFIX + other_key + header_suffix
                         output_file.write(other_header + "\n")
+                        output_file.write(read.sequence + "\n")  # write duplicate seq
