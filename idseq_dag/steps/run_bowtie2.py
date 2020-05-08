@@ -64,7 +64,8 @@ class PipelineStepRunBowtie2(PipelineCountingStep):
             '--very-sensitive-local', '-S', output_sam_file
         ]
 
-        # FIXME: we want to move towards a general randomness solution in which
+        # FIXME: https://jira.czi.team/browse/IDSEQ-2738 
+        #  We want to move towards a general randomness solution in which
         #  all randomness is seeded based on the content of the original input.
         #  This is currently introducing non-determinism and hard coding
         #  an arbitrary seed here shouldn't impact correctness.

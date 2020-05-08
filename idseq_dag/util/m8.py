@@ -335,7 +335,8 @@ def _call_hits_m8_work(input_m8, lineage_map, accession2taxid_dict,
                 return level + 1, taxid, accession_id
         return -1, "-1", None
 
-    # FIXME: we want to move towards a general randomness solution in which
+    # FIXME: https://jira.czi.team/browse/IDSEQ-2738 
+    #  We want to move towards a general randomness solution in which
     #  all randomness is seeded based on the content of the original input.
     #  This is currently introducing non-determinism and hard coding
     #  an arbitrary seed here shouldn't impact correctness. This is only used
