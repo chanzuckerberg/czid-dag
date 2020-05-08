@@ -67,7 +67,7 @@ class PipelineStepRunSubsample(PipelineCountingStep):
 
         # total_records > max_fragments, sample
         m = hashlib.md5()
-        # FIXME: https://jira.czi.team/browse/IDSEQ-2738 
+        # FIXME: https://jira.czi.team/browse/IDSEQ-2738
         #   Currently input_fas[0] is always the same string so this is equivalent to a hard-coded seed
         #   This is being left here because we want to move towards seeding all RNG based on a hash of the
         #   input file contents and we want to communicate that intent. We may want to use cr32c checksums
