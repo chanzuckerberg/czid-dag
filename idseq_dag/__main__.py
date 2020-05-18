@@ -97,7 +97,8 @@ def run_step():
 
     try:
         if args.step_class == "PipelineStepRunValidateInput":
-            count_input_reads(input_files=step_instance.input_files_local, max_fragments=None)
+            count_input_reads(input_files=step_instance.input_files_local,
+                              max_fragments=step_instance.additional_attributes["truncate_fragments_to"])
 
         step_instance.update_status_json_file("running")
         step_instance.run()
