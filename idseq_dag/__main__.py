@@ -74,6 +74,11 @@ def run_step():
     parser.add_argument('--additional-attributes', type=json.loads, default={})
     args = parser.parse_args()
 
+    # If the fasta/fastq input is unpaired, we get an empty string placeholder for it. Remove it.
+    for target in args.input_files:
+        if target[-1] == "":
+            del target[-1]
+
     logging.info("idseq-dag %s running %s.%s", __version__, args.step_module, args.step_class)
     idseq_dag.util.s3.config["REF_DIR"] = os.getcwd()
     step = importlib.import_module(args.step_module)
