@@ -49,19 +49,19 @@
   ],
   "given_targets": {
     "gsnap_filter_out": {
-      "s3_dir": "s3://idseq-samples-prod/samples/833/45285/results/4.0"
+      "s3_dir": "s3://idseq-samples-prod/samples/150/46136/results/4.2"
     },
     "gsnap_out": {
-      "s3_dir": "s3://idseq-samples-prod/samples/833/45285/results/4.0"
+      "s3_dir": "s3://idseq-samples-prod/samples/150/46136/results/4.2"
     },
     "rapsearch2_out": {
-      "s3_dir": "s3://idseq-samples-prod/samples/833/45285/results/4.0"
+      "s3_dir": "s3://idseq-samples-prod/samples/150/46136/results/4.2"
     },
     "cdhitdup_out": {
-      "s3_dir": "s3://idseq-samples-prod/samples/833/45285/results/4.0"
+      "s3_dir": "s3://idseq-samples-prod/samples/150/46136/results/4.2"
     },
     "cdhitdup_cluster_sizes": {
-      "s3_dir": "s3://idseq-samples-prod/samples/833/45285/results/4.0"
+      "s3_dir": "s3://idseq-samples-prod/samples/150/46136/results/4.2"
     }
   }
 }

@@ -1,3 +1,5 @@
+from os.path import basename, dirname, join
+
 import idseq_dag.util.fasta as fasta
 import idseq_dag.util.m8 as m8
 
@@ -20,7 +22,10 @@ class PipelineStepGenerateAnnotatedFasta(PipelineCountingStep):
         return self.output_files_local()[1]
 
     def _unique_unidentified_fasta(self):
-        return 'unique_' + self._unidentified_fasta()
+        return join(
+            dirname(self._unidentified_fasta()),
+            'unique_' + basename(self._unidentified_fasta())
+        )
 
     def run(self):
         merged_fasta = self.input_files_local[0][-1]
