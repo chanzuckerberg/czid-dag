@@ -289,7 +289,22 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
             increment(species_summary[species_taxid][contig])
             increment(genus_summary[genus_taxid][contig])
 
+        def has_accession(read_info):
+            """
+            For unknown reasons, reads that do not map to an accession but do
+            map to a contig are included in output but not counted. See
+            'int(hit_level) < 0' in generate_taxon_count_json_from_m8.
+            """
+            accession_id = read_info[3]
+            if accession_id == 'None' or accession_id == "":
+                log.write('no accession_id')
+                return False
+            return True
+
         for read_id, read_info in read_dict.items():
+            if not has_accession(read_info):
+                continue
+
             contig = read2contig.get(read_id, '*')
             lineage = contig2lineage.get(contig)
             if contig != '*' and lineage:
@@ -302,6 +317,9 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                 record_read(species_taxid, genus_taxid, contig, read_id)
 
         for read_id, read_info in added_reads_dict.items():
+            if not has_accession(read_info):
+                continue
+
             contig = read2contig[read_id]
             species_taxid, genus_taxid, _family_taxid = contig2lineage[contig]
             if should_keep((species_taxid, genus_taxid)):
@@ -394,7 +412,8 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                     consolidated_dict[read_id] += [contig_id, accession, species_taxid, genus_taxid, family_taxid]
                     consolidated_dict[read_id][2] = species_taxid
                 else:
-                    added_reads[read_id] = [read_id, "1", species_taxid, accession, species_taxid, genus_taxid, family_taxid, contig_id, accession, species_taxid, genus_taxid, family_taxid, 'from_assembly']
+                    added_reads[read_id] = [read_id, "1", species_taxid, accession, species_taxid, genus_taxid,
+                                            family_taxid, contig_id, accession, species_taxid, genus_taxid, family_taxid, 'from_assembly']
             if m8_line:
                 read2blastm8[read_id] = m8_line
         return (consolidated_dict, read2blastm8, contig2lineage, added_reads)
