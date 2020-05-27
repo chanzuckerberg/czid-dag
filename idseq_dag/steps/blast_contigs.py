@@ -204,11 +204,6 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
             self.ref_dir_local,
             allow_s3mi=False)  # Too small to waste s3mi
 
-        deuterostome_db = None
-        if self.additional_files.get("deuterostome_db"):
-            deuterostome_db = s3.fetch_reference(self.additional_files["deuterostome_db"],
-                                                 self.ref_dir_local, allow_s3mi=False)  # Too small for s3mi
-
         blacklist_s3_file = self.additional_attributes.get('taxon_blacklist', DEFAULT_BLACKLIST_S3)
         taxon_blacklist = s3.fetch_reference(blacklist_s3_file, self.ref_dir_local)
 
@@ -222,7 +217,7 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
             with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_count_json_from_m8", "db_type": db_type, "refined_counts": refined_counts_with_dcr}):
                 m8.generate_taxon_count_json_from_m8(refined_m8, refined_hit_summary,
                                                      evalue_type, db_type.upper(),
-                                                     lineage_db, deuterostome_db, taxon_whitelist, taxon_blacklist,
+                                                     lineage_db, taxon_whitelist, taxon_blacklist,
                                                      cdhit_cluster_sizes_path, refined_counts_with_dcr)
 
         # generate contig stats at genus/species level
@@ -235,7 +230,7 @@ class PipelineStepBlastContigs(PipelineStep):  # pylint: disable=abstract-method
                 db_type,
                 cdhit_cluster_sizes_path,
                 # same filter as applied in generate_taxon_count_json_from_m8
-                m8.build_should_keep_filter(deuterostome_db, taxon_whitelist, taxon_blacklist)
+                m8.build_should_keep_filter(taxon_whitelist, taxon_blacklist)
             )
 
         with log.log_context("PipelineStepBlastContigs", {"substep": "generate_taxon_summary_json", "contig_summary_json": contig_summary_json}):
