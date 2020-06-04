@@ -144,7 +144,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         output_m8, deduped_output_m8, output_hitsummary, output_counts_with_dcr_json = self.output_files_local()
         assert output_counts_with_dcr_json.endswith("_with_dcr.json"), self.output_files_local()
 
-        if os.getenv('LOCAL_ALIGNMENT'):
+        if os.environ["DEPLOYMENT_ENVIRONMENT"] == "test":
             self.run_locally(alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
         else:
             self.run_remotely(alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
