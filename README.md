@@ -226,6 +226,9 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 
 When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
 
+- 4.9.1
+  - Add support for running alignment locally.
+
 - 4.9.0
   - Update NCBI index databases to those downloaded on 2020-04-20.
 

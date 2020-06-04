@@ -144,7 +144,10 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         output_m8, deduped_output_m8, output_hitsummary, output_counts_with_dcr_json = self.output_files_local()
         assert output_counts_with_dcr_json.endswith("_with_dcr.json"), self.output_files_local()
 
-        self.run_remotely(alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
+        if os.getenv('LOCAL_ALIGNMENT'):
+            self.run_locally(alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
+        else:
+            self.run_remotely(alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
 
         # get database
         lineage_db = fetch_reference(self.additional_files["lineage_db"], self.ref_dir_local)
@@ -174,6 +177,45 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             deduped_output_m8, output_hitsummary, evalue_type, db_type,
             lineage_db, deuterostome_db, taxon_whitelist, taxon_blacklist, cdhit_cluster_sizes_path,
             output_counts_with_dcr_json)
+
+    def run_locally(self, input_fas, output_m8):
+        index_path = self.additional_files["index"]  # ex. /references/nt_k16 /references/nr_rapsearch
+        if self.alignment_algorithm == "gsnap":
+            genome_name = self.additional_attributes["genome_name"]  # ex. nt_k16
+            cmd = command_patterns.ShellScriptCommand(
+                script=" ".join(["gsnapl",
+                    "-A", "m8",
+                    "--batch=0",
+                    "--use-shared-memory=0",
+                    "--gmap-mode=none",
+                    "--npaths=100",
+                    "--ordered",
+                    # Threads
+                    "-t", "4",
+                    "--max-mismatches=40",
+                    "-D", index_path,
+                    "-d", genome_name,
+                ] + input_fas + [
+                    ">", output_m8,
+                ])
+            )
+        else:
+            cmd = command_patterns.SingleCommand(
+                cmd="rapsearch",
+                args=[
+                    "-d", index_path,
+                    "-e", "-6",
+                    "-l", "10",
+                    "-a", "T",
+                    "-b", "0",
+                    "-v", "50",
+                    # Threads
+                    "-z", "4",
+                    "-q"] + input_fas + [
+                    "-o", output_m8
+                ]
+            )
+        command.execute(cmd)
 
     def run_remotely(self, input_fas, output_m8):
         # Split files into chunks for performance
