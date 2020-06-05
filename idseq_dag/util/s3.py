@@ -298,6 +298,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
     #   of the s3 path and seemlessly transition without a coordinated
     #   change between idseq-dag and the idseq monorepo.
     if not src.startswith("s3://"):
+        log.write(f"fetch_from_s3 is skipping download because source: {src} does not start with s3://")
         return src
 
     # Do not be mislead by the multiprocessing.RLock() above -- that just means it won't deadlock
