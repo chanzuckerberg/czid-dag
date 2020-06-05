@@ -20,7 +20,7 @@ NT_MIN_ALIGNMENT_LEN = 36
 
 # Alignments with e-values greater than 1 are low-quality alignments and associated with
 # a high rate of false-positives. These should be filtered at all alignment steps.
-EVALUE_THRESHOLD = 1
+MAX_EVALUE_THRESHOLD = 1
 
 # blastn output format 6 as documented in
 # http://www.metagenomics.wiki/tools/blast/blastn-output-format-6
@@ -71,7 +71,7 @@ RERANKED_BLAST_OUTPUT_SCHEMA = {
 MIN_CONTIG_SIZE = 4
 
 
-def parse_tsv(path, schema, expect_headers=False, raw_lines=False):
+def parse_tsv(path, schema, expect_headers=False, raw_lines=False, min_alignment_length=0):
     '''Parse TSV file with given schema, yielding a dict per line.  See BLAST_OUTPUT_SCHEMA, for example.  When expect_headers=True, treat the first line as column headers.'''
     assert expect_headers == False, "Headers not yet implemented."
     schema_items = schema.items()
