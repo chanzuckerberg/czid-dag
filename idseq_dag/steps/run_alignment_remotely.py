@@ -43,6 +43,12 @@ def get_batch_job_desc_bucket():
     return f"aegea-batch-jobs-{account_id}"
 
 def download_from_s3(session, src, dest):
+    """
+    We are transitioning away from s3 downloads of files within steps.
+    This is only to be used for getting the state of batch jobs from the
+    s3 cache. These files are small and dynamically generated based on jobs
+    so this fetching is very different from downloading input files.
+    """
     try:
         url = urlparse(src)
         bucket, key = url.netloc, url.path
