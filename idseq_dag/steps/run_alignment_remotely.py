@@ -151,7 +151,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         assert output_counts_with_dcr_json.endswith("_with_dcr.json"), self.output_files_local()
 
         # Providing an index only works locally
-        index_path = self.additional_files["index"]
+        index_path = self.additional_files.get("index")
         if index_path:
             self.run_locally(index_path, alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
         else:
