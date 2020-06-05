@@ -144,8 +144,10 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         output_m8, deduped_output_m8, output_hitsummary, output_counts_with_dcr_json = self.output_files_local()
         assert output_counts_with_dcr_json.endswith("_with_dcr.json"), self.output_files_local()
 
-        if os.environ["DEPLOYMENT_ENVIRONMENT"] == "test":
-            self.run_locally(alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
+        # Providing an index only works locally
+        index_path = self.additional_files["index"]
+        if index_path:
+            self.run_locally(index_path, alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
         else:
             self.run_remotely(alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
 
@@ -178,8 +180,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             lineage_db, deuterostome_db, taxon_whitelist, taxon_blacklist, cdhit_cluster_sizes_path,
             output_counts_with_dcr_json)
 
-    def run_locally(self, input_fas, output_m8):
-        index_path = self.additional_files["index"]  # ex. /references/nt_k16 /references/nr_rapsearch
+    def run_locally(self, index_path, input_fas, output_m8):
         if self.alignment_algorithm == "gsnap":
             genome_name = self.additional_attributes["genome_name"]  # ex. nt_k16
             cmd = command_patterns.ShellScriptCommand(
