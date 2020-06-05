@@ -202,8 +202,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                                  "--max-mismatches=40",
                                  "-D", index_path,
                                  "-d", genome_name,
-                                ] + input_fas + [
-                                 ">", output_m8,
+                                 ] + input_fas + [
+                                ">", output_m8,
                                 ])
             )
         else:
