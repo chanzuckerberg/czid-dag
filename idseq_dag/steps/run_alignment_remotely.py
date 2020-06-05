@@ -191,20 +191,20 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             genome_name = self.additional_attributes["genome_name"]  # ex. nt_k16
             cmd = command_patterns.ShellScriptCommand(
                 script=" ".join(["gsnapl",
-                    "-A", "m8",
-                    "--batch=0",
-                    "--use-shared-memory=0",
-                    "--gmap-mode=none",
-                    "--npaths=100",
-                    "--ordered",
-                    # Threads
-                    "-t", "4",
-                    "--max-mismatches=40",
-                    "-D", index_path,
-                    "-d", genome_name,
-                ] + input_fas + [
-                    ">", output_m8,
-                ])
+                                 "-A", "m8",
+                                 "--batch=0",
+                                 "--use-shared-memory=0",
+                                 "--gmap-mode=none",
+                                 "--npaths=100",
+                                 "--ordered",
+                                 # Threads
+                                 "-t", "4",
+                                 "--max-mismatches=40",
+                                 "-D", index_path,
+                                 "-d", genome_name,
+                                ] + input_fas + [
+                                 ">", output_m8,
+                                ])
             )
         else:
             cmd = command_patterns.SingleCommand(
