@@ -201,7 +201,7 @@ def iterate_m8(m8_file, min_alignment_length=0, debug_caller=None, logging_inter
             # all alignments steps (NT and NR). When the e-value is greater than 1, ignore the 
             # alignment
             ###
-            if e_value > EVALUE_THRESHOLD:
+            if e_value > MAX_EVALUE_THRESHOLD:
                 continue
 
             if debug_caller and line_count % logging_interval == 0:
