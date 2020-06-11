@@ -1,7 +1,7 @@
 import json
 import os
 
-from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.engine.pipeline_step import PipelineStep, InvalidInputFileError
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.count as count
@@ -63,7 +63,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                             )
                         )
                     except:
-                        raise RuntimeError("Invalid fastq/fasta/gzip file")
+                        raise InvalidInputFileError("Invalid fastq/fasta/gzip file")
                 else:
                     # Validate and truncate the input file to keep behavior consistent with gz input files
                     try:
@@ -82,7 +82,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                         )
                         input_files[i] = tmp_file
                     except:
-                        raise RuntimeError("Invalid fastq/fasta file")
+                        raise InvalidInputFileError("Invalid fastq/fasta file")
 
             # keep a dictionary of the distribution of read lengths in the files
             self.summary_dict = {vc.BUCKET_TOO_SHORT: 0,
@@ -104,7 +104,7 @@ class PipelineStepRunValidateInput(PipelineStep):
                 all_fragments.append(num_fragments)
 
             if len(all_fragments) == 2 and abs(all_fragments[1] - all_fragments[0]) > 1000:
-                raise RuntimeError("Paired input files need to contain the same number of reads")
+                raise InvalidInputFileError("Paired input files need to contain the same number of reads")
 
             with open(summary_file, 'w') as summary_f:
                 json.dump(self.summary_dict, summary_f)
@@ -142,16 +142,16 @@ class PipelineStepRunValidateInput(PipelineStep):
 
                 read_l = input_f.readline()
                 if len(read_l) == 0:  # unexpected EOF
-                    raise RuntimeError("Invalid input file")
+                    raise InvalidInputFileError("Invalid input file")
 
                 if is_fastq:
                     identifier2_l = input_f.readline()
                     if len(identifier2_l) == 0:
-                        raise RuntimeError("Invalid FASTQ file")
+                        raise InvalidInputFileError("Invalid FASTQ file")
 
                     quality_l = input_f.readline()
                     if len(quality_l) == 0:
-                        raise RuntimeError("Invalid FASTQ file")
+                        raise InvalidInputFileError("Invalid FASTQ file")
 
                 if is_fastq:
                     if identifier_l[0] != '@' or identifier2_l[0] != '+':
@@ -220,7 +220,7 @@ class PipelineStepRunValidateInput(PipelineStep):
 
                 read_l = input_f.readline()
                 if len(read_l) == 0:
-                    raise RuntimeError("Invalid input file")
+                    raise InvalidInputFileError("Invalid input file")
 
                 read_l = read_l.rstrip()
                 next_line = input_f.readline()
@@ -231,11 +231,11 @@ class PipelineStepRunValidateInput(PipelineStep):
                 if is_fastq:
                     identifier2_l = next_line
                     if len(identifier2_l) == 0:
-                        raise RuntimeError("Invalid FASTQ file")
+                        raise InvalidInputFileError("Invalid FASTQ file")
 
                     quality_l = input_f.readline()
                     if len(quality_l) == 0:
-                        raise RuntimeError("Invalid FASTQ file")
+                        raise InvalidInputFileError("Invalid FASTQ file")
 
                     quality_l = quality_l.rstrip()
                     next_line = input_f.readline()
@@ -245,12 +245,12 @@ class PipelineStepRunValidateInput(PipelineStep):
 
                 if is_fastq:
                     if identifier_l[0] != '@':
-                        raise RuntimeError("Invalid FASTQ file")
+                        raise InvalidInputFileError("Invalid FASTQ file")
                     if identifier2_l[0] != '+':
-                        raise RuntimeError("Invalid FASTQ file")
+                        raise InvalidInputFileError("Invalid FASTQ file")
                 else:
                     if identifier_l[0] != '>':
-                        raise RuntimeError("Invalid FASTA file")
+                        raise InvalidInputFileError("Invalid FASTA file")
 
                 # At this point, identifier_l and identifier2_l end in a newline and
                 # read_l and quality_l do not end in a newline
