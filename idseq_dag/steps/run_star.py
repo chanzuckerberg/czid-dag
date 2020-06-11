@@ -3,7 +3,7 @@ import os
 import json
 import re
 
-from idseq_dag.engine.pipeline_step import PipelineStep, StepStatus, InputFileErrors
+from idseq_dag.engine.pipeline_step import PipelineStep, InvalidInputFileError
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.log as log
@@ -181,9 +181,7 @@ class PipelineStepRunStar(PipelineStep):
                 PipelineStepRunStar.unmapped_files_in(tmp, num_inputs))
 
             if too_discrepant:
-                self.input_file_error = InputFileErrors.BROKEN_PAIRS
-                self.status = StepStatus.INVALID_INPUT
-                return
+                raise InvalidInputFileError("Broken pairs")
 
             # Run part 0 in gene-counting mode:
             # (a) ERCCs are doped into part 0 and we want their counts.
