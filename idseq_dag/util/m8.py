@@ -71,7 +71,7 @@ RERANKED_BLAST_OUTPUT_SCHEMA = {
 MIN_CONTIG_SIZE = 4
 
 
-def parse_tsv(path, schema, expect_headers=False, raw_lines=False, min_alignment_length=0):
+def parse_tsv(path, schema, expect_headers=False, raw_lines=False):
     '''Parse TSV file with given schema, yielding a dict per line.  See BLAST_OUTPUT_SCHEMA, for example.  When expect_headers=True, treat the first line as column headers.'''
     assert expect_headers == False, "Headers not yet implemented."
     schema_items = schema.items()
