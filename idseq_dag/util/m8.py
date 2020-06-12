@@ -198,7 +198,7 @@ def iterate_m8(m8_file, min_alignment_length=0, debug_caller=None, logging_inter
 
             # *** E-value Filter ***
             # Alignments with e-value > 1 are low-quality and associated with false-positives in
-            # all alignments steps (NT and NR). When the e-value is greater than 1, ignore the 
+            # all alignments steps (NT and NR). When the e-value is greater than 1, ignore the
             # alignment
             ###
             if e_value > MAX_EVALUE_THRESHOLD:
