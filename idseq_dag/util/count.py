@@ -194,7 +194,9 @@ def reads_in_group(file_group, max_fragments=None, cluster_sizes=None, cluster_k
     assert (cluster_sizes == None) == (cluster_key == None), "Please specify cluster_key when using cluster_sizes."
     first_file = file_group[0]
     # This is so fast, just do it always as a sanity check.
-    unique_fast = min(count_reads(first_file), max_fragments)
+    unique_fast = count_reads(first_file)
+    if max_fragments is not None:
+        unique_fast = min(unique_fast, max_fragments)
     if cluster_sizes:
         # Run this even if ReadCountingMode.COUNT_UNIQUE to get it well tested before release.  Dark launch.
         unique, nonunique = _count_reads_expanding_duplicates(first_file, cluster_sizes, cluster_key)
