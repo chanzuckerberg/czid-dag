@@ -16,13 +16,14 @@ class ReadCountingMode(Enum):
 PIPELINE_MAJOR_VERSION = int(__version__.split(".", 1)[0])
 READ_COUNTING_MODE = ReadCountingMode.COUNT_ALL if PIPELINE_MAJOR_VERSION >= 4 else ReadCountingMode.COUNT_UNIQUE
 
+GZIP_MAGIC_HEADER = b'\037\213'
 
 def count_reads(filename):
     '''
     Count reads in a given FASTA or FASTQ file.
     '''
-    libmagic_cmd = ["file", "--dereference", "--brief", "--mime-type", filename]
-    is_gzipped = True if run(libmagic_cmd, stdout=PIPE).stdout.startswith(b"application/gzip") else False
+    with open(filename, "rb") as gz_fh:
+        is_gzipped = True if gz_fh.read(2).startswith(GZIP_MAGIC_HEADER) else False
     with gzip.open(filename) if is_gzipped else open(filename, mode="rb") as fmt_fh:
         first_char = fmt_fh.read(1).decode()[0]
     with open(filename, "rb") as fh:
