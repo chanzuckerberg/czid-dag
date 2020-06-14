@@ -12,10 +12,15 @@ fastq_filename = os.path.join(os.path.dirname(__file__), "fixtures", "reads.fast
 @unittest.skipIf(os.uname().sysname != "Linux", "Skipping test on incompatible platform")
 class TestCountReads(unittest.TestCase):
     def test_run_priceseqfilter(self):
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile() as tf:
-            try:
-                wd = os.getcwd()
-                os.chdir(td)
-                PipelineStepRunPriceSeq.run_priceseqfilter(None, [fasta_filename], [tf.name], is_paired=False, file_type="fastq")
-            finally:
-                os.chdir(wd)
+        for args in [dict(in_files=[fasta_filename], is_paired=False, file_type="fasta"),
+                     dict(in_files=[fastq_filename], is_paired=False, file_type="fastq"),
+                     dict(in_files=[fastq_filename, fastq_filename], is_paired=False, file_type="fastq"),
+                     dict(in_files=[fastq_filename, fastq_filename], is_paired=False, file_type="fastq")]:
+            with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix="." + args["file_type"]) as tf:
+                args["out_files"] = [tf.name] * len(args["in_files"])
+                try:
+                    wd = os.getcwd()
+                    os.chdir(td)
+                    PipelineStepRunPriceSeq.run_priceseqfilter(None, **args)
+                finally:
+                    os.chdir(wd)
