@@ -15,6 +15,7 @@ import idseq_dag.util.s3
 import idseq_dag.util.count as count
 
 from idseq_dag.util.count import load_cdhit_cluster_sizes
+from idseq_dag.exceptions import InvalidInputFileError, InvalidOutputFileError
 
 
 class StepStatus(IntEnum):
@@ -23,24 +24,6 @@ class StepStatus(IntEnum):
     FINISHED = 2  # step.run() finished
     UPLOADED = 3  # all results uploaded to s3
     INVALID_INPUT = 4  # an error occurred when validating the input file
-
-
-class InputFileErrors(Enum):
-    ''' This error will be used by the front-end to display a user-friendly error message '''
-    INSUFFICIENT_READS = "INSUFFICIENT_READS"
-    BROKEN_PAIRS = "BROKEN_PAIRS"
-
-
-class InvalidInputFileError(Exception):
-    def __init__(self, json):
-        super().__init__()
-        self.json = json
-
-
-class InvalidOutputFileError(Exception):
-    def __init__(self, json):
-        super().__init__()
-        self.json = json
 
 
 class PipelineStep(object):

@@ -1,9 +1,9 @@
 ''' Run PriceSeq Filter '''
 import os
+from subprocess import run
 
-from idseq_dag.engine.pipeline_step import PipelineStep, InputFileErrors
-import idseq_dag.util.command as command
-import idseq_dag.util.command_patterns as command_patterns
+from idseq_dag.engine.pipeline_step import PipelineStep
+from idseq_dag.exceptions import InsufficientReadsError
 import idseq_dag.util.log as log
 import idseq_dag.util.count as count
 import idseq_dag.util.fasta as fasta
@@ -34,7 +34,7 @@ class PipelineStepRunPriceSeq(PipelineStep):
     """
     def validate_input_files(self):
         if not count.files_have_min_reads(self.input_files_local[0][0:2], 1):
-            self.input_file_error = InputFileErrors.INSUFFICIENT_READS
+            raise InsufficientReadsError("Insufficient reads")
 
     def run(self):
         """PriceSeqFilter is used to filter input data based on quality. Two FASTQ
@@ -102,23 +102,23 @@ class PipelineStepRunPriceSeq(PipelineStep):
                 fasta.multilinefa2singlelinefa(price_out[1], output_files[1])
             log.write(f"Finished {step}.")
 
-    def run_priceseqfilter(self, in_files, out_files, is_paired, file_type):
-        params = ['-a', '12', '-rnf', '90', '-log', 'c']
+    def run_priceseqfilter(self, in_files, out_files, is_paired, file_type="fastq"):
+        command = ["PriceSeqFilter", "-a", "12", "-rnf", "90", "-log", "c"]
+        params = {"fasta": [], "fastq": ["-rqf", "85", "0.98"]}
+        os.symlink(in_files[0], "priceseq_in1." + file_type)
         if is_paired:
-            params.extend([
-                '-fp', in_files[0], in_files[1], '-op', out_files[0],
-                out_files[1]
-            ])
+            assert len(in_files) == 2 and len(out_files) == 2
+            os.symlink(in_files[1], "priceseq_in2." + file_type)
+            command.extend(["-fp", "priceseq_in1." + file_type, "priceseq_in2." + file_type])
+            command.extend(["-op", "priceseq_out1." + file_type, "priceseq_out2." + file_type])
+            command.extend(params[file_type])
         else:
-            params.extend(['-f', in_files[0], '-o', out_files[0]])
-        if file_type != "fasta":  # Default fastq. Explicitly specify fasta.
-            params.extend(['-rqf', '85', '0.98'])
-        command.execute(
-            command_patterns.SingleCommand(
-                cmd='PriceSeqFilter',
-                args=params
-            )
-        )
+            assert len(in_files) == 1 and len(out_files) == 1
+            command.extend(["-f", "priceseq_in1." + file_type, "-o", "priceseq_out1." + file_type])
+        run(command)
+        os.rename("priceseq_out1." + file_type, out_files[0])
+        if is_paired:
+            os.rename("priceseq_out2." + file_type, out_files[1])
 
     def count_reads(self):
         ''' Count reads '''
