@@ -189,6 +189,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
     def run_locally(self, index_path, input_fas, output_m8):
         if self.alignment_algorithm == "gsnap":
             genome_name = self.additional_attributes["genome_name"]  # ex. nt_k16
+            # Code duplication, these flags (except for threads) are
+            #   kept in sync with those in the job definition here:
+            #   https://github.com/chanzuckerberg/idseq/blob/master/workflows/terraform/modules/alignment-batch/batch_job_container_properties.json.tpl
             cmd = command_patterns.ShellScriptCommand(
                 script=" ".join(["gsnapl",
                                  "-A", "m8",
@@ -207,6 +210,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                                 ])
             )
         else:
+            # Code duplication, these flags (except for threads) are
+            #   kept in sync with those in the job definition here:
+            #   https://github.com/chanzuckerberg/idseq/blob/master/workflows/terraform/modules/alignment-batch/batch_job_container_properties.json.tpl
             cmd = command_patterns.SingleCommand(
                 cmd="rapsearch",
                 args=[
