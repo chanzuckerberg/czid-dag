@@ -295,7 +295,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
     #   source is already a local file, and returns the source (which is
     #   a local file path). This way, when we change the additional_files
     #   to inputs we can provide the local file path to the step instead
-    #   of the s3 path and seemlessly transition without a coordinated
+    #   of the s3 path and seamlessly transition without a coordinated
     #   change between idseq-dag and the idseq monorepo.
     if not src.startswith("s3://"):
         log.write(f"fetch_from_s3 is skipping download because source: {src} does not start with s3://")
