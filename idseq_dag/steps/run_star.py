@@ -201,7 +201,7 @@ class PipelineStepRunStar(PipelineStep):
                 #  Aligned.toTranscriptome.out.bam with  TranscriptomeSAM, this doesn't
                 #  appear to be configurable
                 is_dna = self.collect_insert_size_metrics_for == "dna"
-                bam_filename = "Aligned.sortedByCoord.out.bam" if is_dna else "Aligned.toTranscriptome.out.bam"
+                bam_filename = "Aligned.out.bam" if is_dna else "Aligned.toTranscriptome.out.bam"
                 if self.collect_insert_size_metrics_for:
                     bam_path = os.path.join(tmp, bam_filename)
 
