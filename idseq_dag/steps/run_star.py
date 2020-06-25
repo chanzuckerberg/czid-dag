@@ -73,14 +73,14 @@ class PipelineStepRunStar(PipelineStep):
     With these options (for DNA):
 
     ```
-    --outSAMtype BAM SortedByCoordinate
+    --outSAMtype BAM Unsorted
     --outSAMmode NoQS
     ```
 
     Or these options (for RNA):
 
     ```
-    --outSAMtype BAM SortedByCoordinate
+    --outSAMtype BAM Unsorted
     --outSAMmode NoQS
     --quantMode TranscriptomeSAM GeneCounts
     ```
@@ -201,7 +201,7 @@ class PipelineStepRunStar(PipelineStep):
                 #  Aligned.toTranscriptome.out.bam with  TranscriptomeSAM, this doesn't
                 #  appear to be configurable
                 is_dna = self.collect_insert_size_metrics_for == "dna"
-                bam_filename = "Aligned.out.bam" if is_dna else "Aligned.toTranscriptome.out.bam"
+                bam_filename = "Aligned.sortedByCoord.out.bam" if is_dna else "Aligned.toTranscriptome.out.bam"
                 if self.collect_insert_size_metrics_for:
                     bam_path = os.path.join(tmp, bam_filename)
 
@@ -263,9 +263,7 @@ class PipelineStepRunStar(PipelineStep):
                       use_starlong):
         command.make_dirs(output_dir)
 
-        cpus = multiprocessing.cpu_count()
-        # SortedByCoordinate breaks around > 32 threads
-        threads = str(min(32, cpus))
+        cpus = str(multiprocessing.cpu_count())
         cd = output_dir
         cmd = 'STARlong' if use_starlong else 'STAR'
         params = [
@@ -275,15 +273,14 @@ class PipelineStepRunStar(PipelineStep):
             '--outReadsUnmapped', 'Fastx',
             '--outFilterMismatchNmax', '999',
             '--clip3pNbases', '0',
-            '--runThreadN', threads,
+            '--runThreadN', cpus,
             '--genomeDir', genome_dir,
             '--readFilesIn', *input_files
         ]
 
         if self.collect_insert_size_metrics_for == "rna":
-            # SortedByCoordinate is required for deterministic output
             params += [
-                '--outSAMtype', 'BAM', 'SortedByCoordinate',
+                '--outSAMtype', 'BAM', 'Unsorted',
                 '--outSAMmode', 'NoQS',
                 # Based on experimentation we always want --quantMode TranscriptomeSAM GeneCounts
                 #   for RNA to collect transcriptome-specific results to compute insert size metrics on
@@ -292,8 +289,7 @@ class PipelineStepRunStar(PipelineStep):
             ]
         else:
             if self.collect_insert_size_metrics_for == "dna":
-                # SortedByCoordinate is required for deterministic output
-                params += ['--outSAMtype', 'BAM', 'SortedByCoordinate', '--outSAMmode', 'NoQS', ]
+                params += ['--outSAMtype', 'BAM', 'Unsorted', '--outSAMmode', 'NoQS', ]
             else:
                 params += ['--outSAMmode', 'None']
 
@@ -321,11 +317,11 @@ class PipelineStepRunStar(PipelineStep):
         outSAMmode = "--outSAMmode None"
 
         if self.collect_insert_size_metrics_for == 'dna':
-            outSAMmode = """--outSAMtype BAM SortedByCoordinate
+            outSAMmode = """--outSAMtype BAM Unsorted
                 --outSAMmode NoQS"""
 
         if self.collect_insert_size_metrics_for == 'rna':
-            outSAMmode = """--outSAMtype BAM SortedByCoordinate
+            outSAMmode = """--outSAMtype BAM Unsorted
                 --outSAMmode NoQS
                 --quantMode TranscriptomeSAM GeneCounts"""
 
