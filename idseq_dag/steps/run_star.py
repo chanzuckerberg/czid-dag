@@ -264,6 +264,8 @@ class PipelineStepRunStar(PipelineStep):
         command.make_dirs(output_dir)
 
         cpus = str(multiprocessing.cpu_count())
+        # SortedByCoordinate breaks around > 32 threads
+        threads = min(32, cpus)
         cd = output_dir
         cmd = 'STARlong' if use_starlong else 'STAR'
         params = [
@@ -273,7 +275,7 @@ class PipelineStepRunStar(PipelineStep):
             '--outReadsUnmapped', 'Fastx',
             '--outFilterMismatchNmax', '999',
             '--clip3pNbases', '0',
-            '--runThreadN', cpus,
+            '--runThreadN', threads,
             '--genomeDir', genome_dir,
             '--readFilesIn', *input_files
         ]
