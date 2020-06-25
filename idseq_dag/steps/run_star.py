@@ -263,9 +263,9 @@ class PipelineStepRunStar(PipelineStep):
                       use_starlong):
         command.make_dirs(output_dir)
 
-        cpus = str(multiprocessing.cpu_count())
+        cpus = multiprocessing.cpu_count()
         # SortedByCoordinate breaks around > 32 threads
-        threads = min(32, cpus)
+        threads = str(min(32, cpus))
         cd = output_dir
         cmd = 'STARlong' if use_starlong else 'STAR'
         params = [
