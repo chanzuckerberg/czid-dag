@@ -279,6 +279,7 @@ class PipelineStepRunStar(PipelineStep):
         ]
 
         if self.collect_insert_size_metrics_for == "rna":
+            # SortedByCoordinate is required for deterministic output
             params += [
                 '--outSAMtype', 'BAM', 'SortedByCoordinate',
                 '--outSAMmode', 'NoQS',
@@ -289,6 +290,7 @@ class PipelineStepRunStar(PipelineStep):
             ]
         else:
             if self.collect_insert_size_metrics_for == "dna":
+                # SortedByCoordinate is required for deterministic output
                 params += ['--outSAMtype', 'BAM', 'SortedByCoordinate', '--outSAMmode', 'NoQS', ]
             else:
                 params += ['--outSAMmode', 'None']
