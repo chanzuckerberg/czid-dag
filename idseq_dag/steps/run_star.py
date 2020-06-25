@@ -5,6 +5,7 @@ import re
 
 from idseq_dag.engine.pipeline_step import PipelineStep
 from idseq_dag.exceptions import BrokenReadPairError
+from idseq_dag.util.fasta import sort_fastx_by_entry_id
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
 import idseq_dag.util.log as log
@@ -72,14 +73,14 @@ class PipelineStepRunStar(PipelineStep):
     With these options (for DNA):
 
     ```
-    --outSAMtype BAM Unsorted
+    --outSAMtype BAM SortedByCoordinate
     --outSAMmode NoQS
     ```
 
     Or these options (for RNA):
 
     ```
-    --outSAMtype BAM Unsorted
+    --outSAMtype BAM SortedByCoordinate
     --outSAMmode NoQS
     --quantMode TranscriptomeSAM GeneCounts
     ```
@@ -223,6 +224,9 @@ class PipelineStepRunStar(PipelineStep):
                     except Exception as e:
                         log.write(message=f"encountered error while running picard: {type(e).__name__}: {e}", warning=True)
 
+        # Sort unmapped files for deterministic output
+        for unmapped_file in unmapped:
+            sort_fastx_by_entry_id(unmapped_file)
         # Cleanup
         for src, dst in zip(unmapped, output_files_local):
             command.move_file(src, dst)    # Move out of scratch dir
@@ -276,7 +280,7 @@ class PipelineStepRunStar(PipelineStep):
 
         if self.collect_insert_size_metrics_for == "rna":
             params += [
-                '--outSAMtype', 'BAM', 'Unsorted',
+                '--outSAMtype', 'BAM', 'SortedByCoordinate',
                 '--outSAMmode', 'NoQS',
                 # Based on experimentation we always want --quantMode TranscriptomeSAM GeneCounts
                 #   for RNA to collect transcriptome-specific results to compute insert size metrics on
@@ -285,7 +289,7 @@ class PipelineStepRunStar(PipelineStep):
             ]
         else:
             if self.collect_insert_size_metrics_for == "dna":
-                params += ['--outSAMtype', 'BAM', 'Unsorted', '--outSAMmode', 'NoQS', ]
+                params += ['--outSAMtype', 'BAM', 'SortedByCoordinate', '--outSAMmode', 'NoQS', ]
             else:
                 params += ['--outSAMmode', 'None']
 
@@ -313,11 +317,11 @@ class PipelineStepRunStar(PipelineStep):
         outSAMmode = "--outSAMmode None"
 
         if self.collect_insert_size_metrics_for == 'dna':
-            outSAMmode = """--outSAMtype BAM Unsorted
+            outSAMmode = """--outSAMtype BAM SortedByCoordinate
                 --outSAMmode NoQS"""
 
         if self.collect_insert_size_metrics_for == 'rna':
-            outSAMmode = """--outSAMtype BAM Unsorted
+            outSAMmode = """--outSAMtype BAM SortedByCoordinate
                 --outSAMmode NoQS
                 --quantMode TranscriptomeSAM GeneCounts"""
 
