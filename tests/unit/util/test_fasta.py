@@ -13,12 +13,15 @@ class TestFasta(unittest.TestCase):
             shutil.copyfile(fastq, tmp_fastq_path)
             sort_fastx_by_entry_id(tmp_fastq_path)
             prev = None
+            line_count = 0
             with open(tmp_fastq_path) as result:
                 for i, line in enumerate(result):
                     if i % 4 == 0:
                         if prev:
                             assert line > prev, f"Expected '{line}' to come before '{prev}'"
                         prev = line
+                    line_count = i + 1
+            assert line_count % 4 == 0, f"Expected number of lines in fastq to be a factor of 4 but it was {line_count}"
         finally:
             os.remove(tmp_fastq_path)
 
@@ -37,5 +40,7 @@ class TestFasta(unittest.TestCase):
                         if prev:
                             assert line > prev, f"Expected '{line}' to come before '{prev}'"
                         prev = line
+                    line_count = i + 1
+            assert line_count % 2 == 0, f"Expected number of lines in fasta to be a factor of 2 but it was {line_count}"
         finally:
             os.remove(tmp_fasta_path)
