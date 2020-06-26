@@ -82,11 +82,14 @@ def sort_fastx_by_entry_id(fastq_path):
             else:
                 # WARNING: does not support multiline fasta
                 cmd = "paste -d '|' - - | sort -k1,1 -S 3G | tr '|' '\n'"
-            # By default the sort utility uses a local sort, this is slower than
-            #   a simple byte comparison. It also produces different behavior than
-            #   python's string comparisons. All we care about is a consistent order
-            #   so we can safely set LC_ALL=C to do a simple byte comparison which will
-            #   be both faster and consistent with python.
+            # By default the sort utility uses a locale-based sort, this is significantly
+            #   slower than a simple byte comparison. It also produces a different
+            #   order than python's default string comparisons would which makes testing
+            #   a bit less convenient. All we care about is producing a consistent order
+            #   every time, the order itself is irrelevant, so we set LC_ALL=C to do a
+            #   simple byte comparison instead of a locale-based sort which is faster,
+            #   produces a consistent result regardless of locale, and produces the same
+            #   order python's default string comparison would.
             run(cmd, env={'LC_ALL': 'C'}, stdin=in_file, stdout=out_file, check=True, shell=True)
     os.rename(tmp_sorted_path, fastq_path)
 
