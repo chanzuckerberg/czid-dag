@@ -263,6 +263,14 @@ class PipelineStepRunStar(PipelineStep):
                       use_starlong):
         command.make_dirs(output_dir)
 
+        # FIXME: https://jira.czi.team/browse/IDSEQ-2738
+        #  We want to move towards a general randomness solution in which
+        #  all randomness is seeded based on the content of the original input.
+        #  STAR takes in a rng seed and it defaults this seed to 777. It is
+        #  explicitly set here to call out this behavior so it can be updated
+        #  when we update the rest of our rng seeds.
+        rng_seed = '777'
+
         cpus = str(multiprocessing.cpu_count())
         cd = output_dir
         cmd = 'STARlong' if use_starlong else 'STAR'
@@ -274,6 +282,7 @@ class PipelineStepRunStar(PipelineStep):
             '--outFilterMismatchNmax', '999',
             '--clip3pNbases', '0',
             '--runThreadN', cpus,
+            '--runRNGseed', rng_seed,
             '--genomeDir', genome_dir,
             '--readFilesIn', *input_files
         ]
