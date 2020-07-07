@@ -288,7 +288,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
         if auto_untar and src.endswith(".tar"):
             dst = src[:-4]
             if not os.path.isdir(dst):
-                os.mkdir(dst + ".untarring")
+                command.make_dirs(dst + ".untarring")
                 script = 'tar xvf "${src}" -C "${tmp_destdir}"'
                 named_args = {
                     "src": src,
@@ -300,7 +300,7 @@ def fetch_from_s3(src,  # pylint: disable=dangerous-default-value
                         named_args=named_args
                     )
                 )
-                os.rename(dst + ".untarring", dst)
+                command.rename(dst + ".untarring/" + os.path.basename(dst), dst)
             return dst
         return src
 
