@@ -440,7 +440,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                     "--gmap-mode=none",
                     "--npaths=100",
                     "--ordered",
-                    "-t", threads,
+                    "-t", str(threads),
                     "--max-mismatches=40",
                     "-D", index_path,
                     "-d", genome_name,
@@ -454,7 +454,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                     "-a", "T",
                     "-b", "0",
                     "-v", "50",
-                    "-z", threads,
+                    "-z", str(threads),
                     "-o", output_path,
                     "-q"] + input_paths
 
