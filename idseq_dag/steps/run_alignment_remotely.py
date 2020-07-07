@@ -432,7 +432,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def _get_command(self, threads, index_path, input_paths, output_path):
         if self.alignment_algorithm == "gsnap":
-            genome_name = self.additional_attributes["genome_name"]  # ex. nt_k16
+            genome_name = self.additional_attributes.get("genome_name", "nt_k16")
             return ["gsnapl",
                     "-A", "m8",
                     "--batch=0",
