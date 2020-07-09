@@ -188,7 +188,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             output_counts_with_dcr_json)
 
     def run_locally(self, index_path, input_fas, output_m8):
-        command = self._get_command(4, index_path, input_fas, output_m8)
+        command = self._get_command(index_path, input_fas, output_m8, threads=multiprocessing.cpu_count())
         command.execute(command_patterns.SingleCommand(cmd=command[0], args=command[1:]))
 
     def run_remotely(self, input_fas, output_m8):
@@ -444,7 +444,9 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         else:
             log.write(f"no hits in output file {chunk_output_filename}")
 
-    def _get_command(self, threads, index_path, input_paths, output_path):
+    def _get_command(self, index_path, input_paths, output_path, threads=None):
+        if not threads:
+            threads = 48 if self.alignment_algorithm == "gsnap" else 24
         if self.alignment_algorithm == "gsnap":
             genome_name = self.additional_attributes.get("genome_name", "nt_k16")
             return ["gsnapl",
@@ -515,8 +517,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             'value': multihit_s3_outfile,
         }]
 
-        input_paths = [f"$LOCAL_INPUT_{i}" for i, _ in enumerate(input_files)]
-        command = self._get_command(24, "$LOCAL_INDEX_PATH", input_paths, "$LOCAL_OUTPUT")
+        input_paths = [f"local_input_{i}" for i, _ in enumerate(input_files)]
+        command = self._get_command("/references/reference", input_paths, "local_output")
 
         try:
             job_id = self._run_batch_job(
