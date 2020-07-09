@@ -436,7 +436,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         if self.alignment_algorithm == "rapsearch2":
             cmd = "grep -v '^#' | " + cmd
         with open(chunk_output_filename, "rb") as f:
-            line_count_str = run(cmd, stdin=fh, stdout=PIPE, check=True, shell=True).stdout
+            line_count_str = run(cmd, stdin=f, stdout=PIPE, check=True, shell=True).stdout
         if line_count_str:
             line_count = int(line_count_str)
             log.write(f"smallest number of columns observed in any line in output file {chunk_output_filename} was {line_count}")
