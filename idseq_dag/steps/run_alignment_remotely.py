@@ -8,6 +8,7 @@ import time
 import traceback
 import json
 import re
+from subprocess import run, PIPE
 from urllib.parse import urlparse
 from botocore.exceptions import ClientError
 
@@ -430,6 +431,19 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
         return job_id
 
+    def _validate_chunk_output(self, chunk_output_filename):
+        cmd = "awk '{print NF}' | sort -nu | head -n 1"
+        if self.alignment_algorithm == "rapsearch2":
+            cmd = "grep -v '^#' | " + cmd
+        with open(chunk_output_filename, "rb") as f:
+            line_count_str = run(cmd, stdin=fh, stdout=PIPE, check=True, shell=True).stdout
+        if line_count_str:
+            line_count = int(line_count_str)
+            log.write(f"smallest number of columns observed in any line in output file {chunk_output_filename} was {line_count}")
+            assert line_count == 12, "output file {chunk_output_filename} was not a valid m8 file"
+        else:
+            log.write(f"no hits in output file {chunk_output_filename}")
+
     def _get_command(self, threads, index_path, input_paths, output_path):
         if self.alignment_algorithm == "gsnap":
             genome_name = self.additional_attributes.get("genome_name", "nt_k16")
@@ -552,6 +566,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             'alignment_algorithm': self.alignment_algorithm,
         })
 
+
+        self._validate_chunk_output(multihit_local_outfile)
         return multihit_local_outfile
 
     def step_description(self, require_docstrings=False):
