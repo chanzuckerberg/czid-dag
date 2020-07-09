@@ -461,7 +461,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
                     "-D", index_path,
                     "-d", genome_name,
                     "-o", output_path,
-                   ] + input_paths
+                    ] + input_paths
         else:
             return ["rapsearch",
                     "-d", index_path,
@@ -567,7 +567,6 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             'job_definition': job_definition,
             'alignment_algorithm': self.alignment_algorithm,
         })
-
 
         self._validate_chunk_output(multihit_local_outfile)
         return multihit_local_outfile
