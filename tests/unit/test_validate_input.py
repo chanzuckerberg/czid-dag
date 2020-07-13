@@ -18,14 +18,14 @@ class TestValidateInput(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             quick_check_file(None, "nonexistent", is_fastq=True, max_fragments_to_check=100)
         with tempfile.NamedTemporaryFile() as tf:
-            with self.assertRaises(InsufficientReadsError):
+            with self.assertRaises(InsufficientReadsError):  # Test that empty input file causes an error
                 quick_check_file(None, tf.name, is_fastq=True, max_fragments_to_check=100)
             tf.write(b">@" * 9000)
             tf.flush()
-            with self.assertRaises(InvalidFileFormatError):
+            with self.assertRaises(InvalidFileFormatError):  # Test that malformed FASTQ file causes an error
                 quick_check_file(None, tf.name, is_fastq=True, max_fragments_to_check=100)
             tf.seek(0)
             tf.write(">read\n\n".encode())
             tf.flush()
-            with self.assertRaises(InvalidFileFormatError):
+            with self.assertRaises(InvalidFileFormatError):  # Test that FASTQ file with empty read causes an error
                 quick_check_file(None, tf.name, is_fastq=True, max_fragments_to_check=100)
