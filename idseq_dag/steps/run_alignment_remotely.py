@@ -188,7 +188,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             output_counts_with_dcr_json)
 
     def run_locally(self, index_path, input_fas, output_m8):
-        cmd = self._get_command(index_path, input_fas, output_m8, threads=multiprocessing.cpu_count())
+        cmd = self._get_command(index_path, input_fas, output_m8, threads=multiprocessing.cpu_count(), small=True)
         command.execute(command_patterns.SingleCommand(cmd=cmd[0], args=cmd[1:]))
 
     def run_remotely(self, input_fas, output_m8):
@@ -444,12 +444,12 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         else:
             log.write(f"no hits in output file {chunk_output_filename}")
 
-    def _get_command(self, index_path, input_paths, output_path, threads=None):
+    def _get_command(self, index_path, input_paths, output_path, threads=None, small=False):
         if not threads:
             threads = 48 if self.alignment_algorithm == "gsnap" else 24
         if self.alignment_algorithm == "gsnap":
             genome_name = self.additional_attributes.get("genome_name", "nt_k16")
-            return ["gsnapl",
+            return [("gsnap" if small else "gsnapl"),
                     "-A", "m8",
                     "--batch=0",
                     "--use-shared-memory=0",
