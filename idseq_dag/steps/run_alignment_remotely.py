@@ -138,6 +138,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
         self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
         self.batch_job_desc_bucket = get_batch_job_desc_bucket()
+        # Providing an index only works locally
+        self.is_local_run = bool(self.additional_files.get("index"))
         command.make_dirs(self.chunks_result_dir_local)
 
     def count_reads(self):
@@ -151,9 +153,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         output_m8, deduped_output_m8, output_hitsummary, output_counts_with_dcr_json = self.output_files_local()
         assert output_counts_with_dcr_json.endswith("_with_dcr.json"), self.output_files_local()
 
-        # Providing an index only works locally
         index_path = self.additional_files.get("index")
-        if index_path:
+        if self.is_local_run:
             self.run_locally(index_path, alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
         else:
             self.run_remotely(alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
@@ -445,11 +446,17 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             log.write(f"no hits in output file {chunk_output_filename}")
 
     def _get_command(self, index_path, input_paths, output_path, threads=None):
+        use_gsnapl = self.additional_attributes.get("use_gsnapl")
+        if use_gsnapl == None:
+            gsnap_command = "gsnap" if self.is_local_run else "gsnapl"
+        else:
+            gsnap_command = "gsnapl" if use_gsnapl else "gsnap"
+            assert gsnap_command == "gsnap" or (not self.is_local_run), "gsnapl is required for remote gsnap alignment"
         if not threads:
             threads = 48 if self.alignment_algorithm == "gsnap" else 24
         if self.alignment_algorithm == "gsnap":
             genome_name = self.additional_attributes.get("genome_name", "nt_k16")
-            return ["gsnapl",
+            return [gsnap_command,
                     "-A", "m8",
                     "--batch=0",
                     "--use-shared-memory=0",
