@@ -446,12 +446,10 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             log.write(f"no hits in output file {chunk_output_filename}")
 
     def _get_command(self, index_path, input_paths, output_path, threads=None):
-        use_gsnapl = self.additional_attributes.get("use_gsnapl")
-        if use_gsnapl == None:
-            gsnap_command = "gsnap" if self.is_local_run else "gsnapl"
-        else:
-            gsnap_command = "gsnapl" if use_gsnapl else "gsnap"
-            assert gsnap_command == "gsnap" or (not self.is_local_run), "gsnapl is required for remote gsnap alignment"
+        gsnap_command = "gsnap" if self.is_local_run else "gsnapl"
+        if self.additional_attributes.get("force_gsnapl"):
+            gsnap_command = "gsnapl"
+
         if not threads:
             threads = 48 if self.alignment_algorithm == "gsnap" else 24
         if self.alignment_algorithm == "gsnap":
