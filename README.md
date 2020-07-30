@@ -98,7 +98,7 @@ The following is an example dag for generating alignment output for idseq. The *
     {
       "in": ["host_filter_out"],
       "out": "gsnap_out",
-      "class": "PipelineStepRunAlignmentRemotely",
+      "class": "PipelineStepRunAlignment",
       "module": "idseq_dag.steps.run_alignment_remotely",
       "additional_files": {
         "lineage_db": "s3://idseq-public-references/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/taxid-lineages.db",
@@ -114,7 +114,7 @@ The following is an example dag for generating alignment output for idseq. The *
     {
       "in": ["host_filter_out"],
       "out": "rapsearch2_out",
-      "class": "PipelineStepRunAlignmentRemotely",
+      "class": "PipelineStepRunAlignment",
       "module": "idseq_dag.steps.run_alignment_remotely",
       "additional_files": {
         "lineage_db": "s3://idseq-public-references/taxonomy/2018-02-15-utc-1518652800-unixtime__2018-02-15-utc-1518652800-unixtime/taxid-lineages.db",
@@ -316,8 +316,8 @@ When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
   - Generate betacoronavirus fastq files for user download if use_taxon_whitelist is specified in the DAG.
 
 - 4.2.4
-  - Update RunAlignmentRemotely to name batch jobs with the chunk id, project id, and sample id
-  - Update RunAlignmentRemotely to download results using boto3 rather than fetch_from_s3
+  - Update RunAlignment to name batch jobs with the chunk id, project id, and sample id
+  - Update RunAlignment to download results using boto3 rather than fetch_from_s3
 
 - 4.2.3
   - Validate input step now properly rejects invalid gzip files.
@@ -326,7 +326,7 @@ When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
   - Fix bug in phylo tree creation for organisms with an unknown superkingdom.
 
 - 4.2.1
-  - Switch RunAlignmentRemotely to distribute alignment chunks use AWS Batch instead of custom Autoscaling Group Logic logic
+  - Switch RunAlignment to distribute alignment chunks use AWS Batch instead of custom Autoscaling Group Logic logic
 
 - 4.2.0
   - Apply deuterostome, blacklist, whitelist and human filters to contigs.

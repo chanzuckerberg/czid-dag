@@ -151,7 +151,7 @@ class PipelineStepRunAlignment(PipelineStep):
     def run(self):
         ''' Run alignmment remotely '''
 
-        alignment_algorithm_inputs = PipelineStepRunAlignmentRemotely._alignment_algorithm_inputs(self.input_files_local[0])
+        alignment_algorithm_inputs = PipelineStepRunAlignment._alignment_algorithm_inputs(self.input_files_local[0])
         cdhit_cluster_sizes_path, = self.input_files_local[1]
         output_m8, deduped_output_m8, output_hitsummary, output_counts_with_dcr_json = self.output_files_local()
         assert output_counts_with_dcr_json.endswith("_with_dcr.json"), self.output_files_local()
@@ -231,7 +231,7 @@ class PipelineStepRunAlignment(PipelineStep):
                 self.chunks_in_flight_semaphore.acquire()
                 self.check_for_errors(mutex, chunk_output_files, input_chunks, self.alignment_algorithm)
                 t = threading.Thread(
-                    target=PipelineStepRunAlignmentRemotely.run_chunk_wrapper,
+                    target=PipelineStepRunAlignment.run_chunk_wrapper,
                     kwargs={
                         'chunks_in_flight_semaphore': self.chunks_in_flight_semaphore,
                         'chunk_output_files': chunk_output_files,
@@ -634,4 +634,4 @@ class PipelineStepRunAlignment(PipelineStep):
                 Rapsearch2 documentation is available [here](http://omics.informatics.indiana.edu/mg/RAPSearch2/).
             """
         # If neither, then return default step_description method.
-        return super(PipelineStepRunAlignmentRemotely, self).step_description()
+        return super(PipelineStepRunAlignment, self).step_description()
