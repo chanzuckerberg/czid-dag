@@ -63,7 +63,7 @@ def download_from_s3(session, src, dest):
 class BatchJobFailed(Exception):
     pass
 
-class PipelineStepRunAlignmentRemotely(PipelineStep):
+class PipelineStepRunAlignment(PipelineStep):
     """ Runs gsnap/rapsearch2 remotely.
 
     For GSNAP:
@@ -131,15 +131,18 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
 
     def __init__(self, *args, **kwrds):
         PipelineStep.__init__(self, *args, **kwrds)
-        # TODO: (tmorse) remove service compatibility https://jira.czi.team/browse/IDSEQ-2568
-        self.alignment_algorithm = self.additional_attributes.get("alignment_algorithm", self.additional_attributes.get("service"))
+        self.alignment_algorithm = self.additional_attributes.get("alignment_algorithm")
         assert self.alignment_algorithm in ("gsnap", "rapsearch2")
         self.chunks_in_flight_semaphore = threading.Semaphore(MAX_CHUNKS_IN_FLIGHT)
         self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
         self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
         self.batch_job_desc_bucket = get_batch_job_desc_bucket()
-        # Providing an index only works locally
-        self.is_local_run = bool(self.additional_files.get("index"))
+        self.is_local_run = bool(self.additional_files.get("run_locally"))
+        self.index = self.additional_files.get("index")
+        if self.is_local_run:
+            assert self.index, "local runs require an index to be passed in"
+        else:
+            assert not self.index, "passing in an index is not supported for remote runs"
         command.make_dirs(self.chunks_result_dir_local)
 
     def count_reads(self):
@@ -153,9 +156,8 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         output_m8, deduped_output_m8, output_hitsummary, output_counts_with_dcr_json = self.output_files_local()
         assert output_counts_with_dcr_json.endswith("_with_dcr.json"), self.output_files_local()
 
-        index_path = self.additional_files.get("index")
         if self.is_local_run:
-            self.run_locally(index_path, alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
+            self.run_locally(alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
         else:
             self.run_remotely(alignment_algorithm_inputs[self.alignment_algorithm], output_m8)
 
@@ -188,8 +190,26 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
             lineage_db, deuterostome_db, taxon_whitelist, taxon_blacklist, cdhit_cluster_sizes_path,
             output_counts_with_dcr_json)
 
-    def run_locally(self, index_path, input_fas, output_m8):
-        command = self._get_command(index_path, input_fas, output_m8, threads=multiprocessing.cpu_count())
+    def run_locally(self, input_fas, output_m8):
+        index_path = "reference"
+        run(["tar", "-xzvf", self.index, "-C", index_path], check=True)
+
+        # Hack to determine gsnap vs gsnapl
+        error_message = run(
+            ['gsnapl', '-D', index_path, '-d', 'arbitrary_name'],
+            input='>'.encode('utf-8'),
+            stderr=PIPE,
+            stdout=PIPE
+        ).stderr
+        gsnap_command = "gsnap" if 'please run gsnap instead' in error_message else "gsnapl"
+
+        command = self._get_command(
+            gsnap_command,
+            index_path,
+            input_fas,
+            output_m8,
+            threads=multiprocessing.cpu_count()
+        )
         command.execute(command_patterns.SingleCommand(cmd=command[0], args=command[1:]))
 
     def run_remotely(self, input_fas, output_m8):
@@ -445,11 +465,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         else:
             log.write(f"no hits in output file {chunk_output_filename}")
 
-    def _get_command(self, index_path, input_paths, output_path, threads=None):
-        gsnap_command = "gsnap" if self.is_local_run else "gsnapl"
-        if self.additional_attributes.get("force_gsnapl"):
-            gsnap_command = "gsnapl"
-
+    def _get_command(self, gsnap_command, index_path, input_paths, output_path, threads=None):
         if not threads:
             threads = 48 if self.alignment_algorithm == "gsnap" else 24
         if self.alignment_algorithm == "gsnap":
@@ -523,7 +539,7 @@ class PipelineStepRunAlignmentRemotely(PipelineStep):
         }]
 
         input_paths = [f"local_input_{i}" for i, _ in enumerate(input_files)]
-        command = self._get_command("/references/reference", input_paths, "local_output")
+        command = self._get_command("gsnapl", "/references/reference", input_paths, "local_output")
 
         try:
             job_id = self._run_batch_job(
