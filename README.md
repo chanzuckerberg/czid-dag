@@ -316,8 +316,8 @@ When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
   - Generate betacoronavirus fastq files for user download if use_taxon_whitelist is specified in the DAG.
 
 - 4.2.4
-  - Update RunAlignment to name batch jobs with the chunk id, project id, and sample id
-  - Update RunAlignment to download results using boto3 rather than fetch_from_s3
+  - Update RunAlignmentRemotely to name batch jobs with the chunk id, project id, and sample id
+  - Update RunAlignmentRemotely to download results using boto3 rather than fetch_from_s3
 
 - 4.2.3
   - Validate input step now properly rejects invalid gzip files.
@@ -326,7 +326,7 @@ When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
   - Fix bug in phylo tree creation for organisms with an unknown superkingdom.
 
 - 4.2.1
-  - Switch RunAlignment to distribute alignment chunks use AWS Batch instead of custom Autoscaling Group Logic logic
+  - Switch RunAlignmentRemotely to distribute alignment chunks use AWS Batch instead of custom Autoscaling Group Logic logic
 
 - 4.2.0
   - Apply deuterostome, blacklist, whitelist and human filters to contigs.
