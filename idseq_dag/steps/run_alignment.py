@@ -192,6 +192,7 @@ class PipelineStepRunAlignment(PipelineStep):
 
     def run_locally(self, input_fas, output_m8):
         index_path = "reference"
+        os.mkdir(index_path)
         run(["tar", "-xzvf", self.index, "-C", index_path], check=True)
 
         # Hack to determine gsnap vs gsnapl
