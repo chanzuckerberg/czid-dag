@@ -137,7 +137,7 @@ class PipelineStepRunAlignment(PipelineStep):
         self.chunks_result_dir_local = os.path.join(self.output_dir_local, "chunks")
         self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
         self.batch_job_desc_bucket = get_batch_job_desc_bucket()
-        self.is_local_run = bool(self.additional_files.get("run_locally"))
+        self.is_local_run = bool(self.additional_attributes.get("run_locally"))
         self.index = self.additional_files.get("index")
         if self.is_local_run:
             assert self.index, "local runs require an index to be passed in"
