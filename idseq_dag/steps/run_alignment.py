@@ -202,7 +202,7 @@ class PipelineStepRunAlignment(PipelineStep):
             stderr=PIPE,
             stdout=PIPE
         ).stderr
-        gsnap_command = "gsnap" if 'please run gsnap instead' in error_message else "gsnapl"
+        gsnap_command = "gsnap" if 'please run gsnap instead' in error_message.decode('utf-8') else "gsnapl"
 
         command = self._get_command(
             gsnap_command,
