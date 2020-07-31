@@ -204,14 +204,14 @@ class PipelineStepRunAlignment(PipelineStep):
         ).stderr
         gsnap_command = "gsnap" if 'please run gsnap instead' in error_message.decode('utf-8') else "gsnapl"
 
-        command = self._get_command(
+        cmd = self._get_command(
             gsnap_command,
             index_path,
             input_fas,
             output_m8,
             threads=multiprocessing.cpu_count()
         )
-        command.execute(command_patterns.SingleCommand(cmd=command[0], args=command[1:]))
+        run(cmd, check=True)
 
     def run_remotely(self, input_fas, output_m8):
         # Split files into chunks for performance
