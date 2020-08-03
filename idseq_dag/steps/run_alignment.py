@@ -143,7 +143,7 @@ class PipelineStepRunAlignment(PipelineStep):
             assert self.index, "local runs require an index to be passed in"
         else:
             assert not self.index, "passing in an index is not supported for remote runs"
-        command.make_dirs(self.chunks_result_dir_local)
+            command.make_dirs(self.chunks_result_dir_local)
 
     def count_reads(self):
         pass
