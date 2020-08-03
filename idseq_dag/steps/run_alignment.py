@@ -215,7 +215,10 @@ class PipelineStepRunAlignment(PipelineStep):
             threads=multiprocessing.cpu_count()
         )
         log.write(f"running command {cmd}")
-        run(cmd, check=True, shell=True)
+        res = run(cmd, stderr=PIPE, shell=True)
+        log.write(res.stderr)
+        if res.returncode != 0:
+            raise Exception("called process error")
 
     def run_remotely(self, input_fas, output_m8):
         # Split files into chunks for performance
