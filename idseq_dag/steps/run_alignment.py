@@ -191,7 +191,7 @@ class PipelineStepRunAlignment(PipelineStep):
             output_counts_with_dcr_json)
 
     def run_locally(self, input_fas, output_m8):
-        index_path = "reference"
+        index_path = "reference/"
         os.mkdir(index_path)
         run(["tar", "-xzvf", self.index, "-C", index_path], check=True)
 
@@ -215,10 +215,7 @@ class PipelineStepRunAlignment(PipelineStep):
             threads=multiprocessing.cpu_count()
         )
         log.write(f"running command {cmd}")
-        res = run(cmd, stderr=PIPE, shell=True)
-        log.write(res.stderr)
-        if res.returncode != 0:
-            raise Exception("called process error")
+        run(cmd, check=True, shell=True)
 
     def run_remotely(self, input_fas, output_m8):
         # Split files into chunks for performance
@@ -474,6 +471,7 @@ class PipelineStepRunAlignment(PipelineStep):
             log.write(f"no hits in output file {chunk_output_filename}")
 
     def _get_command(self, gsnap_command, index_path, input_paths, output_path, threads=None):
+        log.write(f"CCCCCCCCCCCCCCCCPPPPPPPPPPPUUUUUUUUUUUUUUU {threads}")
         if not threads:
             threads = 48 if self.alignment_algorithm == "gsnap" else 24
         if self.alignment_algorithm == "gsnap":
