@@ -195,14 +195,17 @@ class PipelineStepRunAlignment(PipelineStep):
         os.mkdir(index_path)
         run(["tar", "-xzvf", self.index, "-C", index_path], check=True)
 
-        # Hack to determine gsnap vs gsnapl
-        error_message = run(
-            ['gsnapl', '-D', index_path, '-d', 'arbitrary_name'],
-            input='>'.encode('utf-8'),
-            stderr=PIPE,
-            stdout=PIPE
-        ).stderr
-        gsnap_command = "gsnap" if 'please run gsnap instead' in error_message.decode('utf-8') else "gsnapl"
+        if self.alignment_algorithm == "gsnap":
+            # Hack to determine gsnap vs gsnapl
+            error_message = run(
+                ['gsnapl', '-D', index_path, '-d', 'arbitrary_name'],
+                input='>'.encode('utf-8'),
+                stderr=PIPE,
+                stdout=PIPE
+            ).stderr
+            gsnap_command = "gsnap" if 'please run gsnap instead' in error_message.decode('utf-8') else "gsnapl"
+        else:
+            gsnap_command = None
 
         cmd = self._get_command(
             gsnap_command,
