@@ -214,6 +214,7 @@ class PipelineStepRunAlignment(PipelineStep):
             output_m8,
             threads=multiprocessing.cpu_count()
         )
+        log.write(f"running command {cmd}")
         run(cmd, check=True)
 
     def run_remotely(self, input_fas, output_m8):
