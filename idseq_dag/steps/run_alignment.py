@@ -485,6 +485,7 @@ class PipelineStepRunAlignment(PipelineStep):
                     "-o", output_path,
                     ] + input_paths
         else:
+            output_path = re.sub(r'\.m8$', '', output_path)
             return ["rapsearch",
                     "-d", index_path,
                     "-e", "-6",
