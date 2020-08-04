@@ -191,7 +191,7 @@ class PipelineStepRunAlignment(PipelineStep):
             output_counts_with_dcr_json)
 
     def run_locally(self, input_fas, output_m8):
-        index_path = os.path.join(os.path.dirname(output_m8, "reference"))
+        index_path = os.path.join(os.path.dirname(output_m8), "reference")
         os.mkdir(index_path)
         run(["tar", "-xzvf", self.index, "-C", index_path], check=True)
 
