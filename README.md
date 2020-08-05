@@ -227,6 +227,9 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
 
 
+- 4.11.7
+  - Replace references to idseq-database with idseq-public-references
+
 - 4.11.5
   - Unify remote and local non host alignment commands
 
