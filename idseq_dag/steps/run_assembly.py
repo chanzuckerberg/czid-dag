@@ -3,6 +3,7 @@ import json
 import os
 import traceback
 from collections import defaultdict
+from Bio import SeqIO
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
@@ -10,6 +11,7 @@ import idseq_dag.util.command_patterns as command_patterns
 from idseq_dag.util.m8 import MIN_CONTIG_SIZE
 from idseq_dag.util.count import get_read_cluster_size, load_cdhit_cluster_sizes, READ_COUNTING_MODE, ReadCountingMode
 
+MIN_CONTIG_LENGTH = 300
 
 class PipelineStepRunAssembly(PipelineStep):
     """ To obtain longer contigs for improved sensitivity in mapping, short reads must be
@@ -124,6 +126,9 @@ class PipelineStepRunAssembly(PipelineStep):
                         ]
                     )
                 )
+
+            PipelineStepRunAssembly.filter_contigs(assembled_contig_tmp)
+            
             command.move_file(assembled_contig_tmp, assembled_contig)
             command.move_file(assembled_scaffold_tmp, assembled_scaffold)
 
@@ -137,6 +142,19 @@ class PipelineStepRunAssembly(PipelineStep):
             command.write_text_to_file('{}', contig_stats)
             traceback.print_exc()
         command.remove_rf(assembled_dir)
+
+
+    @staticmethod
+    def filter_contigs(assembled_contig_tmp):
+        contigs_pass_filter = []
+        records = list(SeqIO.parse(assembled_contig_tmp, "fasta"))
+        for seq in records:
+            if int(rseq.id.split('_')[3]) > MIN_CONTIG_LENGTH:
+                contigs_pass_filter.append(seq)
+        # write passing contigs back to contig file
+        with open(assembled_contig_tmp, "w") as output_handle:
+            SeqIO.write(contigs_pass_filter, output_handle, "fasta")
+
 
     @staticmethod
     def generate_read_to_contig_mapping(assembled_contig,
