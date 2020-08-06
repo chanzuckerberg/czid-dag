@@ -3,7 +3,6 @@ import json
 import os
 import traceback
 from collections import defaultdict
-from Bio import SeqIO
 from idseq_dag.engine.pipeline_step import PipelineStep
 import idseq_dag.util.command as command
 import idseq_dag.util.command_patterns as command_patterns
@@ -127,9 +126,8 @@ class PipelineStepRunAssembly(PipelineStep):
                     )
                 )
 
-            PipelineStepRunAssembly.filter_contigs(assembled_contig_tmp)
-            
-            command.move_file(assembled_contig_tmp, assembled_contig)
+            PipelineStepRunAssembly.filter_contigs(assembled_contig_tmp, assembled_contig)
+            # command.move_file(assembled_contig_tmp, assembled_contig)
             command.move_file(assembled_scaffold_tmp, assembled_scaffold)
 
             PipelineStepRunAssembly.generate_read_to_contig_mapping(assembled_contig, bowtie_fasta,
@@ -143,18 +141,26 @@ class PipelineStepRunAssembly(PipelineStep):
             traceback.print_exc()
         command.remove_rf(assembled_dir)
 
-
     @staticmethod
-    def filter_contigs(assembled_contig_tmp):
-        contigs_pass_filter = []
-        records = list(SeqIO.parse(assembled_contig_tmp, "fasta"))
-        for seq in records:
-            if int(rseq.id.split('_')[3]) > MIN_CONTIG_LENGTH:
-                contigs_pass_filter.append(seq)
-        # write passing contigs back to contig file
-        with open(assembled_contig_tmp, "w") as output_handle:
-            SeqIO.write(contigs_pass_filter, output_handle, "fasta")
-
+    def filter_contigs(assembled_contig_tmp, assembled_contig):
+        file1 = open(assembled_contig_tmp, 'r')
+        file2 = open(assembled_contig, 'w')
+        emit_this_seq = False
+        while True:
+            line = file1.readline().strip()
+            if not line:
+                break
+            if line[0] == '>':
+                length = int(line.split('_')[3])
+                if length > MIN_CONTIG_LENGTH:
+                    emit_this_seq = True
+                else:
+                    emit_this_seq = False
+            # write passing contigs to final contig file
+            if emit_this_seq:
+                file2.write(line + '\n')
+        file1.close()
+        file2.close()
 
     @staticmethod
     def generate_read_to_contig_mapping(assembled_contig,
