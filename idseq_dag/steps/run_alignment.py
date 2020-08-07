@@ -211,7 +211,7 @@ class PipelineStepRunAlignment(PipelineStep):
         if self.alignment_algorithm == "rapsearch2":
             for filename in os.listdir(index_path):
                 if not filename.endswith(".info"):
-                    index_path = filename
+                    index_path = os.path.join(index_path, filename)
 
         cmd = self._get_command(
             index_path,
