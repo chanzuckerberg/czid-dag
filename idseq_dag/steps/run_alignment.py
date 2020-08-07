@@ -138,6 +138,7 @@ class PipelineStepRunAlignment(PipelineStep):
         self.chunks_result_dir_s3 = os.path.join(self.output_dir_s3, "chunks")
         self.batch_job_desc_bucket = get_batch_job_desc_bucket()
         self.is_local_run = bool(self.additional_attributes.get("run_locally"))
+        self.genome_name = self.additional_attributes.get("genome_name", "nt_k16")
         self.index = self.additional_files.get("index")
         if self.is_local_run:
             assert self.index, "local runs require an index to be passed in"
@@ -198,7 +199,7 @@ class PipelineStepRunAlignment(PipelineStep):
         if self.alignment_algorithm == "gsnap":
             # Hack to determine gsnap vs gsnapl
             error_message = run(
-                ['gsnapl', '-D', index_path, '-d', 'arbitrary_name'],
+                ['gsnapl', '-D', index_path, '-d', self.genome_name],
                 input='>'.encode('utf-8'),
                 stderr=PIPE,
                 stdout=PIPE
@@ -481,7 +482,6 @@ class PipelineStepRunAlignment(PipelineStep):
         if not threads:
             threads = 48 if self.alignment_algorithm == "gsnap" else 24
         if self.alignment_algorithm == "gsnap":
-            genome_name = self.additional_attributes.get("genome_name", "nt_k16")
             return [gsnap_command,
                     "-A", "m8",
                     "--batch=0",
@@ -492,7 +492,7 @@ class PipelineStepRunAlignment(PipelineStep):
                     "-t", str(threads),
                     "--max-mismatches=40",
                     "-D", index_path,
-                    "-d", genome_name,
+                    "-d", self.genome_name,
                     "-o", output_path,
                     ] + input_paths
         else:
