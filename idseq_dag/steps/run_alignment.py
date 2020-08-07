@@ -207,12 +207,18 @@ class PipelineStepRunAlignment(PipelineStep):
         else:
             gsnap_command = None
 
+        # rapsearch2 expects the filename of the primary file, but still depends on the .info file being a sibbling
+        if self.alignment_algorithm == "rapsearch2":
+            for filename in os.listdir(index_path):
+                if not filename.endswith(".info"):
+                    index_path = filename
+
         cmd = self._get_command(
-            gsnap_command,
             index_path,
             input_fas,
             output_m8,
-            threads=multiprocessing.cpu_count()
+            threads=multiprocessing.cpu_count(),
+            gsnap_command=gsnap_command
         )
         log.write(f"running command {cmd}")
         run(cmd, check=True)
@@ -470,7 +476,7 @@ class PipelineStepRunAlignment(PipelineStep):
         else:
             log.write(f"no hits in output file {chunk_output_filename}")
 
-    def _get_command(self, gsnap_command, index_path, input_paths, output_path, threads=None):
+    def _get_command(self, index_path, input_paths, output_path, threads=None, gsnap_command="gsnapl"):
         if not threads:
             threads = 48 if self.alignment_algorithm == "gsnap" else 24
         if self.alignment_algorithm == "gsnap":
@@ -545,7 +551,7 @@ class PipelineStepRunAlignment(PipelineStep):
         }]
 
         input_paths = [f"local_input_{i}" for i, _ in enumerate(input_files)]
-        command = self._get_command("gsnapl", "/references/reference", input_paths, "local_output")
+        command = self._get_command("/references/reference", input_paths, "local_output")
 
         try:
             job_id = self._run_batch_job(
