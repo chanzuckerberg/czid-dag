@@ -227,7 +227,7 @@ Changes to X or Y force recomputation of all results when a sample is rerun usin
 When releasing a new version, please add a Git tag of the form `vX.Y.Z`.
 
 - 4.11.7
-  - Add optional parameter to control running gsnap vs gsnapl
+  - Support local non-host alignment
 
 - 4.11.7
   - Replace references to idseq-database with idseq-public-references
