@@ -1,7 +1,7 @@
 # Historical IDseq workflows
 ----------------------------
 Please see https://github.com/chanzuckerberg/idseq-workflows for IDseq workflows. This repository is no longer maintained, and is made available for
-historical reasons only.
+historical purposes only.
 
 ----------------------------
 
