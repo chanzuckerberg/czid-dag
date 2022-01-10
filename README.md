@@ -1,12 +1,13 @@
-# Historical IDseq workflows
+# Historical CZ ID workflows
 ----------------------------
-Please see https://github.com/chanzuckerberg/idseq-workflows for IDseq workflows. This repository is no longer maintained, and is made available for
+Please see https://github.com/chanzuckerberg/czid-workflows for CZ ID workflows. This repository is no longer maintained, and is made available for
 historical purposes only.
 
 ----------------------------
+This repo is formerly known as idseq-dag
 
 #### Infectious Disease Sequencing Platform
-IDseq is a hypothesis-free global software platform that helps scientists identify pathogens in metagenomic sequencing data.
+CZ ID is a hypothesis-free global software platform that helps scientists identify pathogens in metagenomic sequencing data.
 
 - **Discover** - Identify the pathogen landscape
 - **Detect** - Monitor and review potential outbreaks
@@ -20,9 +21,9 @@ Check out our repositories:
 - [idseq-cli](https://github.com/chanzuckerberg/idseq-cli) - Command line upload interface
 - [idseq-bench](https://github.com/chanzuckerberg/idseq-bench) - Pipeline benchmarking tools
 
-## IDSEQ-DAG
+## CZID-DAG
 
-idseq_dag is the pipeline execution engine for idseq (see idseq.net). It is a pipelining system that implements a directed acyclic graph (DAG) where the nodes (steps) correspond to individual python classes. The graph is defined using JSON.
+czid_dag is the pipeline execution engine for CZ ID (see czid.org). It is a pipelining system that implements a directed acyclic graph (DAG) where the nodes (steps) correspond to individual python classes. The graph is defined using JSON.
 
 The pipeline would be executed locally with local machine resources. idseq-dag could be installed inside a docker container and run inside the container. See the [Dockerfile](Dockerfile) for our setup.  More details could be found below.
 
